@@ -1,7 +1,7 @@
 <?php
 add_shortcode('ukpa_calculator', 'render_ukpa_calculator_shortcode');
 
-function render_ukpa_calculator_shortcode($atts) {
+function render_ukpa_calculator_shortcode($atts = []) {
     $atts = shortcode_atts([
         'id' => ''
     ], $atts);
@@ -9,6 +9,11 @@ function render_ukpa_calculator_shortcode($atts) {
     $calc_id = sanitize_text_field($atts['id']);
     $option_key = 'ukpa_calc_' . $calc_id;
     $data = get_option($option_key);
+
+    // ✅ Register calculator ID for wp_head injection
+    global $ukpa_calc_ids_to_inject;
+    if (!isset($ukpa_calc_ids_to_inject)) $ukpa_calc_ids_to_inject = [];
+    $ukpa_calc_ids_to_inject[] = $calc_id;
 
     if (!$data || !isset($data['elements']) || !is_array($data['elements'])) {
         return '<div class="ukpa-calculator-error">⚠️ Calculator not found. Please contact the admin: ' . esc_html($option_key) . '</div>';
@@ -25,8 +30,7 @@ function render_ukpa_calculator_shortcode($atts) {
                         <?php
                             $config = $el['config'] ?? [];
                             $id = esc_attr($el['id']);
-                            $hasConditions = isset($config['conditions']) && !empty($config['conditions']['rules']);
-                            $style = $hasConditions ? 'display:none;' : '';
+                            $style = (!empty($config['conditions']['rules'])) ? 'display:none;' : '';
                         ?>
                         <div class="ukpa-element"
                              data-id="<?= $id ?>"
@@ -47,8 +51,7 @@ function render_ukpa_calculator_shortcode($atts) {
                             <?php
                                 $config = $el['config'] ?? [];
                                 $id = esc_attr($el['id']);
-                                $hasConditions = isset($config['conditions']) && !empty($config['conditions']['rules']);
-                                $style = $hasConditions ? 'display:none;' : '';
+                                $style = (!empty($config['conditions']['rules'])) ? 'display:none;' : '';
                                 $html = preg_replace('/<div class="ukpa-admin-id-label">.*?<\/div>/', '', $el['html']);
                                 $html = preg_replace('/<(input|select|textarea)([^>]+)>/i', '<$1 name="' . $id . '"$2>', $html);
                             ?>
@@ -61,8 +64,6 @@ function render_ukpa_calculator_shortcode($atts) {
                             </div>
                         <?php endif; ?>
                     <?php endforeach; ?>
-
-                    <!-- Reset button section -->
                     <div class="ab-btn-div">
                         <button type="button" class="ab-reset-button" onclick="resetForm()">Reset</button>
                     </div>
@@ -72,15 +73,13 @@ function render_ukpa_calculator_shortcode($atts) {
             <!-- RIGHT: Result section -->
             <div class="main-result-container" id="main-result-container" style="display: none;">
                 <div class="ab-result-wrapper">
-                    <!-- Top: Result Output -->
                     <div class="ab-result" id="ab-result-container">
                         <?php foreach ($data['elements'] as $el): ?>
                             <?php if ($el['section'] === 'results'): ?>
                                 <?php
                                     $config = $el['config'] ?? [];
                                     $id = esc_attr($el['id']);
-                                    $hasConditions = isset($config['conditions']) && !empty($config['conditions']['rules']);
-                                    $style = $hasConditions ? 'display:none;' : '';
+                                    $style = (!empty($config['conditions']['rules'])) ? 'display:none;' : '';
                                     $html = preg_replace('/<div class="ukpa-admin-id-label">.*?<\/div>/', '', $el['html']);
                                     $html = preg_replace('/<(input|select|textarea)([^>]+)>/i', '<$1 name="' . $id . '"$2>', $html);
                                 ?>
@@ -95,7 +94,7 @@ function render_ukpa_calculator_shortcode($atts) {
                         <?php endforeach; ?>
                     </div>
 
-                    <!-- Bottom: Lead Form -->
+                    <!-- Lead form -->
                     <form class="ab-lead-form" onsubmit="handleLeadSubmit(event)">
                         <div class="ab-lead-fields">
                             <div class="ab-lead-input-group">
@@ -129,8 +128,7 @@ function render_ukpa_calculator_shortcode($atts) {
                 <?php
                     $config = $el['config'] ?? [];
                     $id = esc_attr($el['id']);
-                    $hasConditions = isset($config['conditions']) && !empty($config['conditions']['rules']);
-                    $style = $hasConditions ? 'display:none;' : '';
+                    $style = (!empty($config['conditions']['rules'])) ? 'display:none;' : '';
                     $html = preg_replace('/<div class="ukpa-admin-id-label">.*?<\/div>/', '', $el['html']);
                     $html = preg_replace('/<(input|select|textarea)([^>]+)>/i', '<$1 name="' . $id . '"$2>', $html);
                 ?>
@@ -146,14 +144,5 @@ function render_ukpa_calculator_shortcode($atts) {
     </div>
 
     <?php
-    // ✅ Inject custom CSS and JS (if available)
-    if (!empty($data['ukpa_builder_css'])) {
-        echo '<style>' . $data['ukpa_builder_css'] . '</style>';
-    }
-
-    if (!empty($data['ukpa_builder_js'])) {
-        echo '<script>document.addEventListener("DOMContentLoaded", function() {' . $data['ukpa_builder_js'] . '});</script>';
-    }
-
     return ob_get_clean();
 }

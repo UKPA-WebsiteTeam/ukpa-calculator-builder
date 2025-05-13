@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", function () {
 		});
 	}
 
-	// 📊 Render Bar Charts and other result items
+	// 📊 Render Bar Charts
 	function renderResults() {
 		document.querySelectorAll('.ab-bar-chart').forEach(canvas => {
 			const ctx = canvas.getContext('2d');
@@ -67,10 +67,43 @@ document.addEventListener("DOMContentLoaded", function () {
 		});
 	}
 
-	// 👂 Bind input triggers to activate layout and charts
+	// 📡 Send input data to backend
+	function sendToBackend(inputs) {
+		if (!ukpa_api_data?.base_url || !ukpa_api_data?.plugin_token) {
+			console.warn('Missing plugin token or API URL.');
+			return;
+		}
+
+		const payload = {
+			calcId: window.ukpaCalculatorId || 'unknown',
+			inputs: inputs
+		};
+
+		fetch('http://localhost:3002/ana/v1/routes/mainRouter/testRoute', {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			'X-Plugin-Auth': 'your-secret-token'
+		},
+		body: JSON.stringify({ some: 'data' })
+		})
+
+		.then(res => res.json())
+		.then(data => {
+			console.log('✅ Backend response:', data);
+			// TODO: Update chart or output elements using this data
+		})
+		.catch(err => {
+			console.error('❌ Backend error:', err);
+		});
+	}
+
+	// 👂 Bind input triggers
 	function bindInputTriggers() {
 		const inputs = inputBox?.querySelectorAll("input, select");
-		inputs?.forEach(input => {
+		if (!inputs) return;
+
+		inputs.forEach(input => {
 			input.addEventListener("input", () => {
 				if (!hasSwitched) {
 					if (contentSection) contentSection.style.display = "none";
@@ -80,6 +113,17 @@ document.addEventListener("DOMContentLoaded", function () {
 					renderResults(); // render charts on first input
 				}
 				applyAllConditions();
+
+				// Send all input values
+				const collected = {};
+				inputs.forEach(el => {
+					if (el.type === 'checkbox') {
+						collected[el.name] = el.checked;
+					} else {
+						collected[el.name] = el.value;
+					}
+				});
+				sendToBackend(collected);
 			});
 		});
 	}
@@ -92,10 +136,8 @@ document.addEventListener("DOMContentLoaded", function () {
 			return;
 		}
 
-		// Reset input values
 		form.querySelectorAll('input, select, textarea').forEach(field => {
 			const tag = field.tagName.toLowerCase();
-
 			if (tag === 'select') {
 				const fallback = field.getAttribute('data-reset-default');
 				field.value = fallback || field.options?.[0]?.value || '';
@@ -106,38 +148,26 @@ document.addEventListener("DOMContentLoaded", function () {
 			}
 		});
 
-		// Reset result chart
 		document.querySelectorAll('.ab-bar-chart').forEach(canvas => {
 			const ctx = canvas.getContext('2d');
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 		});
 
-		// Reset main result values
-		document.querySelectorAll('.ab-main-result-value').forEach(el => el.textContent = '--');
-
-		// Clear breakdown tables
-		document.querySelectorAll('.ab-breakdown-table').forEach(el => el.innerHTML = '');
-
-
-		// Reset result values
 		document.querySelectorAll('.ab-main-result-value').forEach(el => el.textContent = '--');
 		document.querySelectorAll('.ab-breakdown-table').forEach(el => el.innerHTML = '');
 
-		// Reset layout display
 		if (contentSection) contentSection.style.display = "block";
 		if (resultContainer) resultContainer.style.display = "none";
 		if (inputBox) inputBox.style.width = "35%";
 
-		// Reset state
 		hasSwitched = false;
 
-		// Reapply logic + bind events
 		applyAllConditions();
 		bindInputTriggers();
 		renderResults();
 	};
 
-	// 🔁 Initial page setup
+	// 🔁 Initial load
 	applyAllConditions();
 	bindInputTriggers();
 	renderResults();

@@ -32,7 +32,7 @@ function handle_ukpa_save_calculator() {
 
     update_option('ukpa_calc_' . $calc_id, $final_data);
     error_log("Saving calc: " . print_r($_POST, true));
-wp_send_json_success(['message' => 'Calculator saved successfully']);
+    wp_send_json_success(['message' => 'Calculator saved successfully']);
     wp_send_json_success([
         'message' => 'Saved successfully!',
         'redirect_url' => admin_url("admin.php?page=ukpa-calculator-add-new&calc_id=" . urlencode($calc_id))
