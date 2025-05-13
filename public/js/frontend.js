@@ -69,34 +69,46 @@ document.addEventListener("DOMContentLoaded", function () {
 
 	// 📡 Send input data to backend
 	function sendToBackend(inputs) {
-		if (!ukpa_api_data?.base_url || !ukpa_api_data?.plugin_token) {
-			console.warn('Missing plugin token or API URL.');
-			return;
-		}
+	if (!ukpa_api_data?.base_url || !ukpa_api_data?.plugin_token) {
+		console.warn('Missing plugin token or API URL.');
+		return;
+	}
 
-		const payload = {
-			calcId: window.ukpaCalculatorId || 'unknown',
-			inputs: inputs
-		};
+	const payload = {
+		calcId: window.ukpaCalculatorId || 'unknown',
+		inputs: inputs
+	};
 
-		fetch('http://localhost:3002/ana/v1/routes/mainRouter/testRoute', {
+	fetch(`${ukpa_api_data.base_url}/routes/mainRouter/testRoute`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
-			'X-Plugin-Auth': 'your-secret-token'
+			'X-Plugin-Auth': ukpa_api_data.plugin_token
 		},
-		body: JSON.stringify({ some: 'data' })
-		})
-
-		.then(res => res.json())
-		.then(data => {
-			console.log('✅ Backend response:', data);
-			// TODO: Update chart or output elements using this data
-		})
-		.catch(err => {
-			console.error('❌ Backend error:', err);
-		});
+		body: JSON.stringify(payload)
+	})
+	.then(res => res.text())
+	.then(text => {
+	console.log("Raw Response:", text);
+	try {
+		const data = JSON.parse(text);
+		console.log("Parsed JSON:", data);
+	} catch (e) {
+		console.error("❌ Not JSON - likely an error page");
 	}
+	});
+
+	// .then(data => {
+	// 	if (data.success) {
+	// 		console.log(`✅ Success: ${data.message || 'Response received successfully.'}`);
+	// 	} else {
+	// 		console.warn(`⚠️ Response received but not successful: ${data.message || 'No details provided.'}`);
+	// 	}
+	// })
+	// .catch(err => {
+	// 	console.error('❌ Backend error:', err);
+	// });
+}
 
 	// 👂 Bind input triggers
 	function bindInputTriggers() {
@@ -110,11 +122,11 @@ document.addEventListener("DOMContentLoaded", function () {
 					if (resultContainer) resultContainer.style.display = "flex";
 					if (inputBox) inputBox.style.width = "60%";
 					hasSwitched = true;
-					renderResults(); // render charts on first input
+					renderResults();
 				}
 				applyAllConditions();
 
-				// Send all input values
+				// Collect all input values
 				const collected = {};
 				inputs.forEach(el => {
 					if (el.type === 'checkbox') {

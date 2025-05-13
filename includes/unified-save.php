@@ -1,6 +1,7 @@
 <?php
 // Handle unified save from both Save button and Ctrl+S
-add_action('wp_ajax_ukpa_unified_save_calculator', 'ukpa_unified_save_calculator');
+add_action('wp_ajax_nopriv_ukpa_unified_save_calculator', 'ukpa_unified_save_calculator');
+
 
 function ukpa_unified_save_calculator() {
   check_ajax_referer('ukpa_save_calc_nonce');

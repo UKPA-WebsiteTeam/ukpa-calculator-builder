@@ -108,3 +108,17 @@ add_action('admin_init', function () {
         }
     }
 });
+
+add_action('admin_menu', function () {
+    add_menu_page(
+        'UKPA Settings',
+        'UKPA Settings',
+        'manage_options',
+        'ukpa-settings',
+        function () {
+            include UKPA_CALC_PATH . '../admin/settings.php';
+        },
+        'dashicons-admin-generic',
+        80
+    );
+});

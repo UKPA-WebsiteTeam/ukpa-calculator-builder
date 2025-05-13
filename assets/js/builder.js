@@ -131,29 +131,42 @@ function saveCalculatorLayout() {
   formData.append('elements', JSON.stringify(elements));
   formData.append('custom_css', document.getElementById('ukpa_custom_css')?.value || '');
   formData.append('custom_js', document.getElementById('ukpa_custom_js')?.value || '');
-  formData.append('_wpnonce', ukpaSaveNonce);
+  formData.append('_wpnonce', ukpa_calc_data.nonce); // ✅
+
 
   fetch(ukpa_calc_data.ajaxurl, {
     method: 'POST',
-    body: formData
+    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    body: formData,
   })
-    .then(res => res.json())
-    .then(data => {
-      const toast = document.getElementById('ukpa-toast');
-      if (toast) {
-        toast.style.display = 'block';
-        setTimeout(() => toast.style.display = 'none', 2000);
+    .then(res => res.text())
+    .then(text => {
+      console.log("Raw Response:", text);
+      try {
+        const data = JSON.parse(text);
+        console.log("Parsed JSON:", data);
+      } catch (e) {
+        console.error("❌ Not JSON - likely an error page");
       }
-      if (data.success && data.data.redirect_url) {
-        window.location.href = data.data.redirect_url;
-      } else {
-        document.getElementById('ukpa-save-status').innerText = '✅ Saved!';
-      }
-      isDirty = false;
-    })
-    .catch(() => {
-      document.getElementById('ukpa-save-status').innerText = '❌ Save failed.';
     });
+
+    // .then(res => res.json())
+    // .then(data => {
+    //   const toast = document.getElementById('ukpa-toast');
+    //   if (toast) {
+    //     toast.style.display = 'block';
+    //     setTimeout(() => toast.style.display = 'none', 2000);
+    //   }
+    //   if (data.success && data.data.redirect_url) {
+    //     window.location.href = data.data.redirect_url;
+    //   } else {
+    //     document.getElementById('ukpa-save-status').innerText = '✅ Saved!';
+    //   }
+    //   isDirty = false;
+    // })
+    // .catch(() => {
+    //   document.getElementById('ukpa-save-status').innerText = '❌ Save failed.';
+    // });
 }
 
 
