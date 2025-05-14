@@ -33,6 +33,17 @@ add_action('admin_enqueue_scripts', function () {
     wp_enqueue_style('ukpa-calc-admin-css', UKPA_CALC_URL . 'assets/css/admin.css');
     wp_enqueue_script('ukpa-calc-builder-js', UKPA_CALC_URL . 'assets/js/builder.js', [], '1.0', true);
 
+    // ✅ Define plugin token and base URL
+    $plugin_token = get_option('ukpa_plugin_token', '');
+    $api_base_url = 'http://localhost:3002/ana/v1';
+
+    wp_localize_script('ukpa-calc-builder-js', 'ukpa_api_data', [
+        'ajaxurl'      => admin_url('admin-ajax.php'),
+        'plugin_token' => $plugin_token,
+        'base_url'     => $api_base_url,
+        'nonce'        => wp_create_nonce('ukpa_save_calc_nonce'),
+    ]);
+
     wp_localize_script('ukpa-calc-builder-js', 'ukpa_calc_data', [
         'ajaxurl' => admin_url('admin-ajax.php'),
         'nonce'   => wp_create_nonce('ukpa_save_calc_nonce'),
@@ -63,5 +74,3 @@ add_action('wp_enqueue_scripts', function () {
         ]);
     }
 });
-
-

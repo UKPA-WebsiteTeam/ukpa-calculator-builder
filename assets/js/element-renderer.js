@@ -31,19 +31,17 @@ export function generateElementHTML(type, id, config = {}) {
     html = `<iframe src="${config.url || ''}" frameborder="0" allowfullscreen></iframe>`;
   } else if (type === 'link') {
     html = `<a href="${config.href || '#'}" target="_blank">${config.label || 'Link'}</a>`;
-  } else if (type === 'mainResult') {
+  } if (type === 'mainResult') {
+    const key = config.dynamicResult || '';
+    const display = window.ukpaResults?.[key] ?? '--';
+
     html = `
-      <div class="ab-main-result-wrapper">
-        <div class="ab-main-result-header">
-          <div class="ab-main-result-label">${config.label || 'Result'}</div>
-          <div class="ab-main-result-value" id="${id}" data-result-key="${config.resultKey || id}">--</div>
-        </div>
-        <div class="ab-main-result-subtext">Enter contact details below to receive more detailed result in your email.</div>
-        <div class="ab-main-result-bar"></div>
-        ${generateResultDropdown(config)}
-      </div>
-    `;
-  } else if (type === 'breakdown') {
+      <div class="ab-main-result">
+        <label class="ab-result-label">${config.label || 'Main Result'}</label>
+        <div class="ab-main-result-value" data-key="${key}">${display}</div>
+        <div class="ab-result-note">Enter contact details below to receive more detailed result in your email.</div>
+      </div>`;
+  }else if (type === 'breakdown') {
     html = `
       <div class="ab-breakdown-wrapper">
         <label class="ab-breakdown-label">${config.label || 'Breakdown'}</label>

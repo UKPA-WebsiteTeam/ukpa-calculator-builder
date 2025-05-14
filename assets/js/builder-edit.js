@@ -201,6 +201,43 @@ export function editElementById(id) {
     wrapper.appendChild(renderConditionalLogicEditor(config, saveConfig));
   }
 
+    // 🧠 Pre-fill config.options for result elements if not already set
+  const resultTypes = ['mainResult', 'breakdown', 'barChart'];
+  if (resultTypes.includes(type) && (!config.options || config.options.length === 0)) {
+    const storedKeys = window.ukpa_dynamic_result_keys || [];
+    config.options = storedKeys;
+  }
+
+    const dynamicGroup = document.createElement("div");
+    dynamicGroup.className = "ukpa-editor-field";
+
+    const dynamicLabel = document.createElement("label");
+    dynamicLabel.textContent = "Dynamic Result Value:";
+
+    const dynamicSelect = document.createElement("select");
+    dynamicSelect.className = "ukpa-input";
+    dynamicSelect.id = "ukpa-dynamic-result";
+    dynamicSelect.innerHTML = `<option value="">-- Select --</option>`;
+
+    // ✅ Populate from config.options (set during API Test or from DB)
+    (config.options || []).forEach(key => {
+      const opt = document.createElement("option");
+      opt.value = key;
+      opt.textContent = key;
+      if (config.dynamicResult === key) opt.selected = true;
+      dynamicSelect.appendChild(opt);
+    });
+
+    dynamicSelect.addEventListener("change", () => {
+      config.dynamicResult = dynamicSelect.value;
+      saveConfig();
+    });
+
+    dynamicGroup.appendChild(dynamicLabel);
+    dynamicGroup.appendChild(dynamicSelect);
+    wrapper.appendChild(dynamicGroup);
+
+
   // Save and update preview
   function saveConfig() {
     el.setAttribute('data-config', JSON.stringify(config));

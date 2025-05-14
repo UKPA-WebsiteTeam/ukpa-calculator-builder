@@ -32,6 +32,9 @@ $route = $data['route'] ?? '';
     <?php endif; ?>
   });
 </script>
+<script>
+  window.ukpa_dynamic_result_keys = <?php echo json_encode($data['dynamicResultKeys'] ?? []); ?>;
+</script>
 
 <div class="ukpa-builder-header">
   <h1>Edit Calculator: <?php echo esc_html($title); ?></h1>
@@ -56,7 +59,7 @@ $route = $data['route'] ?? '';
             <option value="ated/calculate" <?php selected($route, 'ated/calculate'); ?>>ATED Calculator</option>
             <option value="cgt/calculate" <?php selected($route, 'cgt/calculate'); ?>>CGT Calculator</option>
             <option value="prr/calculate" <?php selected($route, 'prr/calculate'); ?>>PRR Calculator</option>
-            <option value="salary" <?php selected($route, 'salary'); ?>>Salary Tax Calculator</option>
+            <option value="Salary" <?php selected($route, 'Salary'); ?>>Salary Tax Calculator</option>
           </select>
         </div>
       </div>
@@ -261,7 +264,8 @@ $route = $data['route'] ?? '';
 <script type="module">
   window.ukpaCalculatorId = '<?php echo esc_js($calc_id); ?>';
   window.ukpaSaveNonce = '<?php echo wp_create_nonce("ukpa_save_calc_nonce"); ?>';
-  import('<?php echo plugin_dir_url(__FILE__); ?>../assets/js/builder.js?ver=<?php echo time(); ?>');
+
+  import('<?php echo plugins_url('assets/js/builder.js', dirname(__FILE__)); ?>?ver=<?php echo time(); ?>');
 
   function toggleBox(id) {
     const body = document.getElementById(id);
@@ -333,48 +337,122 @@ $route = $data['route'] ?? '';
     testButton.style.marginLeft = "12px";
     saveBtn.parentNode.insertBefore(testButton, saveBtn.nextSibling);
 
-    testButton.addEventListener("click", async () => {
-      const inputs = document.querySelectorAll("#inputs-preview .ukpa-element input, #inputs-preview .ukpa-element select, #inputs-preview .ukpa-element textarea");
-      const payload = {};
-      inputs.forEach(el => {
-        const id = el.name || el.getAttribute("data-id");
-        if (id) payload[id] = el.value;
-      });
+    testButton.addEventListener("click", async (e) => {
+      e.preventDefault(); // ✅ Prevent page reload
+
+      if (typeof ukpa_api_data === 'undefined') {
+        console.error("❌ ukpa_api_data is not defined. Ensure wp_localize_script is working.");
+        alert("API config missing. Please reload the page or contact admin.");
+        return;
+      }
 
       const route = document.getElementById("ukpa-backend-route")?.value;
       if (!route) return alert("Please select a backend route first.");
 
+      const fullUrl = `${ukpa_api_data.base_url}/routes/mainRouter/${route}`;
+
+      // 🔁 Build payload using config.name or config.label
+      const inputs = document.querySelectorAll("#inputs-preview .ukpa-element input, #inputs-preview .ukpa-element select, #inputs-preview .ukpa-element textarea");
+      const payload = {};
+
+      inputs.forEach(el => {
+        const wrapper = el.closest('.ukpa-element');
+        if (!wrapper) return;
+
+        const config = wrapper.dataset.config ? JSON.parse(wrapper.dataset.config) : {};
+        const paramName = config.name?.trim() || config.label?.trim();
+        const value = el.type === 'checkbox' ? el.checked : el.value;
+
+        if (paramName && value !== '') {
+          payload[paramName] = value;
+        }
+      });
+
+      console.log("📤 Sending to backend:", payload);
+      console.log("📡 Backend Route:", fullUrl);
+
       try {
-        const response = await fetch("http://localhost:3002/ana/v1/" + route, {
+        const response = await fetch(fullUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Plugin-Token": ukpa_api_data.plugin_token
+            "X-Plugin-Auth": ukpa_api_data.plugin_token
           },
+          credentials: 'include',
           body: JSON.stringify(payload)
         });
 
-        const result = await response.json();
-        console.log("🧪 Test API result:", result);
+        console.log("📥 Raw response:", response);
 
-        if (Array.isArray(result.Results)) {
-          const resultDropdowns = document.querySelectorAll("#results-preview select.dynamic-result-options");
+        const result = await response.json();
+        console.log("✅ Parsed response:", result);
+
+        if (!response.ok) {
+          console.warn("🟡 Backend returned error:", result.message || result);
+          return;
+        }
+
+        // ✅ Only handle if result.result exists
+        if (result.result && typeof result.result === 'object') {
+          const keys = Object.keys(result.result);
+
+          // ✅ Update all result element dropdowns
+          const resultDropdowns = document.querySelectorAll(".ukpa-element[data-type='mainResult'] select.dynamic-result-options, .ukpa-element[data-type='breakdown'] select.dynamic-result-options, .ukpa-element[data-type='barChart'] select.dynamic-result-options");
           resultDropdowns.forEach(dropdown => {
-            dropdown.innerHTML = "";
-            result.Results.forEach(opt => {
+            dropdown.innerHTML = `<option value="">-- Select --</option>`;
+            keys.forEach(key => {
               const option = document.createElement("option");
-              option.value = opt;
-              option.textContent = opt;
+              option.value = key;
+              option.textContent = key;
               dropdown.appendChild(option);
             });
           });
+
+          // ✅ Update settings panel dropdown (editor)
+          const editorDropdown = document.getElementById('ukpa-dynamic-result');
+          if (editorDropdown) {
+            editorDropdown.innerHTML = `<option value="">-- Select --</option>`;
+            keys.forEach(key => {
+              const option = document.createElement("option");
+              option.value = key;
+              option.textContent = key;
+              editorDropdown.appendChild(option);
+            });
+          }
+
+          // ✅ Save keys to DB for this calculator
+          const metaPayload = new FormData();
+          metaPayload.append('action', 'ukpa_save_result_keys');
+          metaPayload.append('calc_id', window.ukpaCalculatorId);
+          metaPayload.append('keys', JSON.stringify(keys));
+          metaPayload.append('_wpnonce', ukpa_api_data.nonce);
+
+          fetch(ukpa_api_data.ajaxurl, {
+            method: 'POST',
+            body: metaPayload
+          })
+          .then(res => res.json())
+          .then(json => {
+            if (json.success) {
+              console.log('🧠 Result keys saved to DB:', json.data.saved);
+            } else {
+              console.warn('⚠️ Failed to save result keys to DB:', json.data.message);
+            }
+          })
+          .catch(err => {
+            console.error('❌ AJAX save error:', err);
+          });
         }
       } catch (err) {
-        console.error("❌ Test API failed:", err);
-        alert("Test API request failed.");
+        console.error("❌ Fetch error:", err);
+        alert("Test API request failed. See console for details.");
       }
     });
+
+
+
   });
 </script>
+
 
 </div>

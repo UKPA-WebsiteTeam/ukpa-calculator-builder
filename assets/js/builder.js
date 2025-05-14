@@ -149,24 +149,6 @@ function saveCalculatorLayout() {
         console.error("❌ Not JSON - likely an error page");
       }
     });
-
-    // .then(res => res.json())
-    // .then(data => {
-    //   const toast = document.getElementById('ukpa-toast');
-    //   if (toast) {
-    //     toast.style.display = 'block';
-    //     setTimeout(() => toast.style.display = 'none', 2000);
-    //   }
-    //   if (data.success && data.data.redirect_url) {
-    //     window.location.href = data.data.redirect_url;
-    //   } else {
-    //     document.getElementById('ukpa-save-status').innerText = '✅ Saved!';
-    //   }
-    //   isDirty = false;
-    // })
-    // .catch(() => {
-    //   document.getElementById('ukpa-save-status').innerText = '❌ Save failed.';
-    // });
 }
 
 

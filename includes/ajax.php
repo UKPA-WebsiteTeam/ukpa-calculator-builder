@@ -38,3 +38,20 @@ function handle_ukpa_save_calculator() {
         'redirect_url' => admin_url("admin.php?page=ukpa-calculator-add-new&calc_id=" . urlencode($calc_id))
     ]);
 }
+
+add_action('wp_ajax_ukpa_save_result_keys', function () {
+  check_ajax_referer('ukpa_save_calc_nonce');
+
+  $calc_id = sanitize_text_field($_POST['calc_id']);
+  $keys = json_decode(stripslashes($_POST['keys']), true);
+
+  if (!$calc_id || !is_array($keys)) {
+    wp_send_json_error(['message' => 'Invalid data']);
+  }
+
+  $data = get_option('ukpa_calc_' . $calc_id, []);
+  $data['dynamicResultKeys'] = array_values($keys);
+  update_option('ukpa_calc_' . $calc_id, $data);
+
+  wp_send_json_success(['saved' => $keys]);
+});
