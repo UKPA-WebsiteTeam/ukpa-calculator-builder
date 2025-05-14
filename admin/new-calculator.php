@@ -45,8 +45,24 @@ $route = $data['route'] ?? '';
       <input type="hidden" name="calc_id" value="<?php echo esc_attr($calc_id); ?>">
       <label for="ukpa-calc-title"><strong>📝 Calculator Name</strong></label>
       <input type="text" name="calc_title" id="ukpa-calc-title" class="regular-text" value="<?php echo esc_attr($title); ?>" style="min-width: 200px;">
+      
+      <div style="display: flex; flex-direction:row; align-items: center; gap: 10px;">
+        <label for="ukpa-backend-route" class="ukpa-label">Backend Route</label>
+        <div style="display: flex; flex-direction:row; gap: 10px; align-items: center;">
+          <select name="backend_route" id="ukpa-backend-route" class="ukpa-backend-dropdown">
+            <option value="">-- Select Route --</option>
+            <option value="ltt/calculate" <?php selected($route, 'ltt/calculate'); ?>>LTT Calculator</option>
+            <option value="sdlt/calculate" <?php selected($route, 'sdlt/calculate'); ?>>SDLT Calculator</option>
+            <option value="ated/calculate" <?php selected($route, 'ated/calculate'); ?>>ATED Calculator</option>
+            <option value="cgt/calculate" <?php selected($route, 'cgt/calculate'); ?>>CGT Calculator</option>
+            <option value="prr/calculate" <?php selected($route, 'prr/calculate'); ?>>PRR Calculator</option>
+            <option value="salary" <?php selected($route, 'salary'); ?>>Salary Tax Calculator</option>
+          </select>
+        </div>
+      </div>
       <button type="submit" id="ukpa-save-builder" class="button button-primary save-calculator">✅ Save Calculator</button>
-    </form>
+</form>
+    
   </div>
 
   <div class="ukpa-builder-layout">
@@ -191,39 +207,7 @@ $route = $data['route'] ?? '';
           <span class="toggle-indicator">↰</span>
         </div>
         <div id="ukpa-route-param-box" class="ukpa-settings-body">
-          <form method="post" style="display: flex; flex-direction: column; gap: 14px;" id="ukpa-calc-settings-route">
-            <?php wp_nonce_field('ukpa_update_calc_settings'); ?>
-            <input type="hidden" name="calc_id" value="<?php echo esc_attr($calc_id); ?>">
 
-            <div>
-              <label for="ukpa-backend-route" class="ukpa-label">Backend Route</label>
-              <div style="display: flex; gap: 10px; align-items: center;">
-                <select name="backend_route" id="ukpa-backend-route" class="ukpa-backend-dropdown">
-                  <option value="">-- Select Route --</option>
-                  <option value="ltt/calculate" <?php selected($route, 'ltt/calculate'); ?>>LTT Calculator</option>
-                  <option value="sdltt/calculate" <?php selected($route, 'sdltt/calculate'); ?>>SDLT Calculator</option>
-                  <option value="ated/calculate" <?php selected($route, 'ated/calculate'); ?>>ATED Calculator</option>
-                  <option value="cgt/calculate" <?php selected($route, 'cgt/calculate'); ?>>CGT Calculator</option>
-                  <option value="prr/calculate" <?php selected($route, 'prr/calculate'); ?>>PRR Calculator</option>
-                </select>
-                <button type="submit" class="button button-secondary">Update</button>
-              </div>
-            </div>
-
-            <div style="margin-top: 10px;">
-              <label class="ukpa-label">Required Parameters</label>
-              <div class="ukpa-param-section">
-                <div class="param-row">
-                  <div><strong>price</strong><div class="param-meta">number</div></div>
-                  <span class="param-tag required">Required</span>
-                </div>
-                <div class="param-row">
-                  <div><strong>buyerType</strong><div class="param-meta">string</div></div>
-                  <span class="param-tag optional">Optional</span>
-                </div>
-              </div>
-            </div>
-          </form>
         </div>
       </div>
 
@@ -274,7 +258,6 @@ $route = $data['route'] ?? '';
     </div>
   </div>
 
-  
 <script type="module">
   window.ukpaCalculatorId = '<?php echo esc_js($calc_id); ?>';
   window.ukpaSaveNonce = '<?php echo wp_create_nonce("ukpa_save_calc_nonce"); ?>';
@@ -298,7 +281,7 @@ $route = $data['route'] ?? '';
 
     function fullSaveHandler(e) {
       if (e) e.preventDefault();
-      if (saveBtn) saveBtn.click(); // trigger actual submit
+      if (saveBtn) saveBtn.click();
       if (typeof saveCalculatorLayout === "function") {
         saveCalculatorLayout();
       }
@@ -342,6 +325,55 @@ $route = $data['route'] ?? '';
         document.getElementById("ukpa-exit-warning-modal").style.display = "none";
       });
     }
+
+    // 🧪 Add "Test API" button
+    const testButton = document.createElement("button");
+    testButton.textContent = "🧪 Test API";
+    testButton.className = "button button-secondary";
+    testButton.style.marginLeft = "12px";
+    saveBtn.parentNode.insertBefore(testButton, saveBtn.nextSibling);
+
+    testButton.addEventListener("click", async () => {
+      const inputs = document.querySelectorAll("#inputs-preview .ukpa-element input, #inputs-preview .ukpa-element select, #inputs-preview .ukpa-element textarea");
+      const payload = {};
+      inputs.forEach(el => {
+        const id = el.name || el.getAttribute("data-id");
+        if (id) payload[id] = el.value;
+      });
+
+      const route = document.getElementById("ukpa-backend-route")?.value;
+      if (!route) return alert("Please select a backend route first.");
+
+      try {
+        const response = await fetch("http://localhost:3002/ana/v1/" + route, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Plugin-Token": ukpa_api_data.plugin_token
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        console.log("🧪 Test API result:", result);
+
+        if (Array.isArray(result.Results)) {
+          const resultDropdowns = document.querySelectorAll("#results-preview select.dynamic-result-options");
+          resultDropdowns.forEach(dropdown => {
+            dropdown.innerHTML = "";
+            result.Results.forEach(opt => {
+              const option = document.createElement("option");
+              option.value = opt;
+              option.textContent = opt;
+              dropdown.appendChild(option);
+            });
+          });
+        }
+      } catch (err) {
+        console.error("❌ Test API failed:", err);
+        alert("Test API request failed.");
+      }
+    });
   });
 </script>
 

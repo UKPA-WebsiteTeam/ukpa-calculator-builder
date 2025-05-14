@@ -177,42 +177,44 @@ export const ukpaElementDefinitions = {
     }
   },
 
-  // ======================
-  // 📊 Result + Logic Elements
-  // ======================
+ // 📊 Result + Logic Elements (updated)
   mainResult: {
     label: 'Main Result',
     icon: '💡',
-    fields: ['label', 'resultKey', 'conditions'],
+    fields: ['label', 'resultKey', 'resultDropdownKey', 'conditions'], // 👈 Add this
     default: {
       label: 'Main Result',
       resultKey: 'mainResult',
+      resultDropdownKey: '',
+      resultOptions: [], // 👈 Needed to render options
       conditions: []
     }
   },
-
-  barChart: {
-    label: '',
-    icon: '📈',
-    fields: ['label', 'resultKey', 'conditions'],
-    default: {
-      label: '',
-      resultKey: 'barChart',
-      conditions: []
-    }
-  },
-
   breakdown: {
     label: 'Breakdown Table',
     icon: '📊',
-    fields: ['label', 'resultKey', 'conditions'],
+    fields: ['label', 'resultKey', 'resultDropdownKey', 'conditions'],
     default: {
       label: 'Breakdown',
       resultKey: 'breakdown',
+      resultDropdownKey: '',
+      resultOptions: [],
       conditions: []
     }
   },
-
+  barChart: {
+    label: 'Bar Chart',
+    icon: '📈',
+    fields: ['label', 'resultKey', 'resultDropdownKey', 'conditions'],
+    default: {
+      label: 'Chart',
+      resultKey: 'chart',
+      resultDropdownKey: '',
+      resultOptions: [],
+      conditions: []
+    }
+  }
+  ,
   disclaimer: {
     label: 'Disclaimer',
     icon: '⚠️',

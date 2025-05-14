@@ -19,11 +19,15 @@ function render_ukpa_calculator_shortcode($atts = []) {
         return '<div class="ukpa-calculator-error">⚠️ Calculator not found. Please contact the admin: ' . esc_html($option_key) . '</div>';
     }
 
+    $backend_route = esc_js($data['route'] ?? '');
+
     ob_start();
     ?>
-    <!-- ✅ Inject calc ID for JS to access -->
+    <!-- ✅ Inject calc ID and backend route for JS to access -->
     <script>
         window.ukpaCalculatorId = "<?php echo esc_js($calc_id); ?>";
+        window.ukpa_api_data = window.ukpa_api_data || {};
+        window.ukpa_api_data.backend_route = "<?php echo $backend_route; ?>";
     </script>
 
     <div class="ab-main-wrapper">
@@ -147,7 +151,6 @@ function render_ukpa_calculator_shortcode($atts = []) {
             <?php endif; ?>
         <?php endforeach; ?>
     </div>
-
     <?php
     return ob_get_clean();
 }

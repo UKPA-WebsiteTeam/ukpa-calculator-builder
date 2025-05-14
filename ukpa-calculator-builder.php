@@ -27,10 +27,8 @@ require_once UKPA_CALC_PATH . 'includes/dashboard-frontend.php';
 require_once UKPA_CALC_PATH . 'includes/unified-save.php';
 require_once UKPA_CALC_PATH . 'includes/custom-assets-injector.php';
 
-// ✅ Inject custom CSS/JS if shortcode is present
 add_action('wp_head', 'ukpa_output_custom_calc_assets');
 
-// ✅ Admin scripts & styles
 add_action('admin_enqueue_scripts', function () {
     wp_enqueue_style('ukpa-calc-admin-css', UKPA_CALC_URL . 'assets/css/admin.css');
     wp_enqueue_script('ukpa-calc-builder-js', UKPA_CALC_URL . 'assets/js/builder.js', [], '1.0', true);
@@ -41,22 +39,29 @@ add_action('admin_enqueue_scripts', function () {
     ]);
 });
 
-// ✅ Frontend scripts & styles
 add_action('wp_enqueue_scripts', function () {
     if (!is_admin()) {
         wp_enqueue_style('ukpa-calc-frontend-css', UKPA_CALC_URL . 'public/css/frontend.css', [], '1.0');
         wp_enqueue_script('ukpa-calc-frontend-js', UKPA_CALC_URL . 'public/js/frontend.js', [], '1.0', true);
         wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js', [], '4.4.0', true);
 
-        // ✅ Load token and base URL
         $plugin_token = get_option('ukpa_plugin_token', '');
-        $site_url = get_site_url();
+
+        // ✅ Get the injected calculator ID from shortcode
+        global $ukpa_calc_ids_to_inject;
+        $calc_id = is_array($ukpa_calc_ids_to_inject) && count($ukpa_calc_ids_to_inject) > 0
+            ? sanitize_text_field($ukpa_calc_ids_to_inject[0])
+            : '';
+
+        $calc_data = get_option('ukpa_calc_' . $calc_id, []);
+        $backend_route = isset($calc_data['route']) ? $calc_data['route'] : 'testRoute';
 
         wp_localize_script('ukpa-calc-frontend-js', 'ukpa_api_data', [
-            'base_url'     => 'http://localhost:3002/ana/v1',
-            'plugin_token' => 'ukpa_8e4f2cbb9d',
+            'base_url'      => 'http://localhost:3002/ana/v1',
+            'plugin_token'  => $plugin_token,
+            'backend_route' => $backend_route,
         ]);
-
-
     }
 });
+
+

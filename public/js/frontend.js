@@ -6,7 +6,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
 	let hasSwitched = false;
 
-	// ✅ Conditional Logic Evaluator
 	function evaluateConditions(rules = []) {
 		return rules.every(rule => {
 			const field = document.getElementById(rule.field);
@@ -24,7 +23,6 @@ document.addEventListener("DOMContentLoaded", function () {
 		});
 	}
 
-	// 🧠 Apply All Conditions
 	function applyAllConditions() {
 		document.querySelectorAll('.ukpa-conditional').forEach(el => {
 			try {
@@ -37,7 +35,6 @@ document.addEventListener("DOMContentLoaded", function () {
 		});
 	}
 
-	// 📊 Render Bar Charts
 	function renderResults() {
 		document.querySelectorAll('.ab-bar-chart').forEach(canvas => {
 			const ctx = canvas.getContext('2d');
@@ -66,58 +63,72 @@ document.addEventListener("DOMContentLoaded", function () {
 			});
 		});
 	}
-
-	// 📡 Send input data to backend
-	function sendToBackend(inputs) {
-		if (!ukpa_api_data?.base_url || !ukpa_api_data?.plugin_token) {
-			console.warn('⚠️ Missing plugin token or API URL.');
-			return;
-		}
-
-		const payload = {};
-
-		for (const [elementId, value] of Object.entries(inputs)) {
-			const inputEl = document.querySelector(`[name="${elementId}"]`);
-			const wrapper = inputEl?.closest('.ukpa-element');
-			const config = wrapper ? JSON.parse(wrapper.dataset.config || '{}') : {};
-			const paramName = config.name?.trim() || config.label?.trim() || elementId;
-
-			if (paramName) {
-				payload[paramName] = value;
-			}
-		}
-
-		console.log("📤 Sending to backend:", payload);
-		const requestUrl = `${ukpa_api_data.base_url}/routes/mainRouter/salary`;
-		console.log("📡 Sending fetch to:", requestUrl);
-
-		fetch(requestUrl, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'X-Plugin-Auth': ukpa_api_data.plugin_token
-			},
-			credentials: 'include',
-			body: JSON.stringify(payload)
-		})
-		.then(async res => {
-			console.log("📥 Raw response:", res);
-			const data = await res.json();
-			console.log("✅ Parsed response:", data);
-
-			if (res.ok) {
-				console.log("🟢 Success:", data);
-				// TODO: Render actual result to UI
-			} else {
-				console.warn("🟡 Backend returned error:", data.message || data);
-			}
-		})
-		.catch(err => {
-			console.error("❌ Fetch error:", err);
-		});
+function sendToBackend(inputs) {
+	if (!ukpa_api_data?.base_url || !ukpa_api_data?.plugin_token) {
+		console.warn('⚠️ Missing plugin token or API URL.');
+		return;
 	}
 
-	// 👂 Bind input triggers
+	const payload = {};
+	for (const [elementId, value] of Object.entries(inputs)) {
+		const inputEl = document.querySelector(`[name="${elementId}"]`);
+		const wrapper = inputEl?.closest('.ukpa-element');
+		const config = wrapper ? JSON.parse(wrapper.dataset.config || '{}') : {};
+		const paramName = config.name?.trim() || config.label?.trim() || elementId;
+
+		if (paramName) {
+			payload[paramName] = value;
+		}
+	}
+
+	console.log("📤 Sending to backend:", payload);
+
+	const route = ukpa_api_data.backend_route;
+	const requestUrl = `${ukpa_api_data.base_url}/routes/mainRouter/${ukpa_api_data.backend_route}`;
+	console.log("📡 Sending fetch to:", requestUrl);
+
+	fetch(requestUrl, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			'X-Plugin-Auth': ukpa_api_data.plugin_token
+		},
+		credentials: 'include',
+		body: JSON.stringify(payload)
+	})
+	.then(async res => {
+    console.log("📥 Raw response:", res);
+    const data = await res.json();
+    console.log("✅ Parsed response:", data);
+
+    if (res.ok) {
+        console.log("🟢 Success:", data);
+
+        // ✅ Populate dynamic dropdowns from backend Results
+        if (data.Results && Array.isArray(data.Results)) {
+            const dropdowns = document.querySelectorAll(`.ukpa-result-dropdown[data-result-key]`);
+            dropdowns.forEach(dropdown => {
+                dropdown.innerHTML = ''; // Clear existing options
+                data.Results.forEach(option => {
+                    const opt = document.createElement('option');
+                    opt.value = option;
+                    opt.textContent = option;
+                    dropdown.appendChild(opt);
+                });
+            });
+        }
+
+    } else {
+        console.warn("🟡 Backend returned error:", data.message || data);
+    }
+	})
+
+	.catch(err => {
+		console.error("❌ Fetch error:", err);
+	});
+}
+
+
 	function bindInputTriggers() {
 		const inputs = inputBox?.querySelectorAll("input, select");
 		if (!inputs) return;
@@ -146,7 +157,6 @@ document.addEventListener("DOMContentLoaded", function () {
 		});
 	}
 
-	// 🔁 Reset Form Logic
 	window.resetForm = function () {
 		const form = inputBox?.querySelector('form');
 		if (!form) {

@@ -40,6 +40,7 @@ export function generateElementHTML(type, id, config = {}) {
         </div>
         <div class="ab-main-result-subtext">Enter contact details below to receive more detailed result in your email.</div>
         <div class="ab-main-result-bar"></div>
+        ${generateResultDropdown(config)}
       </div>
     `;
   } else if (type === 'breakdown') {
@@ -49,18 +50,20 @@ export function generateElementHTML(type, id, config = {}) {
         <div id="${id}" class="ab-breakdown-table" data-result-key="${config.resultKey || id}">
           <!-- Result rows will be inserted here dynamically -->
         </div>
-      </div>
-    `;
-  } else if (type === 'disclaimer') {
-    html = `
-      <div class="ab-disclaimer">
-        <strong class="ab-disclaimer-label">${config.label || 'Disclaimer'}</strong>
+        ${generateResultDropdown(config)}
       </div>
     `;
   } else if (type === 'barChart') {
     html = `
       <div class="ab-chart-wrapper">
         <canvas id="${id}" class="ab-bar-chart" data-result-key="${config.resultKey || id}"></canvas>
+        ${generateResultDropdown(config)}
+      </div>
+    `;
+  } else if (type === 'disclaimer') {
+    html = `
+      <div class="ab-disclaimer">
+        <strong class="ab-disclaimer-label">${config.label || 'Disclaimer'}</strong>
       </div>
     `;
   }
@@ -77,7 +80,26 @@ export function generateElementHTML(type, id, config = {}) {
   wrapperEl.innerHTML = html;
 
   return wrapperEl.outerHTML;
+
+  // 🟡 Local dropdown renderer for result selectors
+  function generateResultDropdown(config) {
+    const options = config.resultOptions || [];
+    const selected = config.resultDropdownKey || '';
+
+    const dropdown = options.map(opt => {
+      const isSelected = selected === opt ? 'selected' : '';
+      return `<option value="${opt}" ${isSelected}>${opt}</option>`;
+    }).join('');
+
+    return `
+      <div class="ab-result-selector">
+        <label>Choose Result Field:</label>
+        <select class="ukpa-result-dropdown dynamic-result-options">${dropdown}</select>
+      </div>
+    `;
+  }
 }
+
 
 export function evaluateConditions(rules = []) {
   return rules.every(rule => {
