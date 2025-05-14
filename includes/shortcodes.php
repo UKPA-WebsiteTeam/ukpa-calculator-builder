@@ -21,6 +21,11 @@ function render_ukpa_calculator_shortcode($atts = []) {
 
     ob_start();
     ?>
+    <!-- ✅ Inject calc ID for JS to access -->
+    <script>
+        window.ukpaCalculatorId = "<?php echo esc_js($calc_id); ?>";
+    </script>
+
     <div class="ab-main-wrapper">
         <div class="ab-wrapper">
             <!-- LEFT: Informative content section -->

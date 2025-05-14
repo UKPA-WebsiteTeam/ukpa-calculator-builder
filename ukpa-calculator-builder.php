@@ -53,8 +53,8 @@ add_action('wp_enqueue_scripts', function () {
         $site_url = get_site_url();
 
         wp_localize_script('ukpa-calc-frontend-js', 'ukpa_api_data', [
-            'base_url'     => $site_url,
-            'plugin_token' => $plugin_token,
+            'base_url'     => 'http://localhost:3002/ana/v1',
+            'plugin_token' => 'ukpa_8e4f2cbb9d',
         ]);
 
 

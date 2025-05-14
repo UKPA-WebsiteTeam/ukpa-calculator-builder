@@ -68,47 +68,50 @@ document.addEventListener("DOMContentLoaded", function () {
 	}
 
 	// 📡 Send input data to backend
-	function sendToBackend(inputs) {
-	if (!ukpa_api_data?.base_url || !ukpa_api_data?.plugin_token) {
-		console.warn('Missing plugin token or API URL.');
-		return;
-	}
+function sendToBackend(inputs) {
+    if (!ukpa_api_data?.base_url || !ukpa_api_data?.plugin_token) {
+        console.warn('⚠️ Missing plugin token or API URL.');
+        return;
+    }
 
-	const payload = {
-		calcId: window.ukpaCalculatorId || 'unknown',
-		inputs: inputs
-	};
+    const payload = {
+        calcId: window.ukpaCalculatorId || 'unknown',
+        inputs: inputs
+    };
 
-	fetch(`${ukpa_api_data.base_url}/routes/mainRouter/testRoute`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			'X-Plugin-Auth': ukpa_api_data.plugin_token
-		},
-		body: JSON.stringify(payload)
-	})
-	.then(res => res.text())
-	.then(text => {
-	console.log("Raw Response:", text);
-	try {
-		const data = JSON.parse(text);
-		console.log("Parsed JSON:", data);
-	} catch (e) {
-		console.error("❌ Not JSON - likely an error page");
-	}
-	});
+    console.log("📤 Sending to backend:", payload);
 
-	// .then(data => {
-	// 	if (data.success) {
-	// 		console.log(`✅ Success: ${data.message || 'Response received successfully.'}`);
-	// 	} else {
-	// 		console.warn(`⚠️ Response received but not successful: ${data.message || 'No details provided.'}`);
-	// 	}
-	// })
-	// .catch(err => {
-	// 	console.error('❌ Backend error:', err);
-	// });
+    const requestUrl = `${ukpa_api_data.base_url}/routes/mainRouter/salary`;
+	console.log("📡 Sending fetch to:", requestUrl);
+
+	fetch(requestUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Plugin-Auth': ukpa_api_data.plugin_token
+        },
+        credentials: 'include',
+        body: JSON.stringify(payload)
+    })
+    .then(res => {
+        console.log("📥 Raw response:", res);
+        return res.json();
+    })
+    .then(data => {
+        console.log("✅ Parsed response:", data);
+
+        if (data.success) {
+            // Replace with actual result rendering logic
+            console.log("🟢 Success:", data.result);
+        } else {
+            console.warn("🟡 Backend returned error:", data.message || data);
+        }
+    })
+    .catch(err => {
+        console.error("❌ Fetch error:", err);
+    });
 }
+
 
 	// 👂 Bind input triggers
 	function bindInputTriggers() {
