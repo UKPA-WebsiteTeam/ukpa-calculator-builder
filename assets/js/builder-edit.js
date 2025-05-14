@@ -52,6 +52,21 @@ export function editElementById(id) {
     });
     wrapper.appendChild(labelDiv);
   }
+  // Editable Name (Backend Label)
+  if (def.fields.includes('name')) {
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'ukpa-editor-field';
+    nameDiv.innerHTML = `
+      <label>Backend Label (Name)</label>
+      <input type="text" class="ukpa-input" value="${config.name || ''}" />
+    `;
+    const input = nameDiv.querySelector('input');
+    input.addEventListener('input', () => {
+      config.name = input.value;
+      saveConfig();
+    });
+    wrapper.appendChild(nameDiv);
+  }
 
   if (def.fields.includes('placeholder')) {
     const phDiv = document.createElement('div');

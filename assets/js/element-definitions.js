@@ -5,9 +5,10 @@ export const ukpaElementDefinitions = {
   number: {
     label: 'Number Field',
     icon: '🔢',
-    fields: ['label', 'placeholder', 'min', 'max', 'step', 'conditions'],
+    fields: ['label', 'name', 'placeholder', 'min', 'max', 'step', 'conditions'],
     default: {
       label: 'Number Field',
+      name: 'Number Field',
       placeholder: 'Enter number',
       min: '',
       max: '',
@@ -19,9 +20,10 @@ export const ukpaElementDefinitions = {
   text: {
     label: 'Text Field',
     icon: '🔤',
-    fields: ['label', 'placeholder', 'maxLength', 'conditions'],
+    fields: ['label', 'name', 'placeholder', 'maxLength', 'conditions'],
     default: {
       label: 'Text Field',
+      name: 'Text Field',
       placeholder: 'Enter text',
       maxLength: '100',
       conditions: []
@@ -31,9 +33,10 @@ export const ukpaElementDefinitions = {
   email: {
     label: 'Email Input',
     icon: '📧',
-    fields: ['label', 'placeholder', 'conditions'],
+    fields: ['label', 'name', 'placeholder', 'conditions'],
     default: {
       label: 'Email Field',
+      name: 'Email Field',
       placeholder: 'Enter your email',
       conditions: []
     }
@@ -42,9 +45,10 @@ export const ukpaElementDefinitions = {
   date: {
     label: 'Date Picker',
     icon: '📅',
-    fields: ['label', 'minDate', 'maxDate', 'conditions'],
+    fields: ['label', 'name', 'minDate', 'maxDate', 'conditions'],
     default: {
       label: 'Select a date',
+      name: 'Date Picker',
       minDate: '',
       maxDate: '',
       conditions: []
@@ -56,13 +60,15 @@ export const ukpaElementDefinitions = {
     icon: "⬇️",
     default: {
       label: "Select an option",
+      name: "Dropdown Selection",
       options: [
         { value: "yes", label: "Yes" },
         { value: "no", label: "No" }
       ],
-      defaultValue: "yes"
+      defaultValue: "yes",
+      conditions: []
     },
-    fields: ['label', 'placeholder', 'conditions']
+    fields: ['label', 'name', 'placeholder', 'conditions']
   },
 
   radio: {
@@ -70,22 +76,24 @@ export const ukpaElementDefinitions = {
     icon: "🔘",
     default: {
       label: "Choose one",
+      name: "Radio Group",
       options: [
         { value: "opt1", label: "Option 1" },
         { value: "opt2", label: "Option 2" }
       ],
-      defaultValue: "opt1"
+      defaultValue: "opt1",
+      conditions: []
     },
-    fields: ['label', 'conditions']
-  }
-  ,
+    fields: ['label', 'name', 'conditions']
+  },
 
   checkbox: {
     label: 'Checkbox / Toggle',
     icon: '☑️',
-    fields: ['label', 'checkedByDefault', 'conditions'],
+    fields: ['label', 'name', 'checkedByDefault', 'conditions'],
     default: {
       label: 'Accept terms',
+      name: 'Checkbox Label',
       checkedByDefault: false,
       conditions: []
     }
@@ -182,6 +190,7 @@ export const ukpaElementDefinitions = {
       conditions: []
     }
   },
+
   barChart: {
     label: '',
     icon: '📈',

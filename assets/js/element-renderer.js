@@ -1,24 +1,25 @@
-
 export function generateElementHTML(type, id, config = {}) {
   let html = '';
 
+  const dataAttr = `data-id="${id}" data-name="${config.name || config.label || id}"`;
+
   if (type === 'number' || type === 'text' || type === 'email') {
     html = `<label for="${id}">${config.label || ''}</label>
-            <input type="${type}" id="${id}" placeholder="${config.placeholder || ''}" class="ukpa-input" />`;
+            <input type="${type}" id="${id}" placeholder="${config.placeholder || ''}" class="ukpa-input" ${dataAttr} />`;
   } else if (type === 'dropdown') {
     const options = (config.options || []).map(opt => `<option>${opt}</option>`).join('');
     html = `<label for="${id}">${config.label || ''}</label>
-            <select id="${id}" class="ukpa-input">${options}</select>`;
+            <select id="${id}" class="ukpa-input" ${dataAttr}>${options}</select>`;
   } else if (type === 'radio') {
     const radios = (config.options || []).map(opt =>
-      `<label><input type="radio" name="${id}" value="${opt}" /> ${opt}</label>`
+      `<label><input type="radio" name="${id}" value="${opt}" ${dataAttr}/> ${opt}</label>`
     ).join('');
     html = `<div class="ukpa-radio-group"><strong>${config.label || ''}</strong><br />${radios}</div>`;
   } else if (type === 'checkbox') {
-    html = `<label><input type="checkbox" id="${id}" /> ${config.label || ''}</label>`;
+    html = `<label><input type="checkbox" id="${id}" ${dataAttr}/> ${config.label || ''}</label>`;
   } else if (type === 'date') {
     html = `<label for="${id}">${config.label || ''}</label>
-            <input type="date" id="${id}" class="ukpa-input" />`;
+            <input type="date" id="${id}" class="ukpa-input" ${dataAttr}/>`;
   } else if (type === 'header') {
     const level = config.level || 'h2';
     html = `<${level}>${config.label || 'Header'}</${level}>`;
@@ -30,7 +31,7 @@ export function generateElementHTML(type, id, config = {}) {
     html = `<iframe src="${config.url || ''}" frameborder="0" allowfullscreen></iframe>`;
   } else if (type === 'link') {
     html = `<a href="${config.href || '#'}" target="_blank">${config.label || 'Link'}</a>`;
-  }else if (type === 'mainResult') {
+  } else if (type === 'mainResult') {
     html = `
       <div class="ab-main-result-wrapper">
         <div class="ab-main-result-header">
@@ -41,7 +42,7 @@ export function generateElementHTML(type, id, config = {}) {
         <div class="ab-main-result-bar"></div>
       </div>
     `;
-  }else if (type === 'breakdown') {
+  } else if (type === 'breakdown') {
     html = `
       <div class="ab-breakdown-wrapper">
         <label class="ab-breakdown-label">${config.label || 'Breakdown'}</label>
@@ -50,24 +51,21 @@ export function generateElementHTML(type, id, config = {}) {
         </div>
       </div>
     `;
-  }else if (type === 'disclaimer') {
+  } else if (type === 'disclaimer') {
     html = `
       <div class="ab-disclaimer">
         <strong class="ab-disclaimer-label">${config.label || 'Disclaimer'}</strong>
       </div>
     `;
-  }else if (type === 'barChart') {
+  } else if (type === 'barChart') {
     html = `
       <div class="ab-chart-wrapper">
         <canvas id="${id}" class="ab-bar-chart" data-result-key="${config.resultKey || id}"></canvas>
       </div>
     `;
   }
-  
-  
-  
-  
-  // Create outer wrapper and inject conditional logic if present
+
+  // ✅ Wrap in outer container with conditional logic support
   const wrapperEl = document.createElement('div');
   wrapperEl.classList.add('ukpa-field-wrapper');
 

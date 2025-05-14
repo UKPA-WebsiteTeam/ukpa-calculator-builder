@@ -68,50 +68,54 @@ document.addEventListener("DOMContentLoaded", function () {
 	}
 
 	// 📡 Send input data to backend
-function sendToBackend(inputs) {
-    if (!ukpa_api_data?.base_url || !ukpa_api_data?.plugin_token) {
-        console.warn('⚠️ Missing plugin token or API URL.');
-        return;
-    }
+	function sendToBackend(inputs) {
+		if (!ukpa_api_data?.base_url || !ukpa_api_data?.plugin_token) {
+			console.warn('⚠️ Missing plugin token or API URL.');
+			return;
+		}
 
-    const payload = {
-        calcId: window.ukpaCalculatorId || 'unknown',
-        inputs: inputs
-    };
+		const payload = {};
 
-    console.log("📤 Sending to backend:", payload);
+		for (const [elementId, value] of Object.entries(inputs)) {
+			const inputEl = document.querySelector(`[name="${elementId}"]`);
+			const wrapper = inputEl?.closest('.ukpa-element');
+			const config = wrapper ? JSON.parse(wrapper.dataset.config || '{}') : {};
+			const paramName = config.name?.trim() || config.label?.trim() || elementId;
 
-    const requestUrl = `${ukpa_api_data.base_url}/routes/mainRouter/salary`;
-	console.log("📡 Sending fetch to:", requestUrl);
+			if (paramName) {
+				payload[paramName] = value;
+			}
+		}
 
-	fetch(requestUrl, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Plugin-Auth': ukpa_api_data.plugin_token
-        },
-        credentials: 'include',
-        body: JSON.stringify(payload)
-    })
-    .then(res => {
-        console.log("📥 Raw response:", res);
-        return res.json();
-    })
-    .then(data => {
-        console.log("✅ Parsed response:", data);
+		console.log("📤 Sending to backend:", payload);
+		const requestUrl = `${ukpa_api_data.base_url}/routes/mainRouter/salary`;
+		console.log("📡 Sending fetch to:", requestUrl);
 
-        if (data.success) {
-            // Replace with actual result rendering logic
-            console.log("🟢 Success:", data.result);
-        } else {
-            console.warn("🟡 Backend returned error:", data.message || data);
-        }
-    })
-    .catch(err => {
-        console.error("❌ Fetch error:", err);
-    });
-}
+		fetch(requestUrl, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'X-Plugin-Auth': ukpa_api_data.plugin_token
+			},
+			credentials: 'include',
+			body: JSON.stringify(payload)
+		})
+		.then(async res => {
+			console.log("📥 Raw response:", res);
+			const data = await res.json();
+			console.log("✅ Parsed response:", data);
 
+			if (res.ok) {
+				console.log("🟢 Success:", data);
+				// TODO: Render actual result to UI
+			} else {
+				console.warn("🟡 Backend returned error:", data.message || data);
+			}
+		})
+		.catch(err => {
+			console.error("❌ Fetch error:", err);
+		});
+	}
 
 	// 👂 Bind input triggers
 	function bindInputTriggers() {
@@ -129,7 +133,6 @@ function sendToBackend(inputs) {
 				}
 				applyAllConditions();
 
-				// Collect all input values
 				const collected = {};
 				inputs.forEach(el => {
 					if (el.type === 'checkbox') {
