@@ -7,9 +7,26 @@ export function generateElementHTML(type, id, config = {}) {
     html = `<label for="${id}">${config.label || ''}</label>
             <input type="${type}" id="${id}" placeholder="${config.placeholder || ''}" class="ukpa-input" ${dataAttr} />`;
   } else if (type === 'dropdown') {
-    const options = (config.options || []).map(opt => `<option>${opt}</option>`).join('');
-    html = `<label for="${id}">${config.label || ''}</label>
-            <select id="${id}" class="ukpa-input" ${dataAttr}>${options}</select>`;
+    const options = (config.options || []).map(opt => {
+      return `<option value="${opt}" ${opt === config.dynamicResult ? 'selected' : ''}>${opt}</option>`;
+    }).join('');
+
+    html = `
+      <label for="${id}">${config.label || ''}</label>
+      <select id="${id}" class="ukpa-input" ${dataAttr}>
+        ${options}
+      </select>`;
+
+    // Add event listener to update the main result when the dropdown value changes
+    html += `
+      <script>
+        document.getElementById("${id}").addEventListener("change", function() {
+          const selectedKey = this.value;
+          const resultValue = window.ukpaResults?.[selectedKey] ?? '--';
+          document.querySelector('.ab-main-result-value').innerText = resultValue;
+        });
+      </script>
+    `;
   } else if (type === 'radio') {
     const radios = (config.options || []).map(opt =>
       `<label><input type="radio" name="${id}" value="${opt}" ${dataAttr}/> ${opt}</label>`
@@ -31,7 +48,7 @@ export function generateElementHTML(type, id, config = {}) {
     html = `<iframe src="${config.url || ''}" frameborder="0" allowfullscreen></iframe>`;
   } else if (type === 'link') {
     html = `<a href="${config.href || '#'}" target="_blank">${config.label || 'Link'}</a>`;
-  } if (type === 'mainResult') {
+  } else if (type === 'mainResult') {
     const key = config.dynamicResult || '';
     const display = window.ukpaResults?.[key] ?? '--';
 
@@ -41,21 +58,19 @@ export function generateElementHTML(type, id, config = {}) {
         <div class="ab-main-result-value" data-key="${key}">${display}</div>
         <div class="ab-result-note">Enter contact details below to receive more detailed result in your email.</div>
       </div>`;
-  }else if (type === 'breakdown') {
+  } else if (type === 'breakdown') {
     html = `
       <div class="ab-breakdown-wrapper">
         <label class="ab-breakdown-label">${config.label || 'Breakdown'}</label>
         <div id="${id}" class="ab-breakdown-table" data-result-key="${config.resultKey || id}">
           <!-- Result rows will be inserted here dynamically -->
         </div>
-        ${generateResultDropdown(config)}
       </div>
     `;
   } else if (type === 'barChart') {
     html = `
       <div class="ab-chart-wrapper">
         <canvas id="${id}" class="ab-bar-chart" data-result-key="${config.resultKey || id}"></canvas>
-        ${generateResultDropdown(config)}
       </div>
     `;
   } else if (type === 'disclaimer') {
@@ -78,24 +93,6 @@ export function generateElementHTML(type, id, config = {}) {
   wrapperEl.innerHTML = html;
 
   return wrapperEl.outerHTML;
-
-  // 🟡 Local dropdown renderer for result selectors
-  function generateResultDropdown(config) {
-    const options = config.resultOptions || [];
-    const selected = config.resultDropdownKey || '';
-
-    const dropdown = options.map(opt => {
-      const isSelected = selected === opt ? 'selected' : '';
-      return `<option value="${opt}" ${isSelected}>${opt}</option>`;
-    }).join('');
-
-    return `
-      <div class="ab-result-selector">
-        <label>Choose Result Field:</label>
-        <select class="ukpa-result-dropdown dynamic-result-options">${dropdown}</select>
-      </div>
-    `;
-  }
 }
 
 

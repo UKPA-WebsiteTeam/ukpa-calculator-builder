@@ -122,3 +122,12 @@ add_action('admin_menu', function () {
         80
     );
 });
+
+function ukpa_render_settings_page() {
+    include UKPA_CALC_PATH . 'admin/settings.php';
+}
+
+// Optional main dashboard callback
+function ukpa_render_dashboard() {
+    echo '<div class="wrap"><h1>UKPA Calculator Builder</h1><p>Welcome to the dashboard.</p></div>';
+}

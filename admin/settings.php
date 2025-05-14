@@ -17,22 +17,22 @@ $current_token = get_option('ukpa_plugin_token', '');
 
 <div class="wrap">
     <h1>UKPA Calculator Settings</h1>
+        <form method="post" action="">
+            <?php wp_nonce_field('ukpa_save_token'); ?>
+            <input type="hidden" name="ukpa_save_token" value="1">
 
-    <form method="post" action="">
-        <?php wp_nonce_field('ukpa_save_token'); ?>
+            <table class="form-table">
+                <tr>
+                    <th scope="row">
+                        <label for="ukpa_plugin_token">Plugin Authentication Token</label>
+                    </th>
+                    <td>
+                        <input type="text" name="ukpa_plugin_token" id="ukpa_plugin_token" class="regular-text" value="<?php echo esc_attr($current_token); ?>">
+                        <p class="description">Enter your backend API token for secure communication.</p>
+                    </td>
+                </tr>
+            </table>
 
-        <table class="form-table">
-            <tr>
-                <th scope="row">
-                    <label for="ukpa_plugin_token">Plugin Authentication Token</label>
-                </th>
-                <td>
-                    <input type="text" name="ukpa_plugin_token" id="ukpa_plugin_token" class="regular-text" value="<?php echo esc_attr($current_token); ?>">
-                    <p class="description">Enter your backend API token for secure communication.</p>
-                </td>
-            </tr>
-        </table>
-
-        <?php submit_button('Save Token'); ?>
-    </form>
+            <?php submit_button('Save Token'); ?>
+        </form>
 </div>
