@@ -23,8 +23,9 @@ export function generateElementHTML(type, id, config = {}) {
         document.getElementById("${id}").addEventListener("change", function() {
           const selectedKey = this.value;
           const resultValue = window.ukpaResults?.[selectedKey] ?? '--';
-          document.querySelector('.ab-main-result-value').innerText = resultValue;
+          
         });
+        document.querySelector('.ab-main-result-value').innerText = resultValue;
       </script>
     `;
   } else if (type === 'radio') {
@@ -56,9 +57,10 @@ export function generateElementHTML(type, id, config = {}) {
       <div class="ab-main-result">
         <label class="ab-result-label">${config.label || 'Main Result'}</label>
         <div class="ab-main-result-value" data-key="${key}">${display}</div>
-        <div class="ab-result-note">Enter contact details below to receive more detailed result in your email.</div>
-      </div>`;
-  } else if (type === 'breakdown') {
+      </div>
+      <div class="ab-result-note">Enter contact details below to receive more detailed result in your email.</div>
+      `;
+  }else if (type === 'breakdown') {
     html = `
       <div class="ab-breakdown-wrapper">
         <label class="ab-breakdown-label">${config.label || 'Breakdown'}</label>

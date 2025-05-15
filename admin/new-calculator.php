@@ -265,111 +265,51 @@ $route = $data['route'] ?? '';
   window.ukpaCalculatorId = '<?php echo esc_js($calc_id); ?>';
   window.ukpaSaveNonce = '<?php echo wp_create_nonce("ukpa_save_calc_nonce"); ?>';
 
-  import('<?php echo plugins_url('assets/js/builder.js', dirname(__FILE__)); ?>?ver=<?php echo time(); ?>');
+  const builderModule = await import('<?php echo plugins_url('assets/js/builder.js', dirname(__FILE__)); ?>?ver=<?php echo time(); ?>');
+  const { renderResults } = await import('<?php echo plugins_url('assets/js/shared/render-results.js', dirname(__FILE__)); ?>?ver=<?php echo time(); ?>');
+  window.renderResults = renderResults;
 
-  function toggleBox(id) {
-    const body = document.getElementById(id);
-    const icon = body.previousElementSibling.querySelector('.toggle-indicator');
-    if (body.style.display === 'none') {
-      body.style.display = 'block';
-      icon.textContent = '⇩';
-    } else {
-      body.style.display = 'none';
-      icon.textContent = '↰';
-    }
+  function waitForEl(selector, callback) {
+    const el = document.querySelector(selector);
+    if (el) return callback(el);
+    const observer = new MutationObserver(() => {
+      const elNow = document.querySelector(selector);
+      if (elNow) {
+        observer.disconnect();
+        callback(elNow);
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
-    const form = document.getElementById("ukpa-calc-settings");
-    const saveBtn = document.getElementById("ukpa-save-builder");
+  function injectTestApiButton(saveBtn) {
+    if (!saveBtn || document.getElementById("ukpa-test-api-btn")) return;
 
-    function fullSaveHandler(e) {
-      if (e) e.preventDefault();
-      if (saveBtn) saveBtn.click();
-      if (typeof saveCalculatorLayout === "function") {
-        saveCalculatorLayout();
-      }
-    }
-
-    if (saveBtn) {
-      saveBtn.addEventListener("click", () => {
-        window.isDirty = false;
-      });
-    }
-
-    document.addEventListener("keydown", function (e) {
-      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
-        fullSaveHandler(e);
-      }
-    });
-
-    const formElements = document.querySelectorAll("#ukpa-calc-settings input, #ukpa-calc-settings select, .ukpa-element");
-    formElements.forEach(el => {
-      el.addEventListener("input", () => {
-        window.isDirty = true;
-      });
-    });
-
-    const exitBtn = document.querySelector(".ukpa-builder-exit");
-    const modal = document.getElementById("ukpa-exit-warning-modal");
-    const cancelExit = document.getElementById("ukpa-cancel-exit");
-    const confirmExit = document.getElementById("ukpa-confirm-exit");
-
-    if (exitBtn && modal) {
-      exitBtn.addEventListener("click", function (e) {
-        if (window.isDirty) {
-          e.preventDefault();
-          modal.style.display = "block";
-        }
-      });
-    }
-
-    if (cancelExit) {
-      cancelExit.addEventListener("click", () => {
-        document.getElementById("ukpa-exit-warning-modal").style.display = "none";
-      });
-    }
-
-    // 🧪 Add "Test API" button
     const testButton = document.createElement("button");
+    testButton.id = "ukpa-test-api-btn";
     testButton.textContent = "🧪 Test API";
     testButton.className = "button button-secondary";
     testButton.style.marginLeft = "12px";
     saveBtn.parentNode.insertBefore(testButton, saveBtn.nextSibling);
 
     testButton.addEventListener("click", async (e) => {
-      e.preventDefault(); // ✅ Prevent page reload
-
-      if (typeof ukpa_api_data === 'undefined') {
-        console.error("❌ ukpa_api_data is not defined. Ensure wp_localize_script is working.");
-        alert("API config missing. Please reload the page or contact admin.");
-        return;
-      }
+      e.preventDefault();
+      if (typeof ukpa_api_data === 'undefined') return alert("API config missing");
 
       const route = document.getElementById("ukpa-backend-route")?.value;
-      if (!route) return alert("Please select a backend route first.");
+      if (!route) return alert("Please select a backend route.");
 
       const fullUrl = `${ukpa_api_data.base_url}/routes/mainRouter/${route}`;
-
-      // 🔁 Build payload using config.name or config.label
       const inputs = document.querySelectorAll("#inputs-preview .ukpa-element input, #inputs-preview .ukpa-element select, #inputs-preview .ukpa-element textarea");
-      const payload = {};
 
+      const payload = {};
       inputs.forEach(el => {
         const wrapper = el.closest('.ukpa-element');
-        if (!wrapper) return;
-
-        const config = wrapper.dataset.config ? JSON.parse(wrapper.dataset.config) : {};
+        const config = wrapper?.dataset.config ? JSON.parse(wrapper.dataset.config) : {};
         const paramName = config.name?.trim() || config.label?.trim();
         const value = el.type === 'checkbox' ? el.checked : el.value;
-
-        if (paramName && value !== '') {
-          payload[paramName] = value;
-        }
+        if (paramName && value !== '') payload[paramName] = value;
       });
-
-      console.log("📤 Sending to backend:", payload);
-      console.log("📡 Backend Route:", fullUrl);
 
       try {
         const response = await fetch(fullUrl, {
@@ -382,45 +322,33 @@ $route = $data['route'] ?? '';
           body: JSON.stringify(payload)
         });
 
-        console.log("📥 Raw response:", response);
-
         const result = await response.json();
-        console.log("✅ Parsed response:", result);
+        if (response.ok && result.result && typeof result.result === 'object') {
+          window.ukpaResults = result.result;
+          renderResults();
 
-        if (!response.ok) {
-          console.warn("🟡 Backend returned error:", result.message || result);
-          return;
-        }
-
-        // ✅ Only handle if result.result exists
-        if (result.result && typeof result.result === 'object') {
           const keys = Object.keys(result.result);
-
-          // ✅ Update all result element dropdowns
-          const resultDropdowns = document.querySelectorAll(".ukpa-element[data-type='mainResult'] select.dynamic-result-options, .ukpa-element[data-type='breakdown'] select.dynamic-result-options, .ukpa-element[data-type='barChart'] select.dynamic-result-options");
-          resultDropdowns.forEach(dropdown => {
+          document.querySelectorAll(".ukpa-element[data-type='mainResult'] select.dynamic-result-options, .ukpa-element[data-type='breakdown'] select.dynamic-result-options, .ukpa-element[data-type='barChart'] select.dynamic-result-options").forEach(dropdown => {
             dropdown.innerHTML = `<option value="">-- Select --</option>`;
             keys.forEach(key => {
-              const option = document.createElement("option");
-              option.value = key;
-              option.textContent = key;
-              dropdown.appendChild(option);
+              const opt = document.createElement("option");
+              opt.value = key;
+              opt.textContent = key;
+              dropdown.appendChild(opt);
             });
           });
 
-          // ✅ Update settings panel dropdown (editor)
           const editorDropdown = document.getElementById('ukpa-dynamic-result');
           if (editorDropdown) {
             editorDropdown.innerHTML = `<option value="">-- Select --</option>`;
             keys.forEach(key => {
-              const option = document.createElement("option");
-              option.value = key;
-              option.textContent = key;
-              editorDropdown.appendChild(option);
+              const opt = document.createElement("option");
+              opt.value = key;
+              opt.textContent = key;
+              editorDropdown.appendChild(opt);
             });
           }
 
-          // ✅ Save keys to DB for this calculator
           const metaPayload = new FormData();
           metaPayload.append('action', 'ukpa_save_result_keys');
           metaPayload.append('calc_id', window.ukpaCalculatorId);
@@ -430,28 +358,22 @@ $route = $data['route'] ?? '';
           fetch(ukpa_api_data.ajaxurl, {
             method: 'POST',
             body: metaPayload
-          })
-          .then(res => res.json())
-          .then(json => {
-            if (json.success) {
-              console.log('🧠 Result keys saved to DB:', json.data.saved);
-            } else {
-              console.warn('⚠️ Failed to save result keys to DB:', json.data.message);
-            }
-          })
-          .catch(err => {
-            console.error('❌ AJAX save error:', err);
-          });
+          }).then(res => res.json())
+            .then(json => {
+              if (json.success) console.log("✅ Result keys saved to DB");
+              else console.warn("⚠️ DB save failed", json.data.message);
+            });
+        } else {
+          console.warn("🟡 API Error:", result.message || result);
         }
       } catch (err) {
         console.error("❌ Fetch error:", err);
-        alert("Test API request failed. See console for details.");
       }
     });
+  }
 
-
-
-  });
+  // Inject the button AFTER builder is rendered
+  waitForEl("#ukpa-save-builder", injectTestApiButton);
 </script>
 
 

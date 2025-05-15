@@ -36,33 +36,43 @@ document.addEventListener("DOMContentLoaded", function () {
 	}
 
 	function renderResults() {
-		document.querySelectorAll('.ab-bar-chart').forEach(canvas => {
-			const ctx = canvas.getContext('2d');
-			const chartData = window.ukpaChartData?.[canvas.dataset.resultKey] || {
-				labels: ['A', 'B', 'C'],
-				datasets: [{
-					label: 'Example',
-					data: [10, 20, 30],
-					backgroundColor: '#22c55e'
-				}]
-			};
+	// ✅ Update Main Result Values
+	document.querySelectorAll('.ab-main-result-value').forEach(el => {
+		const key = el.dataset.key;
+		el.textContent = window.ukpaResults?.[key] ?? '--';
+	});
 
-			new Chart(ctx, {
-				type: 'bar',
-				data: chartData,
-				options: {
-					responsive: true,
-					plugins: {
-						legend: { display: false },
-						tooltip: { enabled: true }
-					},
-					scales: {
-						y: { beginAtZero: true }
-					}
-				}
-			});
+	// ✅ Render Bar Charts
+	document.querySelectorAll('.ab-bar-chart').forEach(canvas => {
+		const ctx = canvas.getContext('2d');
+		const key = canvas.dataset.resultKey;
+		const chartData = window.ukpaChartData?.[key] || {
+		labels: ['A', 'B', 'C'],
+		datasets: [{
+			label: 'Example',
+			data: [10, 20, 30],
+			backgroundColor: '#22c55e'
+		}]
+		};
+
+		new Chart(ctx, {
+		type: 'bar',
+		data: chartData,
+		options: {
+			responsive: true,
+			plugins: {
+			legend: { display: false },
+			tooltip: { enabled: true }
+			},
+			scales: {
+			y: { beginAtZero: true }
+			}
+		}
 		});
+	});
 	}
+window.renderResults = renderResults;
+
 function sendToBackend(inputs) {
 	if (!ukpa_api_data?.base_url || !ukpa_api_data?.plugin_token) {
 		console.warn('⚠️ Missing plugin token or API URL.');
@@ -102,25 +112,32 @@ function sendToBackend(inputs) {
     console.log("✅ Parsed response:", data);
 
     if (res.ok) {
-        console.log("🟢 Success:", data);
+		console.log("🟢 Success:", data);
 
-        // ✅ Populate dynamic dropdowns from backend Results
-        if (data.Results && Array.isArray(data.Results)) {
-            const dropdowns = document.querySelectorAll(`.ukpa-result-dropdown[data-result-key]`);
-            dropdowns.forEach(dropdown => {
-                dropdown.innerHTML = ''; // Clear existing options
-                data.Results.forEach(option => {
-                    const opt = document.createElement('option');
-                    opt.value = option;
-                    opt.textContent = option;
-                    dropdown.appendChild(opt);
-                });
-            });
-        }
+		// ✅ SET GLOBAL RESULT OBJECT for renderResults to use
+		if (data.result && typeof data.result === 'object') {
+			window.ukpaResults = data.result;
+			renderResults(); // Re-render with latest data
+		}
 
-    } else {
-        console.warn("🟡 Backend returned error:", data.message || data);
-    }
+		// ✅ Populate dynamic dropdowns from backend Results
+		if (data.Results && Array.isArray(data.Results)) {
+			const dropdowns = document.querySelectorAll(`.ukpa-result-dropdown[data-result-key]`);
+			dropdowns.forEach(dropdown => {
+				dropdown.innerHTML = '';
+				data.Results.forEach(option => {
+					const opt = document.createElement('option');
+					opt.value = option;
+					opt.textContent = option;
+					dropdown.appendChild(opt);
+				});
+			});
+		}
+
+	} else {
+		console.warn("🟡 Backend returned error:", data.message || data);
+	}
+
 	})
 
 	.catch(err => {
@@ -199,4 +216,10 @@ function sendToBackend(inputs) {
 	applyAllConditions();
 	bindInputTriggers();
 	renderResults();
+});
+document.addEventListener("DOMContentLoaded", () => {
+  // If `window.ukpaResults` is already set by an API response
+  if (window.ukpaResults && typeof renderResults === 'function') {
+    renderResults();
+  }
 });

@@ -355,6 +355,7 @@ p,h1,h2,h3,h4,h5,h6,span,div,a,button,label,ul,li {
 	align-items: center;
 	justify-content: space-between;
 	gap: 20px; /* optional spacing */
+	flex-wrap: wrap;
   }
   
   .ab-main-result  h4 {

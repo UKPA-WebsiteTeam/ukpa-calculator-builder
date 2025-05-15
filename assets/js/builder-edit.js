@@ -236,17 +236,13 @@ export function editElementById(id) {
     dynamicGroup.appendChild(dynamicLabel);
     dynamicGroup.appendChild(dynamicSelect);
     wrapper.appendChild(dynamicGroup);
-
-
   // Save and update preview
   function saveConfig() {
     el.setAttribute('data-config', JSON.stringify(config));
     el.innerHTML = window.generateElementHTML(type, id, config);
     el.addEventListener('click', () => editElementById(id));
   }
-
   editorBody.appendChild(wrapper);
 }
-
 // Global export
 window.editElementById = editElementById;
