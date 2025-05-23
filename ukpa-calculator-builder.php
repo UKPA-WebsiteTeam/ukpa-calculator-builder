@@ -95,6 +95,13 @@ add_action('wp_enqueue_scripts', function () {
             filemtime(UKPA_CALC_PATH . 'public/js/frontend.js'),
             true
         );
+        add_filter('script_loader_tag', function ($tag, $handle) {
+            if ($handle === 'ukpa-calc-frontend-js') {
+                return str_replace('<script ', '<script type="module" ', $tag);
+            }
+            return $tag;
+        }, 10, 2);
+
 
         // Localize API config for frontend calculators
         $plugin_token = get_option('ukpa_plugin_token', '');

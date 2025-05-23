@@ -1,4 +1,4 @@
-function renderResults() {
+export function renderResults() {
   // ✅ Render Main Results
   document.querySelectorAll('.ab-main-result-value').forEach(el => {
     const key = el.dataset.key;
@@ -27,8 +27,12 @@ function renderResults() {
 
     const breakdown = window.ukpaResults[key];
 
-    const labels = breakdown.map(item => item.band || `${item.rate}%`);
-    const data = breakdown.map(item => item.tax || 0);
+    const labels = breakdown.map(item => item.band ?? `${item.rate ?? 'N/A'}%`);
+    const data = breakdown.map(item => {
+      const val = item.tax ?? item.amount ?? 0;
+      return typeof val === 'number' ? val : parseFloat(val) || 0;
+    });
+
 
     const chart = new Chart(ctx, {
       type: 'bar',
