@@ -3,87 +3,133 @@ export function generateElementHTML(type, id, config = {}) {
 
   const dataAttr = `data-id="${id}" data-name="${config.name || config.label || id}"`;
 
-  if (type === 'number' || type === 'text' || type === 'email') {
+  if (['number', 'text', 'email'].includes(type)) {
     html = `<label for="${id}">${config.label || ''}</label>
             <input type="${type}" id="${id}" placeholder="${config.placeholder || ''}" class="ukpa-input" ${dataAttr} />`;
-  } else if (type === 'dropdown') {
-    const options = (config.options || []).map(opt => {
-      return `<option value="${opt}" ${opt === config.dynamicResult ? 'selected' : ''}>${opt}</option>`;
-    }).join('');
+  }
+
+  else if (type === 'dropdown') {
+    const options = (config.options || []).map(opt =>
+      `<option value="${opt}" ${opt === config.dynamicResult ? 'selected' : ''}>${opt}</option>`
+    ).join('');
 
     html = `
       <label for="${id}">${config.label || ''}</label>
       <select id="${id}" class="ukpa-input" ${dataAttr}>
         ${options}
-      </select>`;
-
-    // Add event listener to update the main result when the dropdown value changes
-    html += `
+      </select>
       <script>
-        document.getElementById("${id}").addEventListener("change", function() {
-          const selectedKey = this.value;
-          const resultValue = window.ukpaResults?.[selectedKey] ?? '--';
-          
+        document.addEventListener("DOMContentLoaded", function () {
+          const el = document.getElementById("${id}");
+          el?.addEventListener("change", function () {
+            const selectedKey = this.value;
+            let resultValue = '--';
+            try {
+              const parts = selectedKey.split('.');
+              let current = window.ukpaResults;
+              for (const part of parts) {
+                current = current?.[isNaN(part) ? part : parseInt(part)];
+              }
+              resultValue = (current !== undefined && current !== null) ? current : '--';
+            } catch (e) {
+              console.warn('Key resolution error:', e);
+            }
+
+            const mainResultEl = document.querySelector('.ab-main-result-value');
+            if (mainResultEl) {
+              mainResultEl.innerText = resultValue;
+            }
+          });
         });
-        document.querySelector('.ab-main-result-value').innerText = resultValue;
-      </script>
-    `;
-  } else if (type === 'radio') {
+      </script>`;
+  }
+
+  else if (type === 'radio') {
     const radios = (config.options || []).map(opt =>
       `<label><input type="radio" name="${id}" value="${opt}" ${dataAttr}/> ${opt}</label>`
     ).join('');
     html = `<div class="ukpa-radio-group"><strong>${config.label || ''}</strong><br />${radios}</div>`;
-  } else if (type === 'checkbox') {
+  }
+
+  else if (type === 'checkbox') {
     html = `<label><input type="checkbox" id="${id}" ${dataAttr}/> ${config.label || ''}</label>`;
-  } else if (type === 'date') {
+  }
+
+  else if (type === 'date') {
     html = `<label for="${id}">${config.label || ''}</label>
             <input type="date" id="${id}" class="ukpa-input" ${dataAttr}/>`;
-  } else if (type === 'header') {
+  }
+
+  else if (type === 'header') {
     const level = config.level || 'h2';
     html = `<${level}>${config.label || 'Header'}</${level}>`;
-  } else if (type === 'textBlock') {
-    html = `<p>${config.label || ''}</p>`;
-  } else if (type === 'image') {
-    html = `<img src="${config.url || ''}" alt="Image Element" />`;
-  } else if (type === 'video') {
-    html = `<iframe src="${config.url || ''}" frameborder="0" allowfullscreen></iframe>`;
-  } else if (type === 'link') {
-    html = `<a href="${config.href || '#'}" target="_blank">${config.label || 'Link'}</a>`;
-  } else if (type === 'mainResult') {
-    const key = config.dynamicResult || '';
-    const display = window.ukpaResults?.[key] ?? '--';
+  }
 
+  else if (type === 'textBlock') {
+    html = `<p>${config.label || ''}</p>`;
+  }
+
+  else if (type === 'image') {
+    html = `<img src="${config.url || ''}" alt="Image Element" />`;
+  }
+
+  else if (type === 'video') {
+    html = `<iframe src="${config.url || ''}" frameborder="0" allowfullscreen></iframe>`;
+  }
+
+  else if (type === 'link') {
+    html = `<a href="${config.href || '#'}" target="_blank">${config.label || 'Link'}</a>`;
+  }
+
+  else if (type === 'mainResult') {
+    const key = config.dynamicResult || '';
+    const valueFromKey = (fullKey) => {
+      try {
+        const parts = fullKey.split('.');
+        let current = window.ukpaResults;
+        for (const part of parts) {
+          current = current?.[isNaN(part) ? part : parseInt(part)];
+          if (current === undefined) break;
+        }
+        return current ?? '--';
+      } catch {
+        return '--';
+      }
+    };
+
+    const display = key ? valueFromKey(key) : '--';
     html = `
       <div class="ab-main-result">
         <label class="ab-result-label">${config.label || 'Main Result'}</label>
-        <div class="ab-main-result-value" data-key="${key}">${display}</div>
+        <div class="ab-main-result-value" data-key="${key}">--</div>
       </div>
-      <div class="ab-result-note">Enter contact details below to receive more detailed result in your email.</div>
-      `;
-  }else if (type === 'breakdown') {
+      <div class="ab-result-note">Enter contact details below to receive more detailed result in your email.</div>`;
+  }
+
+  else if (type === 'breakdown') {
     html = `
       <div class="ab-breakdown-wrapper">
         <label class="ab-breakdown-label">${config.label || 'Breakdown'}</label>
-        <div id="${id}" class="ab-breakdown-table" data-result-key="${config.resultKey || id}">
+        <div id="${id}" class="ab-breakdown-table" data-result-key="${config.resultKey || 'breakdown'}">
           <!-- Result rows will be inserted here dynamically -->
         </div>
-      </div>
-    `;
-  } else if (type === 'barChart') {
+      </div>`;
+  }
+
+  else if (type === 'barChart') {
     html = `
       <div class="ab-chart-wrapper">
-        <canvas id="${id}" class="ab-bar-chart" data-result-key="${config.resultKey || id}"></canvas>
-      </div>
-    `;
-  } else if (type === 'disclaimer') {
+        <canvas id="${id}" class="ab-bar-chart" data-result-key="${config.resultKey || 'breakdown'}"></canvas>
+      </div>`;
+  }
+
+  else if (type === 'disclaimer') {
     html = `
       <div class="ab-disclaimer">
         <strong class="ab-disclaimer-label">${config.label || 'Disclaimer'}</strong>
-      </div>
-    `;
+      </div>`;
   }
 
-  // ✅ Wrap in outer container with conditional logic support
   const wrapperEl = document.createElement('div');
   wrapperEl.classList.add('ukpa-field-wrapper');
 
@@ -93,7 +139,6 @@ export function generateElementHTML(type, id, config = {}) {
   }
 
   wrapperEl.innerHTML = html;
-
   return wrapperEl.outerHTML;
 }
 

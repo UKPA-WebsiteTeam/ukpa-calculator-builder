@@ -7,36 +7,37 @@ if (!defined('ABSPATH')) {
 // ✅ Handle AJAX save for calculators
 add_action('wp_ajax_ukpa_save_calculator', 'handle_ukpa_save_calculator');
 add_action('wp_ajax_nopriv_ukpa_save_calculator', 'handle_ukpa_save_calculator');
-
-function handle_ukpa_save_calculator() {
+add_action('wp_ajax_ukpa_unified_save_calculator', 'handle_ukpa_unified_save_calculator');
+function handle_ukpa_unified_save_calculator() {
     if (!isset($_POST['_wpnonce']) || !wp_verify_nonce($_POST['_wpnonce'], 'ukpa_save_calc_nonce')) {
         wp_send_json_error(['message' => 'Invalid nonce']);
     }
 
-    if (empty($_POST['calculator_id']) || empty($_POST['elements'])) {
-        wp_send_json_error(['message' => 'Missing required data']);
+    $calc_id = sanitize_text_field($_POST['calculator_id'] ?? '');
+    $elements = json_decode(stripslashes($_POST['elements'] ?? ''), true);
+    $dynamic_keys = json_decode(stripslashes($_POST['dynamic_keys'] ?? ''), true);
+    $title = sanitize_text_field($_POST['title'] ?? 'Untitled Calculator');
+    $route = sanitize_text_field($_POST['backend_route'] ?? '');
+
+    if (!$calc_id || !is_array($elements)) {
+        wp_send_json_error(['message' => 'Missing or invalid data']);
     }
 
-    $calc_id = sanitize_text_field($_POST['calculator_id']);
-    $elements = json_decode(stripslashes($_POST['elements']), true);
-    $title = isset($_POST['title']) ? sanitize_text_field($_POST['title']) : 'Untitled Calculator';
-
-    if (!is_array($elements)) {
-        wp_send_json_error(['message' => 'Invalid elements format']);
+    $old = get_option('ukpa_calc_' . $calc_id, []);
+    $old['title'] = $title;
+    $old['route'] = $route;
+    $old['elements'] = $elements;
+    if (is_array($dynamic_keys)) {
+        $old['dynamicResultKeys'] = $dynamic_keys;
     }
 
-    $final_data = [
-        'title' => $title,
-        'elements' => $elements
-    ];
+    $success = update_option('ukpa_calc_' . $calc_id, $old);
 
-    update_option('ukpa_calc_' . $calc_id, $final_data);
-    error_log("Saving calc: " . print_r($_POST, true));
-    wp_send_json_success(['message' => 'Calculator saved successfully']);
-    wp_send_json_success([
-        'message' => 'Saved successfully!',
-        'redirect_url' => admin_url("admin.php?page=ukpa-calculator-add-new&calc_id=" . urlencode($calc_id))
-    ]);
+    if ($success) {
+        wp_send_json_success(['message' => 'Saved successfully']);
+    } else {
+        wp_send_json_error(['message' => 'Update failed']);
+    }
 }
 
 add_action('wp_ajax_ukpa_save_result_keys', function () {

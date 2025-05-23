@@ -349,13 +349,21 @@ p,h1,h2,h3,h4,h5,h6,span,div,a,button,label,ul,li {
 	color: #555;
 	line-height: 1.4;
 }
-
+.ab-main-result label{
+	font-size: 20px;
+	margin:0px;
+}
 .ab-main-result {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	gap: 20px; /* optional spacing */
 	flex-wrap: wrap;
+  }
+  .ab-result-note{
+	font-size: 12px;
+	line-height: 1em;
+	border-bottom: 5px solid #012169;
   }
   
   .ab-main-result  h4 {

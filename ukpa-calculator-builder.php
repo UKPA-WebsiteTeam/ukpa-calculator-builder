@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) exit;
 define('UKPA_CALC_PATH', plugin_dir_path(__FILE__));
 define('UKPA_CALC_URL', plugin_dir_url(__FILE__));
 
-// ✅ Optional: Load .env (if using vlucas/phpdotenv in plugin root)
+// ✅ Optional: Load .env (if using vlucas/phpdotenv)
 if (file_exists(__DIR__ . '/vendor/autoload.php')) {
     require_once __DIR__ . '/vendor/autoload.php';
     $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
@@ -27,27 +27,18 @@ require_once UKPA_CALC_PATH . 'includes/dashboard-frontend.php';
 require_once UKPA_CALC_PATH . 'includes/unified-save.php';
 require_once UKPA_CALC_PATH . 'includes/custom-assets-injector.php';
 
+// ✅ Inject custom CSS/JS from builder (if enabled)
 add_action('wp_head', 'ukpa_output_custom_calc_assets');
 
-// ✅ Enqueue admin assets (only on builder pages)
+// ✅ Admin assets (builder interface)
 add_action('admin_enqueue_scripts', function ($hook) {
     $page = $_GET['page'] ?? '';
-    if (!in_array($page, ['ukpa-calculator-builder', 'ukpa-calculator-add-new'])) {
-        return;
-    }
+    if (!in_array($page, ['ukpa-calculator-builder', 'ukpa-calculator-add-new'])) return;
 
-    // ✅ Load Chart.js (for bar charts, etc.)
+    // ✅ Load Chart.js for visualisation support
     wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js', [], null, true);
 
-    // ✅ Admin JS and CSS
-    wp_enqueue_script(
-        'ukpa-calc-builder-js',
-        UKPA_CALC_URL . 'assets/js/builder.js',
-        ['chart-js'],
-        filemtime(UKPA_CALC_PATH . 'assets/js/builder.js'),
-        true
-    );
-
+    // ✅ Only enqueue CSS (no JS here, JS is loaded via <script type="module"> in PHP output)
     wp_enqueue_style(
         'ukpa-calc-admin-css',
         UKPA_CALC_URL . 'assets/css/admin.css',
@@ -55,32 +46,48 @@ add_action('admin_enqueue_scripts', function ($hook) {
         filemtime(UKPA_CALC_PATH . 'assets/css/admin.css')
     );
 
-    // ✅ Localize admin builder settings
+    // ✅ Localise values for JS modules to use via `window.ukpa_api_data`
     $plugin_token = get_option('ukpa_plugin_token', '');
     $api_base_url = 'http://localhost:3002/ana/v1';
+    $calc_id = isset($_GET['calc_id']) ? sanitize_text_field($_GET['calc_id']) : '';
+    $calc_data = get_option('ukpa_calc_' . $calc_id, []);
+    $route = $calc_data['route'] ?? '';
 
-    wp_localize_script('ukpa-calc-builder-js', 'ukpa_api_data', [
-        'ajaxurl'      => admin_url('admin-ajax.php'),
-        'plugin_token' => $plugin_token,
-        'base_url'     => $api_base_url,
-        'nonce'        => wp_create_nonce('ukpa_save_calc_nonce'),
-    ]);
+    // ✅ Output a small inline script to attach config globally
+    wp_add_inline_script('chart-js', sprintf(
+        'window.ukpa_api_data = %s;',
+        json_encode([
+            'ajaxurl'       => admin_url('admin-ajax.php'),
+            'plugin_token'  => $plugin_token,
+            'base_url'      => $api_base_url,
+            'backend_route' => $route,
+            'nonce'         => wp_create_nonce('ukpa_api_nonce'),
+        ])
+    ), 'after');
 
-    wp_localize_script('ukpa-calc-builder-js', 'ukpa_calc_data', [
-        'ajaxurl' => admin_url('admin-ajax.php'),
-        'nonce'   => wp_create_nonce('ukpa_save_calc_nonce'),
-    ]);
+    wp_add_inline_script('chart-js', sprintf(
+        'window.ukpa_calc_data = %s;',
+        json_encode([
+            'ajaxurl'  => admin_url('admin-ajax.php'),
+            'nonce'    => wp_create_nonce('ukpa_save_calc_nonce'),
+            'calc_id'  => $calc_id,
+        ])
+    ), 'after');
 });
 
-// ✅ Enqueue frontend assets
+
+// ✅ Frontend assets (calculator preview or public use)
 add_action('wp_enqueue_scripts', function () {
     if (!is_admin()) {
-        wp_enqueue_style('ukpa-calc-frontend-css', UKPA_CALC_URL . 'public/css/frontend.css', [], '1.0');
+        wp_enqueue_style(
+            'ukpa-calc-frontend-css',
+            UKPA_CALC_URL . 'public/css/frontend.css',
+            [],
+            '1.0'
+        );
 
-        // Chart.js (before frontend.js since renderResults uses it)
         wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js', [], '4.4.0', true);
 
-        // Main frontend script (must run after Chart.js)
         wp_enqueue_script(
             'ukpa-calc-frontend-js',
             UKPA_CALC_URL . 'public/js/frontend.js',
@@ -89,21 +96,23 @@ add_action('wp_enqueue_scripts', function () {
             true
         );
 
-        // Localize API access data for frontend
+        // Localize API config for frontend calculators
         $plugin_token = get_option('ukpa_plugin_token', '');
-
         global $ukpa_calc_ids_to_inject;
+
         $calc_id = is_array($ukpa_calc_ids_to_inject) && count($ukpa_calc_ids_to_inject) > 0
             ? sanitize_text_field($ukpa_calc_ids_to_inject[0])
             : '';
 
         $calc_data = get_option('ukpa_calc_' . $calc_id, []);
-        $backend_route = isset($calc_data['route']) ? $calc_data['route'] : '';
+        $backend_route = $calc_data['route'] ?? '';
 
         wp_localize_script('ukpa-calc-frontend-js', 'ukpa_api_data', [
             'base_url'      => 'http://localhost:3002/ana/v1',
             'plugin_token'  => $plugin_token,
             'backend_route' => $backend_route,
+            'ajaxurl'       => admin_url('admin-ajax.php'),
+            'nonce'         => wp_create_nonce('ukpa_api_nonce'),
         ]);
     }
 });

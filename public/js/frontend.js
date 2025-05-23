@@ -35,42 +35,91 @@ document.addEventListener("DOMContentLoaded", function () {
 		});
 	}
 
-	function renderResults() {
-	// ✅ Update Main Result Values
-	document.querySelectorAll('.ab-main-result-value').forEach(el => {
-		const key = el.dataset.key;
-		el.textContent = window.ukpaResults?.[key] ?? '--';
-	});
+function renderResults() {
+  // ✅ Update Main Result Values
+  document.querySelectorAll('.ab-main-result-value').forEach(el => {
+    const key = el.dataset.key;
+    if (!key) return;
 
-	// ✅ Render Bar Charts
-	document.querySelectorAll('.ab-bar-chart').forEach(canvas => {
-		const ctx = canvas.getContext('2d');
-		const key = canvas.dataset.resultKey;
-		const chartData = window.ukpaChartData?.[key] || {
-		labels: ['A', 'B', 'C'],
-		datasets: [{
-			label: 'Example',
-			data: [10, 20, 30],
-			backgroundColor: '#22c55e'
-		}]
-		};
+    let current = window.ukpaResults;
+    key.split('.').forEach(part => {
+      current = current?.[isNaN(part) ? part : parseInt(part)];
+    });
 
-		new Chart(ctx, {
-		type: 'bar',
-		data: chartData,
-		options: {
-			responsive: true,
-			plugins: {
-			legend: { display: false },
-			tooltip: { enabled: true }
-			},
-			scales: {
-			y: { beginAtZero: true }
-			}
-		}
-		});
-	});
-	}
+    el.textContent = (current !== undefined && current !== null) ? current : '--';
+  });
+
+  // ✅ Render Breakdown Tables
+  document.querySelectorAll('.ab-breakdown-table').forEach(table => {
+    const key = table.dataset.resultKey;
+    const data = window.ukpaResults?.[key];
+
+    if (Array.isArray(data)) {
+      let rows = `<table class="ab-breakdown-inner"><thead>
+        <tr><th>Band</th><th>Rate</th><th>Amount</th><th>Tax</th></tr>
+      </thead><tbody>`;
+      data.forEach(row => {
+        rows += `<tr>
+          <td>${row.band ?? ''}</td>
+          <td>${row.rate ?? ''}%</td>
+          <td>${row.amount ?? ''}</td>
+          <td>${row.tax ?? ''}</td>
+        </tr>`;
+      });
+      rows += '</tbody></table>';
+      table.innerHTML = rows;
+    } else {
+      table.innerHTML = '<em>No breakdown data</em>';
+    }
+  });
+
+  // ✅ Render Bar Charts
+  window.ukpaCharts = window.ukpaCharts || {};
+
+  document.querySelectorAll('.ab-bar-chart').forEach(canvas => {
+    const ctx = canvas.getContext('2d');
+    const key = canvas.dataset.resultKey;
+    const breakdown = window.ukpaResults?.[key];
+
+    if (window.ukpaCharts[key]) {
+      window.ukpaCharts[key].destroy();
+    }
+
+    const chartData = Array.isArray(breakdown)
+      ? {
+          labels: breakdown.map(row => row.band ?? 'N/A'),
+          datasets: [{
+            label: 'Tax',
+            data: breakdown.map(row => row.tax ?? 0),
+            backgroundColor: '#22c55e'
+          }]
+        }
+      : {
+          labels: ['No Data'],
+          datasets: [{ label: 'None', data: [0] }]
+        };
+
+    const chart = new Chart(ctx, {
+      type: 'bar',
+      data: chartData,
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: { enabled: true }
+        },
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+
+    window.ukpaCharts[key] = chart;
+  });
+}
+
+
+
 window.renderResults = renderResults;
 
 function sendToBackend(inputs) {
@@ -93,9 +142,8 @@ function sendToBackend(inputs) {
 
 	console.log("📤 Sending to backend:", payload);
 
-	const route = ukpa_api_data.backend_route;
 	const requestUrl = `${ukpa_api_data.base_url}/routes/mainRouter/${ukpa_api_data.backend_route}`;
-	console.log("📡 Sending fetch to:", requestUrl);
+	console.log("📡 Fetching from:", requestUrl);
 
 	fetch(requestUrl, {
 		method: 'POST',
@@ -107,72 +155,94 @@ function sendToBackend(inputs) {
 		body: JSON.stringify(payload)
 	})
 	.then(async res => {
-    console.log("📥 Raw response:", res);
-    const data = await res.json();
-    console.log("✅ Parsed response:", data);
+		console.log("📥 Raw Response:", res);
+		const data = await res.json();
+		console.log("✅ Parsed Response:", data);
 
-    if (res.ok) {
-		console.log("🟢 Success:", data);
-
-		// ✅ SET GLOBAL RESULT OBJECT for renderResults to use
-		if (data.result && typeof data.result === 'object') {
+		if (res.ok && data.result && typeof data.result === 'object') {
+			console.log("🟢 API Success");
 			window.ukpaResults = data.result;
-			renderResults(); // Re-render with latest data
-		}
 
-		// ✅ Populate dynamic dropdowns from backend Results
-		if (data.Results && Array.isArray(data.Results)) {
-			const dropdowns = document.querySelectorAll(`.ukpa-result-dropdown[data-result-key]`);
-			dropdowns.forEach(dropdown => {
-				dropdown.innerHTML = '';
-				data.Results.forEach(option => {
-					const opt = document.createElement('option');
-					opt.value = option;
-					opt.textContent = option;
-					dropdown.appendChild(opt);
-				});
+			// ✅ Populate Bar Chart data
+			if (Array.isArray(data.result.breakdown)) {
+				const labels = data.result.breakdown.map(row => row.band || row.label || '');
+				const values = data.result.breakdown.map(row => row.tax || row.amount || 0);
+
+				window.ukpaChartData = {
+					breakdown: {
+						labels: labels,
+						datasets: [{
+							label: 'Tax Breakdown',
+							data: values,
+							backgroundColor: '#22c55e'
+						}]
+					}
+				};
+			}
+
+			// ✅ Populate Breakdown Table
+			document.querySelectorAll('.ab-breakdown-table').forEach(table => {
+				const key = table.dataset.resultKey;
+				if (key === 'breakdown' && Array.isArray(data.result.breakdown)) {
+					const rows = data.result.breakdown.map(row => `
+						<div class="ab-breakdown-row">
+							<div>${row.band || ''}</div>
+							<div>${row.rate || ''}%</div>
+							<div>£${row.amount?.toLocaleString() || 0}</div>
+							<div>£${row.tax?.toLocaleString() || 0}</div>
+						</div>
+					`).join('');
+					table.innerHTML = `
+						<div class="ab-breakdown-head">
+							<div>Band</div><div>Rate</div><div>Amount</div><div>Tax</div>
+						</div>
+						${rows}
+					`;
+				}
 			});
+
+			renderResults();
+		} else {
+			console.warn("🟡 Error from API:", data.message || data);
 		}
-
-	} else {
-		console.warn("🟡 Backend returned error:", data.message || data);
-	}
-
 	})
-
 	.catch(err => {
 		console.error("❌ Fetch error:", err);
 	});
 }
 
 
-	function bindInputTriggers() {
-		const inputs = inputBox?.querySelectorAll("input, select");
-		if (!inputs) return;
 
-		inputs.forEach(input => {
-			input.addEventListener("input", () => {
-				if (!hasSwitched) {
-					if (contentSection) contentSection.style.display = "none";
-					if (resultContainer) resultContainer.style.display = "flex";
-					if (inputBox) inputBox.style.width = "60%";
-					hasSwitched = true;
-					renderResults();
+
+function bindInputTriggers() {
+	const inputs = inputBox?.querySelectorAll("input, select, textarea");
+	if (!inputs) return;
+
+	inputs.forEach(input => {
+		input.addEventListener("input", () => {
+			if (!hasSwitched) {
+				if (contentSection) contentSection.style.display = "none";
+				if (resultContainer) resultContainer.style.display = "flex";
+				if (inputBox) inputBox.style.width = "60%";
+				hasSwitched = true;
+			}
+
+			applyAllConditions();
+
+			const collected = {};
+			inputs.forEach(el => {
+				if (el.type === 'checkbox') {
+					collected[el.name] = el.checked;
+				} else {
+					collected[el.name] = el.value;
 				}
-				applyAllConditions();
-
-				const collected = {};
-				inputs.forEach(el => {
-					if (el.type === 'checkbox') {
-						collected[el.name] = el.checked;
-					} else {
-						collected[el.name] = el.value;
-					}
-				});
-				sendToBackend(collected);
 			});
+
+			sendToBackend(collected);
 		});
-	}
+	});
+}
+
 
 	window.resetForm = function () {
 		const form = inputBox?.querySelector('form');

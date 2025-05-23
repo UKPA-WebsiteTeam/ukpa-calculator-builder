@@ -46,7 +46,7 @@ function ukpa_calculator_add_new_page() {
     }
 
     if (isset($_GET['calc_id'])) {
-        include UKPA_CALC_PATH . 'admin/new-calculator.php';
+        include UKPA_CALC_PATH . 'admin/builder.php';
     } else {
         include UKPA_CALC_PATH . 'admin/create-calculator.php';
     }
@@ -109,19 +109,19 @@ add_action('admin_init', function () {
     }
 });
 
-add_action('admin_menu', function () {
-    add_menu_page(
-        'UKPA Settings',
-        'UKPA Settings',
-        'manage_options',
-        'ukpa-settings',
-        function () {
-            include UKPA_CALC_PATH . '../admin/settings.php';
-        },
-        'dashicons-admin-generic',
-        80
-    );
-});
+// add_action('admin_menu', function () {
+//     add_menu_page(
+//         'UKPA Settings',
+//         'UKPA Settings',
+//         'manage_options',
+//         'ukpa-settings',
+//         function () {
+//             include UKPA_CALC_PATH . '../admin/settings.php';
+//         },
+//         'dashicons-admin-generic',
+//         80
+//     );
+// });
 
 function ukpa_render_settings_page() {
     include UKPA_CALC_PATH . 'admin/settings.php';

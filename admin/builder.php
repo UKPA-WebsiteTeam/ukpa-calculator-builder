@@ -127,7 +127,11 @@ $route = $data['route'] ?? '';
 
         <div class="ukpa-section ukpa-drop-zone" id="results-preview" data-section="results" style="width: 65%;">
           <h3>Result Section</h3>
-          <?php foreach ($elements as $el): ?>
+
+          <?php foreach ($elements as $el):
+            echo $el['section'];
+             ?>
+
             <?php if ($el['section'] === 'results'): ?>
               <div class="ukpa-element"
                   data-id="<?php echo esc_attr($el['id']); ?>"
@@ -260,121 +264,8 @@ $route = $data['route'] ?? '';
       </div>
     </div>
   </div>
-
-<script type="module">
-  window.ukpaCalculatorId = '<?php echo esc_js($calc_id); ?>';
-  window.ukpaSaveNonce = '<?php echo wp_create_nonce("ukpa_save_calc_nonce"); ?>';
-
-  const builderModule = await import('<?php echo plugins_url('assets/js/builder.js', dirname(__FILE__)); ?>?ver=<?php echo time(); ?>');
-  const { renderResults } = await import('<?php echo plugins_url('assets/js/shared/render-results.js', dirname(__FILE__)); ?>?ver=<?php echo time(); ?>');
-  window.renderResults = renderResults;
-
-  function waitForEl(selector, callback) {
-    const el = document.querySelector(selector);
-    if (el) return callback(el);
-    const observer = new MutationObserver(() => {
-      const elNow = document.querySelector(selector);
-      if (elNow) {
-        observer.disconnect();
-        callback(elNow);
-      }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-  }
-
-  function injectTestApiButton(saveBtn) {
-    if (!saveBtn || document.getElementById("ukpa-test-api-btn")) return;
-
-    const testButton = document.createElement("button");
-    testButton.id = "ukpa-test-api-btn";
-    testButton.textContent = "🧪 Test API";
-    testButton.className = "button button-secondary";
-    testButton.style.marginLeft = "12px";
-    saveBtn.parentNode.insertBefore(testButton, saveBtn.nextSibling);
-
-    testButton.addEventListener("click", async (e) => {
-      e.preventDefault();
-      if (typeof ukpa_api_data === 'undefined') return alert("API config missing");
-
-      const route = document.getElementById("ukpa-backend-route")?.value;
-      if (!route) return alert("Please select a backend route.");
-
-      const fullUrl = `${ukpa_api_data.base_url}/routes/mainRouter/${route}`;
-      const inputs = document.querySelectorAll("#inputs-preview .ukpa-element input, #inputs-preview .ukpa-element select, #inputs-preview .ukpa-element textarea");
-
-      const payload = {};
-      inputs.forEach(el => {
-        const wrapper = el.closest('.ukpa-element');
-        const config = wrapper?.dataset.config ? JSON.parse(wrapper.dataset.config) : {};
-        const paramName = config.name?.trim() || config.label?.trim();
-        const value = el.type === 'checkbox' ? el.checked : el.value;
-        if (paramName && value !== '') payload[paramName] = value;
-      });
-
-      try {
-        const response = await fetch(fullUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Plugin-Auth": ukpa_api_data.plugin_token
-          },
-          credentials: 'include',
-          body: JSON.stringify(payload)
-        });
-
-        const result = await response.json();
-        if (response.ok && result.result && typeof result.result === 'object') {
-          window.ukpaResults = result.result;
-          renderResults();
-
-          const keys = Object.keys(result.result);
-          document.querySelectorAll(".ukpa-element[data-type='mainResult'] select.dynamic-result-options, .ukpa-element[data-type='breakdown'] select.dynamic-result-options, .ukpa-element[data-type='barChart'] select.dynamic-result-options").forEach(dropdown => {
-            dropdown.innerHTML = `<option value="">-- Select --</option>`;
-            keys.forEach(key => {
-              const opt = document.createElement("option");
-              opt.value = key;
-              opt.textContent = key;
-              dropdown.appendChild(opt);
-            });
-          });
-
-          const editorDropdown = document.getElementById('ukpa-dynamic-result');
-          if (editorDropdown) {
-            editorDropdown.innerHTML = `<option value="">-- Select --</option>`;
-            keys.forEach(key => {
-              const opt = document.createElement("option");
-              opt.value = key;
-              opt.textContent = key;
-              editorDropdown.appendChild(opt);
-            });
-          }
-
-          const metaPayload = new FormData();
-          metaPayload.append('action', 'ukpa_save_result_keys');
-          metaPayload.append('calc_id', window.ukpaCalculatorId);
-          metaPayload.append('keys', JSON.stringify(keys));
-          metaPayload.append('_wpnonce', ukpa_api_data.nonce);
-
-          fetch(ukpa_api_data.ajaxurl, {
-            method: 'POST',
-            body: metaPayload
-          }).then(res => res.json())
-            .then(json => {
-              if (json.success) console.log("✅ Result keys saved to DB");
-              else console.warn("⚠️ DB save failed", json.data.message);
-            });
-        } else {
-          console.warn("🟡 API Error:", result.message || result);
-        }
-      } catch (err) {
-        console.error("❌ Fetch error:", err);
-      }
-    });
-  }
-
-  // Inject the button AFTER builder is rendered
-  waitForEl("#ukpa-save-builder", injectTestApiButton);
-</script>
+<script>window.ukpaResultKeys = <?php echo json_encode($data['dynamicResultKeys'] ?? []); ?>;</script>
+<script type="module" src="<?php echo plugins_url('assets/js/builder.js', dirname(__FILE__)); ?>?ver=<?php echo time(); ?>"></script>
 
 
 </div>
