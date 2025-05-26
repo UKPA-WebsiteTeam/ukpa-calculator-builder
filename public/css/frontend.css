@@ -269,6 +269,12 @@ p,h1,h2,h3,h4,h5,h6,span,div,a,button,label,ul,li {
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
+.ukpa-required-star {
+  color: red;
+  margin-left: 4px;
+  font-weight: bold;
+}
+
 .ab-table {
 	width: 100%;
 	border-collapse: collapse;

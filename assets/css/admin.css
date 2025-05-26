@@ -32,6 +32,12 @@ body.ukpa-fullscreen-builder .ukpa-builder-wrap {
   border-bottom: 1px solid #e0e0e0;
   z-index: 10;
 }
+.ukpa-required-star {
+  color: red;
+  margin-left: 4px;
+  font-weight: bold;
+}
+
 .ukpa-builder-exit {
   position: fixed;
   top: -15px;

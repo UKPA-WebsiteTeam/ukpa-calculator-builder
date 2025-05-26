@@ -1,4 +1,6 @@
-import { flattenKeys } from './flattenKeys.js';
+import { flattenKeys, flattenScalarKeys } from './flattenKeys.js';
+import { getArrayKeys } from './getArrayKeys.js';
+
 import { renderConditionalLogicEditor } from '../conditional-logic-editor.js';
 import { saveElementConfig } from './saveElementConfig.js';
 
@@ -48,6 +50,17 @@ export function editElementById(id) {
     });
     wrapper.appendChild(labelDiv);
   }
+  const requiredDiv = document.createElement('div');
+  requiredDiv.className = 'ukpa-editor-field';
+  requiredDiv.innerHTML = `
+    <label><input type="checkbox" ${config.required ? 'checked' : ''} /> Required</label>
+  `;
+  const checkbox = requiredDiv.querySelector('input');
+  checkbox.addEventListener('change', () => {
+    config.required = checkbox.checked;
+    saveConfig();
+  });
+  wrapper.appendChild(requiredDiv);
 
   if (def.fields.includes('name')) {
     const nameDiv = document.createElement('div');
@@ -184,13 +197,20 @@ export function editElementById(id) {
   }
 
   const resultTypes = ['mainResult', 'breakdown', 'barChart'];
+
   if (resultTypes.includes(type)) {
     let resultKeys = [];
 
-    if (Array.isArray(window.ukpaResultKeys) && window.ukpaResultKeys.length > 0) {
-      resultKeys = window.ukpaResultKeys;
-    } else if (window.ukpaResults && typeof window.ukpaResults === 'object') {
-      resultKeys = flattenKeys(window.ukpaResults);
+    if (window.ukpaResults && typeof window.ukpaResults === 'object') {
+      if (type === 'mainResult') {
+        // ✅ Only scalar values (string, number, null)
+        resultKeys = flattenScalarKeys(window.ukpaResults);
+      } else {
+        // ✅ Only array keys like breakdown, etc.
+        resultKeys = getArrayKeys(window.ukpaResults);
+      }
+
+      // Save for future use
       window.ukpaResultKeys = resultKeys;
     }
 
@@ -203,12 +223,14 @@ export function editElementById(id) {
     const dynamicSelect = document.createElement("select");
     dynamicSelect.className = "ukpa-input dynamic-result-options ukpa-element";
     dynamicSelect.id = "ukpa-dynamic-result";
+
+    // Add default option
     dynamicSelect.innerHTML = `<option value="">-- Select --</option>`;
 
     resultKeys.forEach(key => {
       const opt = document.createElement("option");
-      opt.value = key;
-      opt.textContent = key;
+      opt.value = key;                  // ✅ actual usable key
+      opt.textContent = key;            // shown label
       if (config.dynamicResult === key) opt.selected = true;
       dynamicSelect.appendChild(opt);
     });
@@ -221,7 +243,7 @@ export function editElementById(id) {
     dynamicGroup.appendChild(dynamicLabel);
     dynamicGroup.appendChild(dynamicSelect);
     wrapper.appendChild(dynamicGroup);
-  }
+}
 
 function saveConfig() {
   saveElementConfig({ el, type, id, config, editElementById });

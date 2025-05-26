@@ -29,3 +29,21 @@ document.addEventListener("DOMContentLoaded", () => {
   // Global reset function hook
   window.resetForm = () => resetForm(inputBox, contentSection, resultContainer);
 });
+
+export function allRequiredFieldsFilled() {
+  const requiredFields = document.querySelectorAll('[data-calc-required="true"]');
+
+  for (const field of requiredFields) {
+    if (field.closest('.ukpa-conditional')?.style.display === 'none') continue;
+
+    if (
+      (field.type === 'checkbox' && !field.checked) ||
+      (field.type === 'radio' && !document.querySelector(`input[name="${field.name}"]:checked`)) ||
+      (!['checkbox', 'radio'].includes(field.type) && !field.value?.trim())
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
