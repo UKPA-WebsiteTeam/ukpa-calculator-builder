@@ -1,49 +1,29 @@
 import { evaluateConditions } from './modules/evaluateConditions.js';
 import { applyAllConditions } from './modules/applyAllConditions.js';
 import { renderResults } from './modules/renderResults.js';
-import { sendToBackend } from './modules/sendToBackend.js';
+import { sendToBackend, debounce } from './modules/sendToBackend.js';
 import { bindInputTriggers } from './modules/bindInputTriggers.js';
 import { resetForm } from './modules/resetForm.js';
-import { scrollBar} from './modules/Scrollbar.js';
+import { scrollBar } from './modules/Scrollbar.js';
 
-document.addEventListener("DOMContentLoaded", () => {
-  const inputBox = document.querySelector(".ab-input");
-  const contentSection = document.querySelector(".ab-content");
-  const resultContainer = document.querySelector(".main-result-container");
-  const breakdown = document.querySelector(".ab-breakdown-table");
+// ✅ Debounced sendToBackend exposed to window and bindings
+export const debouncedSendToBackend = debounce(sendToBackend, 500);
 
-  // ✅ Always reset the form on page load to clear stale state
-  window.ukpaResults = {}; // clear stale results
-  resetForm(inputBox, contentSection, resultContainer,breakdown); // do not call renderResults here
-
-  // Re-apply condition logic
-  applyAllConditions();
-  scrollBar(); // Initialize scrollbar state
-  // Bind dynamic triggers to inputs
-  bindInputTriggers(inputBox, contentSection, resultContainer,breakdown);
-
-  // ✅ No renderResults on load
-  // renderResults(); ← removed
-
-  // Expose globally
-  window.renderResults = renderResults;
-  window.applyAllConditions = applyAllConditions;
-  window.sendToBackend = sendToBackend;
-
-  // Hook reset globally
-  window.resetForm = () => resetForm(inputBox, contentSection, resultContainer,breakdown);
-});
-
+// ✅ Check if all required fields are filled
 export function allRequiredFieldsFilled() {
   const requiredFields = document.querySelectorAll('[data-calc-required="true"]');
 
   for (const field of requiredFields) {
+    // Skip hidden conditionally excluded fields
     if (field.closest('.ukpa-conditional')?.style.display === 'none') continue;
 
+    const type = field.type;
+    const value = field.value?.trim();
+
     if (
-      (field.type === 'checkbox' && !field.checked) ||
-      (field.type === 'radio' && !document.querySelector(`input[name="${field.name}"]:checked`)) ||
-      (!['checkbox', 'radio'].includes(field.type) && !field.value?.trim())
+      (type === 'checkbox' && !field.checked) ||
+      (type === 'radio' && !document.querySelector(`input[name="${field.name}"]:checked`)) ||
+      (!['checkbox', 'radio'].includes(type) && !value)
     ) {
       return false;
     }
@@ -51,3 +31,28 @@ export function allRequiredFieldsFilled() {
 
   return true;
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+  const inputBox = document.querySelector(".ab-input");
+  const contentSection = document.querySelector(".ab-content");
+  const resultContainer = document.querySelector(".main-result-container");
+  const breakdown = document.querySelector(".ab-breakdown-table");
+
+  // ✅ Clear results on load
+  window.ukpaResults = {};
+  resetForm(inputBox, contentSection, resultContainer, breakdown);
+
+  // ✅ Setup logic and UI
+  applyAllConditions();
+  scrollBar();
+  bindInputTriggers(inputBox, contentSection, resultContainer, breakdown);
+
+  // ✅ Make tools globally accessible (for testing or re-use)
+  window.renderResults = renderResults;
+  window.applyAllConditions = applyAllConditions;
+  window.debouncedSendToBackend = debouncedSendToBackend;
+
+  // ✅ Manual reset via window
+  window.resetForm = () =>
+    resetForm(inputBox, contentSection, resultContainer, breakdown);
+});

@@ -64,7 +64,6 @@ export function generateElementHTML(type, id, config = {}) {
         <label class="ab-result-label">${config.label || 'Main Result'}</label>
         <div class="ab-main-result-value" data-key="${key}">--</div>
       </div>
-      <div class="ab-result-note">Enter contact details below to receive more detailed result in your email.</div>
     `;
   }
 

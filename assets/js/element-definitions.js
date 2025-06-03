@@ -165,7 +165,6 @@ export const ukpaElementDefinitions = {
       conditions: []
     }
   },
-
   contentBlock: {
     label: 'Content Block',
     icon: '📦',
@@ -176,17 +175,15 @@ export const ukpaElementDefinitions = {
       conditions: []
     }
   },
-
- // 📊 Result + Logic Elements (updated)
   mainResult: {
     label: 'Main Result',
     icon: '💡',
-    fields: ['label', 'resultKey', 'resultDropdownKey', 'conditions'], // 👈 Add this
+    fields: ['label', 'resultKey', 'resultDropdownKey', 'conditions'],
     default: {
       label: 'Main Result',
       resultKey: 'mainResult',
       resultDropdownKey: '',
-      resultOptions: [], // 👈 Needed to render options
+      resultOptions: [],
       conditions: []
     }
   },

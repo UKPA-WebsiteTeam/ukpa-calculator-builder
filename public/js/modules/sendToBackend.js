@@ -1,8 +1,23 @@
 import { renderResults } from './renderResults.js';
 
+// ✅ Debounce helper
+function debounce(func, wait = 600) {
+  let timeout;
+  return function (...args) {
+    const context = this;
+    clearTimeout(timeout);
+    timeout = setTimeout(() => {
+      func.apply(context, args);
+    }, wait);
+  };
+}
+
+// ✅ Actual backend request
 export function sendToBackend(inputs) {
-  if (!window.ukpa_api_data?.base_url || !window.ukpa_api_data?.plugin_token) {
-    console.warn('⚠️ Missing plugin token or API URL.');
+  const { base_url, plugin_token, backend_route } = window.ukpa_api_data || {};
+
+  if (!base_url || !plugin_token || !backend_route) {
+    console.warn('⚠️ Missing plugin token, API URL, or backend route.');
     return;
   }
 
@@ -20,31 +35,54 @@ export function sendToBackend(inputs) {
 
   console.log("📤 Sending to backend:", payload);
 
-  const requestUrl = `${window.ukpa_api_data.base_url}/routes/mainRouter/${window.ukpa_api_data.backend_route}`;
+  const requestUrl = `${base_url}/routes/mainRouter/${backend_route}`;
   console.log("📡 Fetching from:", requestUrl);
 
   fetch(requestUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-Plugin-Auth': window.ukpa_api_data.plugin_token
+      'X-Plugin-Auth': plugin_token
     },
     credentials: 'include',
     body: JSON.stringify(payload)
   })
     .then(async res => {
-      console.log("📥 Raw Response:", res);
       const data = await res.json();
+      console.log("📥 Raw Response:", res);
       console.log("✅ Parsed Response:", data);
 
-      if (res.ok && typeof data === 'object') {
-            window.ukpaResults = data;
-            renderResults();
+      const errorBox = document.getElementById('ukpa-error-message');
+      if (errorBox) {
+        errorBox.style.display = 'none';
+        errorBox.textContent = '';
+      }
+
+      if (res.ok && data?.success) {
+        window.ukpaResults = data;
+        renderResults();
       } else {
         console.warn("🟡 Error from API:", data.message || data);
+
+        if (errorBox) {
+          errorBox.textContent = data.message || 'Something went wrong.';
+          errorBox.style.display = 'block';
+        }
       }
     })
     .catch(err => {
       console.error("❌ Fetch error:", err);
+
+      const errorBox = document.getElementById('ukpa-error-message');
+      if (errorBox) {
+        errorBox.textContent = 'Network error. Please try again.';
+        errorBox.style.display = 'block';
+      }
     });
 }
+
+// ✅ Debounced version to use in input triggers
+export const debouncedSendToBackend = debounce(sendToBackend, 600);
+
+// Optional: export debounce if you want to reuse it
+export { debounce };

@@ -85,10 +85,14 @@ function render_ukpa_calculator_shortcode($atts = []) {
                         <?php endforeach; ?>
                     </form>
                 </div>
+                
 
                 <!-- Sticky Reset Button -->
                 <div class="ab-btn-div">
-                    <button type="button" class="ab-reset-button" onclick="resetForm()">Reset</button>
+                    <div class="input-bottom-container">
+                        <div id="ukpa-error-message" class="ukpa-error-message"></div>
+                        <button type="button" class="ab-reset-button" onclick="resetForm()">Reset</button>
+                    </div>
                 </div>
             </div>
 
@@ -148,6 +152,7 @@ function render_ukpa_calculator_shortcode($atts = []) {
                     <!-- Lead form -->
                     <form class="ab-lead-form" onsubmit="handleLeadSubmit(event)">
                         <span></span>
+                            <small class="leadform-title">Enter contact details below to receive more detailed result in your email.</small>
                         <div class="ab-lead-fields">
                             <div class="ab-lead-input-group">
                                 <label for="ab-fullName">Full Name</label>

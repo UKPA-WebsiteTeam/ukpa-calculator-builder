@@ -53,7 +53,7 @@
   
   .ab-bar-chart {
 	width: 100%;
-	height: 300px;
+	height: 250px;
   }
   
   .ab-main-result-header {
@@ -62,7 +62,6 @@
 	align-items: baseline;
   }
   .ab-disclaimer-label{
-	border-top: 1px solid #efefef;
     padding: 10px 0px;
     margin: 10px 0px;
   }
@@ -71,7 +70,20 @@
 	font-size: 18px;
 	color: #111;
   }
-  
+  .leadform-title{
+	font-size:14px;
+	margin-bottom: 5px;
+  }
+  .ukpa-error-message {
+	font-size: 14px;
+	max-width: 260px;
+	color: #cc0000;
+	}
+  .input-bottom-container{
+	display: flex;
+    justify-content: space-between;
+	height: 20px;
+  }
   .ab-main-result-value {
 	font-size: 28px;
 	font-weight: bold;
@@ -97,7 +109,7 @@
 	background: #fff;
 	max-height: 500px;
 	padding: 25px;
-	padding-bottom: 0px;
+	padding-bottom: 20px;
 	border-radius: 10px;
 	display: flex;
 	flex-direction: column;
@@ -293,7 +305,6 @@
   bottom: 0;
   background: #fff;
   border-top: 1px solid #e0e0e0;
-  padding: 5px 0px;
   width: 100%;
   box-sizing: border-box;
   z-index: 2;
@@ -303,20 +314,21 @@
 	background: none;
 	border: none;
 	color: #6b7280;
-	padding: 4px 0px ;
 	border-radius: 6px;
 	cursor: pointer;
 	text-decoration: none;
 	box-shadow: none;
-	font-size: 16px;
-	float: right;
+	font-size: 14px;
+	position: absolute;
+    right: 0;
+	top: 0;
 }
 
 .ab-reset-button:hover {
 	text-decoration: underline;
 	background:none;
 	color: #6b7280;
-	font-size: 16px;
+	font-size: 14px;
 }
 p,h1,h2,h3,h4,h5,h6,span,div,a,button,label,ul,li {
 	font-family: inherit;
@@ -434,15 +446,19 @@ p,h1,h2,h3,h4,h5,h6,span,div,a,button,label,ul,li {
 /* LEAD FORM */
 .ab-lead-form {
 	margin: 0px -25px 0 -25px;
-	padding: 5px 25px 10px 25px;
+	padding: 0px 25px 10px 25px;
 	background: #f9fafb;
 	border-radius: 0px 0px 10px 10px;
 	border-top: 1px solid #e9e9e9;
 }
-
+.ab-lead-input-group label {
+    padding: 0px;
+    margin: 0px;
+}
 .ab-lead-fields {
 	display: flex;
 	flex-wrap: wrap;
+	margin-top: 5px;
 	gap: 20px;
 	align-items: flex-end;
 }
@@ -466,6 +482,7 @@ p,h1,h2,h3,h4,h5,h6,span,div,a,button,label,ul,li {
 	border: 1px solid #ccc;
 	background: #f3f3f3;
 	font-size: 14px;
+	margin:0px;
 }
 
 .ab-send-btn {
@@ -500,8 +517,9 @@ p,h1,h2,h3,h4,h5,h6,span,div,a,button,label,ul,li {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: 20px; /* optional spacing */
+	gap: 20px;
 	flex-wrap: wrap;
+	border-bottom: 5px solid #012169;
   }
   .ab-result-note{
 	font-size: 12px;

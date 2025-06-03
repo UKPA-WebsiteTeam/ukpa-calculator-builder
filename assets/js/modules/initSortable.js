@@ -1,13 +1,25 @@
 import { markAsDirty } from './markAsDirty.js';
 
-export function initSortable(container) {
+export function initSortable(container = document) {
+  if (!container || typeof container.querySelectorAll !== 'function') {
+    console.warn("❌ initSortable: container is invalid or undefined");
+    return;
+  }
+
   const children = container.querySelectorAll('.ukpa-element');
+  if (!children.length) {
+    console.info("ℹ️ initSortable: no .ukpa-element nodes found");
+    return;
+  }
 
   children.forEach(child => {
+    child.setAttribute('draggable', 'true');
+
     child.addEventListener('dragover', e => {
       e.preventDefault();
       const bounding = child.getBoundingClientRect();
       const offset = e.clientY - bounding.top;
+
       child.style.borderTop = offset < bounding.height / 2 ? '2px solid #007cba' : '';
       child.style.borderBottom = offset >= bounding.height / 2 ? '2px solid #007cba' : '';
     });
@@ -17,7 +29,7 @@ export function initSortable(container) {
       child.style.borderBottom = '';
     });
 
-    child.addEventListener('drop', (e) => {
+    child.addEventListener('drop', e => {
       e.preventDefault();
       const bounding = child.getBoundingClientRect();
       const offset = e.clientY - bounding.top;
