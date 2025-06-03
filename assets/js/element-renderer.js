@@ -14,7 +14,6 @@ export function generateElementHTML(type, id, config = {}) {
     const options = (config.options || []).map(opt =>
       `<option value="${opt}" ${opt === config.dynamicResult ? 'selected' : ''}>${opt}</option>`
     ).join('');
-
     html = `<label for="${id}">${config.label || ''} ${requiredMark}</label>
     <select id="${id}" class="ukpa-input" ${dataAttr} ${isCalcRequiredAttr}>
       ${options}
@@ -92,7 +91,16 @@ export function generateElementHTML(type, id, config = {}) {
         <strong class="ab-disclaimer-label">${config.label || 'Disclaimer'}</strong>
       </div>`;
   }
+  else if (type === 'otherResult') {
+    const key = config.dynamicResult || '';
+    const layoutClass = config.layout === 'column' ? 'ab-other-block' : 'ab-other-inline';
 
+    html = `
+      <div class="ab-other-result ${layoutClass}" data-key="${key}" data-layout="${config.layout || 'row'}">
+        <div class="ab-other-label">${config.label || 'Other Result'}</div>
+        <div class="ab-other-value">--</div>
+      </div>`;
+  }
   // ✅ Wrap all fields and apply conditional visibility if configured
   const wrapperEl = document.createElement('div');
   wrapperEl.classList.add('ukpa-field-wrapper');
@@ -105,6 +113,7 @@ export function generateElementHTML(type, id, config = {}) {
   wrapperEl.innerHTML = html;
   return wrapperEl.outerHTML;
 }
+
 
 // ✅ Condition evaluation logic
 export function evaluateConditions(rules = []) {

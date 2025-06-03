@@ -22,7 +22,16 @@ function render_ukpa_calculator_shortcode($atts = []) {
     $backend_route = esc_js($data['route'] ?? '');
 
     ob_start();
+
+    // ✅ Inject custom CSS and JS saved in builder
+    if (!empty($data['ukpa_builder_css'])) {
+        echo '<style id="ukpa-custom-css">' . esc_html($data['ukpa_builder_css']) . '</style>';
+    }
+    if (!empty($data['ukpa_builder_js'])) {
+        echo '<script id="ukpa-custom-js">' . wp_kses_post($data['ukpa_builder_js']) . '</script>';
+    }
     ?>
+
     <!-- ✅ Inject calc ID and backend route for JS to access -->
     <script>
         window.ukpaCalculatorId = "<?php echo esc_js($calc_id); ?>";
@@ -52,39 +61,12 @@ function render_ukpa_calculator_shortcode($atts = []) {
                 <?php endforeach; ?>
             </div>
 
-            <!-- MIDDLE: Input form section -->
             <div class="ab-input" id="ab-input-box">
-                <form onsubmit="return false;">
-                    <?php foreach ($data['elements'] as $el): ?>
-                        <?php if ($el['section'] === 'inputs'): ?>
-                            <?php
-                                $config = $el['config'] ?? [];
-                                $id = esc_attr($el['id']);
-                                $style = (!empty($config['conditions']['rules'])) ? 'display:none;' : '';
-                                $html = preg_replace('/<div class="ukpa-admin-id-label">.*?<\/div>/', '', $el['html']);
-                                $html = preg_replace('/<(input|select|textarea)([^>]+)>/i', '<$1 name="' . $id . '"$2>', $html);
-                            ?>
-                            <div class="ukpa-element"
-                                 data-id="<?= $id ?>"
-                                 data-type="<?= esc_attr($el['type']) ?>"
-                                 data-config='<?= esc_attr(json_encode($config)) ?>'
-                                 style="<?= esc_attr($style) ?>">
-                                <?= $html ?>
-                            </div>
-                        <?php endif; ?>
-                    <?php endforeach; ?>
-                    <div class="ab-btn-div">
-                        <button type="button" class="ab-reset-button" onclick="resetForm()">Reset</button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- RIGHT: Result section -->
-            <div class="main-result-container" id="main-result-container" style="display: none;">
-                <div class="ab-result-wrapper">
-                    <div class="ab-result" id="ab-result-container">
+                <!-- Scrollable Input Form -->
+                <div class="ab-input-scrollable">
+                    <form onsubmit="return false;">
                         <?php foreach ($data['elements'] as $el): ?>
-                            <?php if ($el['section'] === 'results'): ?>
+                            <?php if ($el['section'] === 'inputs'): ?>
                                 <?php
                                     $config = $el['config'] ?? [];
                                     $id = esc_attr($el['id']);
@@ -93,18 +75,79 @@ function render_ukpa_calculator_shortcode($atts = []) {
                                     $html = preg_replace('/<(input|select|textarea)([^>]+)>/i', '<$1 name="' . $id . '"$2>', $html);
                                 ?>
                                 <div class="ukpa-element"
-                                     data-id="<?= $id ?>"
-                                     data-type="<?= esc_attr($el['type']) ?>"
-                                     data-config='<?= esc_attr(json_encode($config)) ?>'
-                                     style="<?= esc_attr($style) ?>">
+                                    data-id="<?= $id ?>"
+                                    data-type="<?= esc_attr($el['type']) ?>"
+                                    data-config='<?= esc_attr(json_encode($config)) ?>'
+                                    style="<?= esc_attr($style) ?>">
                                     <?= $html ?>
                                 </div>
                             <?php endif; ?>
                         <?php endforeach; ?>
-                    </div>
+                    </form>
+                </div>
+
+                <!-- Sticky Reset Button -->
+                <div class="ab-btn-div">
+                    <button type="button" class="ab-reset-button" onclick="resetForm()">Reset</button>
+                </div>
+            </div>
+
+
+
+            <!-- RIGHT: Result section -->
+            <div class="main-result-container" id="main-result-container" style="display: none;">
+                <div class="ab-result-wrapper">
+                    <div class="ab-result" id="ab-result-container">
+                        <!-- 🔵 Main Result Section -->
+                        <div class="ab-main-result-wrapper">
+                            <?php foreach ($data['elements'] as $el): ?>
+                            <?php if ($el['section'] === 'results' && $el['type'] === 'mainResult'): ?>
+                                <?php
+                                $config = $el['config'] ?? [];
+                                $id = esc_attr($el['id']);
+                                $style = (!empty($config['conditions']['rules'])) ? 'display:none;' : '';
+                                $html = preg_replace('/<div class="ukpa-admin-id-label">.*?<\/div>/', '', $el['html']);
+                                $html = preg_replace('/<(input|select|textarea)([^>]+)>/i', '<$1 name="' . $id . '"$2>', $html);
+                                ?>
+                                <div class="ukpa-element"
+                                    data-id="<?= $id ?>"
+                                    data-type="<?= esc_attr($el['type']) ?>"
+                                    data-config='<?= esc_attr(json_encode($config)) ?>'
+                                    style="<?= esc_attr($style) ?>">
+                                <?= $html ?>
+                                </div>
+                            <?php endif; ?>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <!-- 🟢 Other Charts + Results -->
+                        <div class="ab-secondary-result-wrapper">
+                            <?php foreach ($data['elements'] as $el): ?>
+                            <?php if ($el['section'] === 'results' && $el['type'] !== 'mainResult'): ?>
+                                <?php
+                                $config = $el['config'] ?? [];
+                                $id = esc_attr($el['id']);
+                                $style = (!empty($config['conditions']['rules'])) ? 'display:none;' : '';
+                                $html = preg_replace('/<div class="ukpa-admin-id-label">.*?<\/div>/', '', $el['html']);
+                                $html = preg_replace('/<(input|select|textarea)([^>]+)>/i', '<$1 name="' . $id . '"$2>', $html);
+                                ?>
+                                <div class="ukpa-element"
+                                    data-id="<?= $id ?>"
+                                    data-type="<?= esc_attr($el['type']) ?>"
+                                    data-config='<?= esc_attr(json_encode($config)) ?>'
+                                    style="<?= esc_attr($style) ?>">
+                                <?= $html ?>
+                                </div>
+                            <?php endif; ?>
+                            <?php endforeach; ?>
+                        </div>
+
+                        </div>
+
 
                     <!-- Lead form -->
                     <form class="ab-lead-form" onsubmit="handleLeadSubmit(event)">
+                        <span></span>
                         <div class="ab-lead-fields">
                             <div class="ab-lead-input-group">
                                 <label for="ab-fullName">Full Name</label>

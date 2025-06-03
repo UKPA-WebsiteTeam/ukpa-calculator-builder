@@ -19,6 +19,10 @@ function handle_ukpa_unified_save_calculator() {
     $title = sanitize_text_field($_POST['title'] ?? 'Untitled Calculator');
     $route = sanitize_text_field($_POST['backend_route'] ?? '');
 
+    // ✅ Add these
+    $custom_css = sanitize_textarea_field($_POST['custom_css'] ?? '');
+    $custom_js = sanitize_textarea_field($_POST['custom_js'] ?? '');
+
     if (!$calc_id || !is_array($elements)) {
         wp_send_json_error(['message' => 'Missing or invalid data']);
     }
@@ -27,6 +31,12 @@ function handle_ukpa_unified_save_calculator() {
     $old['title'] = $title;
     $old['route'] = $route;
     $old['elements'] = $elements;
+
+    // ✅ Add these to store custom code
+    $old['ukpa_builder_css'] = $custom_css;
+    $old['ukpa_builder_js'] = $custom_js;
+
+    // ✅ Store dynamic result keys if present
     if (is_array($dynamic_keys)) {
         $old['dynamicResultKeys'] = $dynamic_keys;
     }
@@ -39,6 +49,7 @@ function handle_ukpa_unified_save_calculator() {
         wp_send_json_error(['message' => 'Update failed']);
     }
 }
+
 
 add_action('wp_ajax_ukpa_save_result_keys', function () {
   check_ajax_referer('ukpa_save_calc_nonce');

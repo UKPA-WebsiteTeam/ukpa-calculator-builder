@@ -1,4 +1,14 @@
 export function renderResults() {
+  console.log('🔄 renderResults triggered');
+  console.log('🌐 Current window.ukpaResults:', window.ukpaResults);
+
+  const formatCurrency = val =>
+    typeof val === 'number'
+      ? `£${val.toLocaleString()}`
+      : (typeof val === 'string' && val.startsWith('£'))
+        ? val
+        : `£${Number(val).toLocaleString()}`;
+
   // ✅ Render Main Results
   document.querySelectorAll('.ab-main-result-value').forEach(el => {
     const key = el.dataset.key;
@@ -9,38 +19,86 @@ export function renderResults() {
       current = current?.[isNaN(part) ? part : parseInt(part)];
     });
 
-    el.textContent = (current !== undefined && current !== null) ? current : '--';
+    el.textContent = (current !== undefined && current !== null)
+      ? formatCurrency(current)
+      : '--';
   });
 
-  window.ukpaCharts = window.ukpaCharts || {};
+  // ✅ Render Breakdown Tables
+  document.querySelectorAll('.ab-breakdown-table').forEach(el => {
+    const key = el.dataset.resultKey;
+    const data = key && window.ukpaResults ? window.ukpaResults[key] : null;
+
+    if (!Array.isArray(data)) return;
+
+    const rows = data.map((row, i) => {
+      let bandRaw = row.band ?? '';
+      let bandStr = String(bandRaw);
+      const isFinal = i === data.length - 1;
+      const prev = data[i - 1];
+
+      if (isFinal && /^\d+$/.test(bandStr) && Number(bandStr) > 1e9) {
+        bandStr = `Above £${Number(prev?.band).toLocaleString()}`;
+      }
+
+      return `
+        <tr>
+          <td>${bandStr}</td>
+          <td>${row.rate ?? ''}</td>
+          <td>${formatCurrency(row.amount)}</td>
+          <td>${formatCurrency(row.tax)}</td>
+        </tr>`;
+    }).join('');
+
+    el.innerHTML = `
+      <table class="ab-breakdown-inner">
+        <thead>
+          <tr><th>Band</th><th>Rate</th><th>Amount</th><th>Tax</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  });
 
   // ✅ Render Bar Charts
+  window.ukpaCharts = window.ukpaCharts || {};
+
   document.querySelectorAll('.ab-bar-chart').forEach(canvas => {
     const ctx = canvas.getContext('2d');
     const key = canvas.dataset.resultKey;
+    const breakdown = window.ukpaResults?.[key];
 
-    if (!ctx || !window.ukpaResults?.[key]) return;
+    if (!ctx || !Array.isArray(breakdown)) return;
 
     if (window.ukpaCharts[key]) {
       window.ukpaCharts[key].destroy();
     }
 
-    const breakdown = window.ukpaResults[key];
+    const labels = breakdown.map((row, i) => {
+      const raw = row.band;
+      const bandStr = String(raw);
+      const prevBand = breakdown[i - 1]?.band;
 
-    const labels = breakdown.map(item => item.band ?? `${item.rate ?? 'N/A'}%`);
-    const data = breakdown.map(item => {
-      const val = item.tax ?? item.amount ?? 0;
-      return typeof val === 'number' ? val : parseFloat(val) || 0;
+      if (i === breakdown.length - 1 && /^\d+$/.test(bandStr) && Number(bandStr) > 1e9) {
+        return `Above £${Number(prevBand).toLocaleString()}`;
+      }
+
+      return bandStr;
     });
 
+    const values = breakdown.map(row => {
+      const raw = row.tax || 0;
+      return typeof raw === 'number'
+        ? raw
+        : parseFloat(String(raw).replace(/[£,]/g, '')) || 0;
+    });
 
     const chart = new Chart(ctx, {
       type: 'bar',
       data: {
         labels,
         datasets: [{
-          label: 'Tax by Band',
-          data,
+          label: 'Tax',
+          data: values,
           backgroundColor: '#22c55e'
         }]
       },
@@ -57,31 +115,5 @@ export function renderResults() {
     });
 
     window.ukpaCharts[key] = chart;
-  });
-
-  // ✅ Render Breakdown Tables
-  document.querySelectorAll('.ab-breakdown-table').forEach(el => {
-    const key = el.dataset.resultKey;
-    const data = key && window.ukpaResults ? window.ukpaResults[key] : null;
-
-    if (!Array.isArray(data)) return;
-
-    el.innerHTML = `
-      <table>
-        <thead>
-          <tr><th>Band</th><th>Rate</th><th>Amount</th><th>Tax</th></tr>
-        </thead>
-        <tbody>
-          ${data.map(row => `
-            <tr>
-              <td>${row.band || ''}</td>
-              <td>${row.rate ?? ''}%</td>
-              <td>${row.amount?.toLocaleString?.() || ''}</td>
-              <td>${row.tax?.toLocaleString?.() || ''}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
   });
 }

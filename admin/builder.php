@@ -98,6 +98,8 @@ $route = $data['route'] ?? '';
           <div class="draggable button" data-type="breakdown">Breakdown Table</div>
           <div class="draggable button" data-type="barChart">Bar Chart</div>
           <div class="draggable button" data-type="disclaimer">Disclaimer</div>
+          <div class="draggable button" data-type="otherResult">Other Result</div>
+
         </div>
       </div>
     </div>
@@ -128,11 +130,8 @@ $route = $data['route'] ?? '';
         <div class="ukpa-section ukpa-drop-zone" id="results-preview" data-section="results" style="width: 65%;">
           <h3>Result Section</h3>
 
-          <?php foreach ($elements as $el):
-            echo $el['section'];
-             ?>
-
-            <?php if ($el['section'] === 'results'): ?>
+          <?php foreach ($elements as $el): ?>
+            <?php if ($el['section'] === 'results' && $el['type'] !== 'disclaimer'): ?>
               <div class="ukpa-element"
                   data-id="<?php echo esc_attr($el['id']); ?>"
                   data-type="<?php echo esc_attr($el['type']); ?>"
@@ -144,9 +143,9 @@ $route = $data['route'] ?? '';
 
                 <?php echo $el['html']; ?>
               </div>
-
             <?php endif; ?>
           <?php endforeach; ?>
+
         </div>
       </div>
 
@@ -224,27 +223,18 @@ $route = $data['route'] ?? '';
           <span class="toggle-indicator">↰</span>
         </div>
 
-        <div id="ukpa-custom-code-box" class="ukpa-settings-body">
-          <div class="ukpa-settings-subbox" style="margin-bottom: 20px;">
-            <label for="ukpa_custom_css">Custom CSS:</label>
-            <textarea
-              name="custom_css"
-              id="ukpa_custom_css"
-              rows="6"
-              style="width: 100%; font-family: monospace; min-height: 120px; padding: 10px; border: 1px solid #ccc; border-radius: 5px;"
-            ><?php echo esc_textarea($data['ukpa_builder_css'] ?? ''); ?></textarea>
-          </div>
-
-          <div class="ukpa-settings-subbox">
-            <label for="ukpa_custom_js">Custom JS:</label>
-            <textarea
-              name="custom_js"
-              id="ukpa_custom_js"
-              rows="6"
-              style="width: 100%; font-family: monospace; min-height: 120px; padding: 10px; border: 1px solid #ccc; border-radius: 5px;"
-            ><?php echo esc_textarea($data['ukpa_builder_js'] ?? ''); ?></textarea>
-          </div>
+      <div id="ukpa-custom-code-box" class="ukpa-settings-body">
+        <div class="ukpa-settings-subbox" style="margin-bottom: 20px;">
+          <label for="ukpa_custom_css">Custom CSS:</label>
+          <textarea id="ukpa_custom_css" rows="8"><?php echo esc_textarea($data['ukpa_builder_css'] ?? ''); ?></textarea>
         </div>
+
+        <div class="ukpa-settings-subbox">
+          <label for="ukpa_custom_js">Custom JS:</label>
+          <textarea id="ukpa_custom_js" rows="8"><?php echo esc_textarea($data['ukpa_builder_js'] ?? ''); ?></textarea>
+        </div>
+      </div>
+
       </div>
 
 

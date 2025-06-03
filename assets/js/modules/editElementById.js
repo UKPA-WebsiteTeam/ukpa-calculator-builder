@@ -196,7 +196,7 @@ export function editElementById(id) {
     wrapper.appendChild(renderConditionalLogicEditor(config, saveConfig));
   }
 
-  const resultTypes = ['mainResult', 'breakdown', 'barChart'];
+  const resultTypes = ['mainResult', 'breakdown', 'barChart','otherResult'];
 
   if (resultTypes.includes(type)) {
     let resultKeys = [];

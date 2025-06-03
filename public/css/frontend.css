@@ -45,9 +45,9 @@
 	box-sizing: border-box;
   }
   .ab-chart-wrapper {
-	margin: 30px 0px;
+	margin: 30px 0px 0px;
 	background: #fff;
-	height: 290px;
+	height: 250px;
   }
 
   
@@ -95,14 +95,49 @@
 .ab-input {
 	width: 37% !important;
 	background: #fff;
+	max-height: 500px;
 	padding: 25px;
-	padding-bottom: 50px;
+	padding-bottom: 0px;
 	border-radius: 10px;
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	max-height: 100vh;
 	border: 1px solid #e9e9e9;
 	box-shadow: 0px 6px 20px 2px rgba(0, 0, 0, 0.05);
 	position: relative;
+	overflow: hidden;
 }
 
+.ab-input form {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2px;
+}
+.ab-input-scrollable {
+	flex: 1;
+	overflow-y: auto;
+	padding: 0px ;
+	box-sizing: border-box;
+	scrollbar-width: thin;
+	scrollbar-color: #ccc transparent;
+}
+.ab-input-scrollable::-webkit-scrollbar {
+
+  width: 6px;
+}
+
+.ab-input-scrollable::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 4px;
+}
+
+.ab-input-scrollable::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ab-input-scrollable.has-scroll {
+  padding-right: 1rem;
+}
 .ab-wrapper label {
 	font-weight: 600;
 	margin-top: 15px;
@@ -113,12 +148,119 @@
 
 .ab-wrapper input,
 .ab-wrapper select {
-	padding: 10px;
-	margin-top: 6px;
-	border-radius: 6px;
-	border: 1px solid #ccc;
-	background: #f3f3f3;
-	font-size: 16px;
+	padding: 10px 12px;
+    margin-top: 6px;
+    font-size: 17px;
+}
+.ukpa-input{
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  color: #374151;
+  background-color: #ffffff;
+  outline: none;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.ukpa-input:focus {
+  box-shadow: 0 0 0 2px #3b82f6;
+  border-color: #3b82f6;
+  border: 0px solid #3b82f6;
+}
+/* Style only the calculator breakdown table */
+.ab-breakdown-wrapper {
+  margin-top: 20px;
+  font-family: inherit;
+  font-size: 18px;
+}
+
+.ab-breakdown-label {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  display: block;
+  color: #012169;
+}
+
+.ab-breakdown-table {
+  overflow-x: auto;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 0 5px rgba(0,0,0,0.05);
+  padding: 10px;
+}
+
+.ab-breakdown-inner {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ab-breakdown-inner th,
+.ab-breakdown-inner td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #eee;
+  text-align: right;
+}
+
+.ab-breakdown-inner th {
+  background: #f8f9fc;
+  font-weight: 600;
+  color: #333;
+  text-align: right;
+}
+
+.ab-breakdown-inner td:first-child,
+.ab-breakdown-inner th:first-child {
+  text-align: left;
+}
+
+.ab-breakdown-inner tbody tr:last-child td {
+  border-bottom: none;
+}
+.ab-breakdown-table {
+  overflow-x: auto;
+}
+.ab-breakdown-inner {
+  min-width: 500px;
+}
+/* for other results*/
+.ab-other-inline .ab-other-wrapper {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.ab-other-block .ab-other-wrapper {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+}
+.ab-other-column{
+	display: flex;
+	gap: 20px;
+}
+.ab-other-card {
+  background: #f9fafb;
+  padding: 10px;
+  border-radius: 8px;
+  min-width: 160px;
+  text-align: center;
+  flex: 1;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.ab-other-card .ab-other-label {
+  font-weight: 500;
+  margin-bottom: 4px;
+  border-bottom: 1px solid #ccc;
+}
+.ab-other-label {
+  font-size: 14px;
+}
+.ab-other-card .ab-other-value {
+  font-weight: bold;
+  font-size: 16px;
 }
 
 /* Toggle Buttons */
@@ -147,32 +289,27 @@
 
 /* RESET SECTION */
 .ab-btn-div {
-	position: absolute;
-	bottom: 0;
-	left: 0;
-	right: 0;
-	height: 50px;
-	padding: 0 25px;
-	background-color: #f9fafb;
-	border-top: 1px solid #e9e9e9;
-	border-bottom-left-radius: 10px;
-	border-bottom-right-radius: 10px;
-	display: flex;
-	align-items: center;
-	justify-content: flex-end;
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  border-top: 1px solid #e0e0e0;
+  padding: 5px 0px;
+  width: 100%;
+  box-sizing: border-box;
+  z-index: 2;
 }
 
 .ab-reset-button {
 	background: none;
 	border: none;
 	color: #6b7280;
-	padding: 4px 16px;
+	padding: 4px 0px ;
 	border-radius: 6px;
 	cursor: pointer;
 	text-decoration: none;
 	box-shadow: none;
 	font-size: 16px;
-
+	float: right;
 }
 
 .ab-reset-button:hover {

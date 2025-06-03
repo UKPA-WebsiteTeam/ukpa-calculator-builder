@@ -9,7 +9,6 @@ import { injectTestApiButton } from './modules/injectTestApiButton.js';
 import { renderResults } from './shared/render-results.js';
 window.renderResults = renderResults;
 
-
 // ✅ Dynamic imports
 import('./modules/editElementById.js').then(mod => {
   window.editElementById = mod.editElementById;
@@ -27,9 +26,10 @@ import('./element-renderer.js').then(mod => {
 window.draggingElement = null;
 window.isDirty = false;
 window.toggleBox = toggleBox;
+window.cssEditor = null;
+window.jsEditor = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-
   // ✅ Calculator ID
   window.ukpaCalculatorId = new URLSearchParams(window.location.search).get('calc_id');
 
@@ -38,7 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ✅ Save button check
   const saveBtn = document.getElementById('ukpa-save-builder');
-
   if (saveBtn) {
     saveBtn.addEventListener('click', saveCalculatorLayout);
     injectTestApiButton(saveBtn);
@@ -64,4 +63,35 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // ✅ Setup CodeMirror for Custom CSS
+  const cssTextarea = document.getElementById('ukpa_custom_css');
+  if (cssTextarea && typeof CodeMirror !== 'undefined') {
+    window.cssEditor = CodeMirror.fromTextArea(cssTextarea, {
+      lineNumbers: true,
+      mode: 'css',
+      theme: 'default',
+    });
+
+    if (window.ukpa_calc_data?.custom_css) {
+      window.cssEditor.setValue(window.ukpa_calc_data.custom_css);
+    }
+  }
+
+  // ✅ Setup CodeMirror for Custom JS
+  const jsTextarea = document.getElementById('ukpa_custom_js');
+  if (jsTextarea && typeof CodeMirror !== 'undefined') {
+    window.jsEditor = CodeMirror.fromTextArea(jsTextarea, {
+      lineNumbers: true,
+      mode: 'javascript',
+      theme: 'default',
+    });
+
+    if (window.ukpa_calc_data?.custom_js) {
+      window.jsEditor.setValue(window.ukpa_calc_data.custom_js);
+    }
+  }
+
+  // ✅ Init drag & drop after DOM is ready
+  initSortable();
 });

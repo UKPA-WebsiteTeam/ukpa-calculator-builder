@@ -213,8 +213,20 @@ export const ukpaElementDefinitions = {
       resultOptions: [],
       conditions: []
     }
-  }
-  ,
+  },
+  otherResult: {
+    label: 'Other Result',
+    icon: '📌',
+    fields: ['label', 'resultKey', 'resultDropdownKey', 'layout', 'conditions'],
+    default: {
+      label: 'Other Result',
+      resultKey: 'otherResult',
+      resultDropdownKey: '',
+      resultOptions: [],
+      layout: 'column',
+      conditions: []
+    }
+  },
   disclaimer: {
     label: 'Disclaimer',
     icon: '⚠️',

@@ -26,7 +26,7 @@ function ukpa_calculator_add_main_menu() {
 
     add_submenu_page(
         'ukpa-calculator-builder',
-        'Add New Calculator',
+        'UKPA Calculator Builder',
         'Add New Calculator',
         'manage_options',
         'ukpa-calculator-add-new',
