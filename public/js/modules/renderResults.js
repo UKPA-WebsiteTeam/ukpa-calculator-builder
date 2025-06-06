@@ -111,19 +111,36 @@ export function renderResults() {
   document.querySelectorAll('.ab-other-result').forEach(wrapper => {
     const key = wrapper.dataset.key;
     const layout = wrapper.dataset.layout || 'column';
+    const wrap = wrapper.dataset.wrap || 'wrap';
     const data = window.ukpaResults?.[key];
 
     if (!Array.isArray(data)) {
-      wrapper.innerHTML = `<div class="ab-other-label">${wrapper.dataset.label || 'Other Result'}</div><div class="ab-other-value">--</div>`;
+      wrapper.innerHTML = `<div class="ab-other-label">${wrapper.dataset.label || 'loading results'}</div><div class="ab-other-value">--</div>`;
       return;
     }
 
     const container = document.createElement('div');
-    container.className = `ab-other-wrapper ab-other-${layout}`;
+    const wrapSetting = wrapper.dataset.wrap === 'true';
+    container.className = `ab-other-wrapper ab-other-${layout} ${wrapSetting ? 'wrap-enabled' : 'no-wrap'}`;
+
+    container.style.flexWrap = wrap === 'no-wrap' ? 'nowrap' : 'wrap';
+
+    const widths = (() => {
+      try {
+        return JSON.parse(wrapper.dataset.widths || '{}');
+      } catch {
+        return {};
+      }
+    })();
 
     data.forEach(item => {
       const card = document.createElement('div');
       card.className = 'ab-other-card';
+
+      if (layout === 'row' && item.id && widths[item.id]) {
+        card.style.width = widths[item.id];
+      }
+
       card.innerHTML = `
         <div class="ab-other-label">${item.label}</div>
         <div class="ab-other-value">${item.value}</div>
@@ -131,8 +148,8 @@ export function renderResults() {
       container.appendChild(card);
     });
 
+
     wrapper.innerHTML = '';
     wrapper.appendChild(container);
   });
-
 }

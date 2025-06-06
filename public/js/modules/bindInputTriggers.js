@@ -10,12 +10,10 @@ export function bindInputTriggers(inputBox, contentSection, resultContainer) {
 
   inputs.forEach(input => {
     input.addEventListener("input", () => {
-      console.log(`🔁 Input changed: ${input.id || input.name}`);
       applyAllConditions();
 
       // ✅ Skip backend call if required fields aren't filled
       if (!allRequiredFieldsFilled()) {
-        console.warn('🛑 Required fields missing. No switch or API call.');
         return;
       }
 
@@ -34,7 +32,6 @@ export function bindInputTriggers(inputBox, contentSection, resultContainer) {
         collected[key] = el.type === 'checkbox' ? el.checked : el.value;
       });
 
-      console.log('✅ Debounced send to backend:', collected);
       debouncedSendToBackend(collected); // ✅ Use debounced call here
     });
   });

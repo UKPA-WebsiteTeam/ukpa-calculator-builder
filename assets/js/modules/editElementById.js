@@ -3,15 +3,27 @@ import { getArrayKeys } from './getArrayKeys.js';
 
 import { renderConditionalLogicEditor } from '../conditional-logic-editor.js';
 import { saveElementConfig } from './saveElementConfig.js';
+import { renderDropdownEditor } from './editors/dropdownEditor.js';
 
 export function editElementById(id) {
   const el = document.querySelector(`.ukpa-element[data-id="${id}"]`);
   if (!el) return;
-
+  console.log("🛠️ editElementById triggered for:", id); 
   const type = el.dataset.type;
-  const config = JSON.parse(el.dataset.config || '{}');
+
+  // ✅ Defensive config parsing
+  let config;
+  try {
+    config = JSON.parse(el.dataset.config || '{}');
+  } catch (err) {
+    console.warn("⚠️ Malformed config for", id, el.dataset.config);
+    config = {};
+  }
+
+  if (!config || typeof config !== 'object') config = {};
   if (!config.rules) config.rules = [];
   if (!config.conditions) config.conditions = {};
+
   const def = window.ukpaElementDefinitions?.[type];
   if (!def) return;
 
@@ -24,22 +36,29 @@ export function editElementById(id) {
   const wrapper = document.createElement('div');
   wrapper.className = 'ukpa-editor-wrapper';
 
-  const closeBtn = document.createElement('span');
-  closeBtn.className = 'ukpa-editor-close';
-  closeBtn.innerHTML = '&times;';
-  closeBtn.title = 'Remove Element';
-  closeBtn.onclick = () => {
-    el.remove();
-    editorBody.innerHTML = '<p>Select an element to edit</p>';
-  };
-  wrapper.appendChild(closeBtn);
+  if (!(type === 'wrapper' && id === 'secondary-result-wrapper')) {
+    const closeBtn = document.createElement('span');
+    closeBtn.className = 'ukpa-editor-close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.title = 'Remove Element';
+    closeBtn.onclick = () => {
+      el.remove();
+      editorBody.innerHTML = '<p>Select an element to edit</p>';
+    };
+    wrapper.appendChild(closeBtn);
+  }
 
   const heading = document.createElement('h3');
   heading.className = 'ukpa-editor-title';
   heading.textContent = `Editing: ${def.label}`;
   wrapper.appendChild(heading);
 
-  if (def.fields.includes('label')) {
+  const idLabel = document.createElement('div');
+  idLabel.className = 'ukpa-admin-id-label';
+  idLabel.innerHTML = `🆔 <strong>${id}</strong>`;
+  wrapper.appendChild(idLabel);
+
+  if (Array.isArray(def.fields) && def.fields.includes('label')) {
     const labelDiv = document.createElement('div');
     labelDiv.className = 'ukpa-editor-field';
     labelDiv.innerHTML = `<label>Label</label><input type="text" class="ukpa-input" value="${config.label || ''}" />`;
@@ -50,19 +69,20 @@ export function editElementById(id) {
     });
     wrapper.appendChild(labelDiv);
   }
+
   const requiredDiv = document.createElement('div');
   requiredDiv.className = 'ukpa-editor-field';
   requiredDiv.innerHTML = `
-    <label><input type="checkbox" ${config.required ? 'checked' : ''} /> Required</label>
+    <label><input type="checkbox" ${config.calcRequired ? 'checked' : ''} /> Required</label>
   `;
   const checkbox = requiredDiv.querySelector('input');
   checkbox.addEventListener('change', () => {
-    config.required = checkbox.checked;
+    config.calcRequired = checkbox.checked;
     saveConfig();
   });
   wrapper.appendChild(requiredDiv);
 
-  if (def.fields.includes('name')) {
+  if (Array.isArray(def.fields) && def.fields.includes('name')) {
     const nameDiv = document.createElement('div');
     nameDiv.className = 'ukpa-editor-field';
     nameDiv.innerHTML = `<label>Backend Label (Name)</label><input type="text" class="ukpa-input" value="${config.name || ''}" />`;
@@ -74,7 +94,7 @@ export function editElementById(id) {
     wrapper.appendChild(nameDiv);
   }
 
-  if (def.fields.includes('placeholder')) {
+  if (Array.isArray(def.fields) && def.fields.includes('placeholder')) {
     const phDiv = document.createElement('div');
     phDiv.className = 'ukpa-editor-field';
     phDiv.innerHTML = `<label>Placeholder</label><input type="text" class="ukpa-input" value="${config.placeholder || ''}" />`;
@@ -87,63 +107,7 @@ export function editElementById(id) {
   }
 
   if (['dropdown', 'radio'].includes(type)) {
-    const optWrapper = document.createElement('div');
-    optWrapper.className = 'ukpa-editor-field';
-    optWrapper.innerHTML = `<label>Options</label>`;
-
-    const list = document.createElement('div');
-    list.className = 'ukpa-options-list';
-
-    const renderOptions = () => {
-      list.innerHTML = '';
-      (config.options || []).forEach((val, index) => {
-        const row = document.createElement('div');
-        row.className = 'ukpa-option-row';
-
-        const input = document.createElement('input');
-        input.className = 'ukpa-input';
-        input.type = 'text';
-        input.placeholder = `Option ${index + 1}`;
-        input.value = val;
-
-        input.addEventListener('input', () => {
-          config.options[index] = input.value;
-          saveConfig();
-        });
-
-        const remove = document.createElement('button');
-        remove.type = 'button';
-        remove.className = 'ukpa-btn-remove-option';
-        remove.innerHTML = '<span class="icon">🗑</span>';
-        remove.title = 'Remove Option';
-        remove.onclick = () => {
-          config.options.splice(index, 1);
-          renderOptions();
-          saveConfig();
-        };
-
-        row.appendChild(input);
-        row.appendChild(remove);
-        list.appendChild(row);
-      });
-    };
-
-    renderOptions();
-
-    const addBtn = document.createElement('button');
-    addBtn.type = 'button';
-    addBtn.className = 'ukpa-btn-add-option';
-    addBtn.innerHTML = '<span class="icon">➕</span> Add Option';
-    addBtn.onclick = () => {
-      config.options = config.options || [];
-      config.options.push('');
-      renderOptions();
-      saveConfig();
-    };
-
-    optWrapper.appendChild(list);
-    optWrapper.appendChild(addBtn);
-    wrapper.appendChild(optWrapper);
+    wrapper.appendChild(renderDropdownEditor(config, saveConfig));
   }
 
   if (type === 'header') {
@@ -192,7 +156,7 @@ export function editElementById(id) {
     wrapper.appendChild(linkDiv);
   }
 
-  if (def.fields.includes('conditions')) {
+  if (Array.isArray(def.fields) && def.fields.includes('conditions')) {
     wrapper.appendChild(renderConditionalLogicEditor(config, saveConfig));
   }
 
@@ -203,14 +167,10 @@ export function editElementById(id) {
 
     if (window.ukpaResults && typeof window.ukpaResults === 'object') {
       if (type === 'mainResult') {
-        // ✅ Only scalar values (string, number, null)
         resultKeys = flattenScalarKeys(window.ukpaResults);
       } else {
-        // ✅ Only array keys like breakdown, etc.
         resultKeys = getArrayKeys(window.ukpaResults);
       }
-
-      // Save for future use
       window.ukpaResultKeys = resultKeys;
     }
 
@@ -223,14 +183,12 @@ export function editElementById(id) {
     const dynamicSelect = document.createElement("select");
     dynamicSelect.className = "ukpa-input dynamic-result-options ukpa-element";
     dynamicSelect.id = "ukpa-dynamic-result";
-
-    // Add default option
     dynamicSelect.innerHTML = `<option value="">-- Select --</option>`;
 
     resultKeys.forEach(key => {
       const opt = document.createElement("option");
-      opt.value = key;                  // ✅ actual usable key
-      opt.textContent = key;            // shown label
+      opt.value = key;
+      opt.textContent = key;
       if (config.dynamicResult === key) opt.selected = true;
       dynamicSelect.appendChild(opt);
     });
@@ -243,12 +201,61 @@ export function editElementById(id) {
     dynamicGroup.appendChild(dynamicLabel);
     dynamicGroup.appendChild(dynamicSelect);
     wrapper.appendChild(dynamicGroup);
-}
+  }
 
-function saveConfig() {
-  saveElementConfig({ el, type, id, config, editElementById });
-}
+  if (type === 'secondaryWrapper') {
+    const layoutField = document.createElement('div');
+    layoutField.className = 'ukpa-editor-field';
+    layoutField.innerHTML = `
+      <label>Layout</label>
+      <select class="ukpa-input">
+        <option value="row">Row</option>
+        <option value="column">Column</option>
+      </select>
+    `;
+    const layoutSelect = layoutField.querySelector('select');
+    layoutSelect.value = config.layout || 'row';
+    layoutSelect.addEventListener('change', () => {
+      config.layout = layoutSelect.value;
+      saveConfig();
+    });
+    wrapper.appendChild(layoutField);
 
+    const wrapField = document.createElement('div');
+    wrapField.className = 'ukpa-editor-field';
+    wrapField.innerHTML = `
+      <label><input type="checkbox" ${config.wrap !== 'no-wrap' ? 'checked' : ''} /> Enable wrapping</label>
+    `;
+    const wrapCheckbox = wrapField.querySelector('input');
+    wrapCheckbox.addEventListener('change', () => {
+      config.wrap = wrapCheckbox.checked ? 'wrap' : 'no-wrap';
+      saveConfig();
+    });
+    wrapper.appendChild(wrapField);
+
+    const widthsField = document.createElement('div');
+    widthsField.className = 'ukpa-editor-field';
+    widthsField.innerHTML = `
+      <label>Column Widths (optional)</label>
+      <textarea class="ukpa-input" rows="4" placeholder='e.g. {"result1": "30%", "result2": "70%"}'></textarea>
+    `;
+    const textarea = widthsField.querySelector('textarea');
+    textarea.value = JSON.stringify(config.widths || {}, null, 2);
+    textarea.addEventListener('input', () => {
+      try {
+        config.widths = JSON.parse(textarea.value);
+        textarea.classList.remove('ukpa-error');
+        saveConfig();
+      } catch {
+        textarea.classList.add('ukpa-error');
+      }
+    });
+    wrapper.appendChild(widthsField);
+  }
+
+  function saveConfig() {
+    saveElementConfig({ el, type, id, config, editElementById });
+  }
 
   wrapper.setAttribute('data-id', id);
   editorBody.appendChild(wrapper);

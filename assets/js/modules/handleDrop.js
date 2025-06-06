@@ -1,116 +1,135 @@
 import { markAsDirty } from './markAsDirty.js';
-import { saveLayout } from './saveLayout.js';
+import { saveCalculatorLayout } from './saveCalculatorLayout.js';
+import { removeEmptyColumnsAndRows } from './cleanup.js';
 
 export function handleDrop(dragged, target, direction) {
-  const isFromToolbox = dragged.dataset.source === 'toolbox';
-  const type = dragged.dataset.type;
-
-  // 🧪 Diagnostic logging
-  console.log("📦 Drop Info:", {
-    dragged,
-    source: dragged.dataset.source,
-    type: dragged.dataset.type,
-    id: dragged.dataset.id,
-    direction,
-    target
-  });
+  const isFromToolbox = dragged?.source === 'toolbox';
+  const type = dragged?.type || dragged?.dataset?.type;
 
   if (!type) {
-    console.error("❌ Dropped element is missing data-type. Aborting drop.");
+    console.error("❌ Dropped element is missing data-type.");
     return;
   }
 
-  let newColumn;
+  // 🚫 Prevent dropping wrappers (static containers)
+  if (type === 'wrapper') {
+    console.warn("🚫 Cannot drag/drop wrapper element.");
+    return;
+  }
 
+  // ✅ Locate proper drop zone
+  let dropZone = target.closest('.ukpa-drop-zone');
+
+  // ✅ Redirect barChart/otherResult into proper secondary zone
+  if (
+    ['barChart', 'otherResult'].includes(type) &&
+    (!dropZone || dropZone.id !== 'secondary-result-zone')
+  ) {
+    const wrapper = document.querySelector('[data-id="secondary-result-wrapper"]');
+    dropZone = wrapper?.querySelector('#secondary-result-zone');
+    target = dropZone?.querySelector('.element-container-ukpa:last-child') || dropZone;
+  }
+
+  // 🚫 Block if invalid or missing drop zone
+  if (!dropZone || !(dropZone instanceof HTMLElement)) {
+    console.warn("❌ Invalid drop zone:", dropZone);
+    return;
+  }
+
+  // ✅ Check allowed types
+  const allowedTypes = dropZone?.dataset.allowed?.split(',').map(s => s.trim()) || [];
+  if (allowedTypes.length && !allowedTypes.includes(type)) {
+    console.warn(`🚫 Dropped element type "${type}" not allowed in this section.`);
+    return;
+  }
+
+  const containerId = `cont-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+  // ✅ Build the new element
+  let newElement;
   if (isFromToolbox) {
-    // ✅ Generate new ID and config
     const newId = `wise-${type}-${Date.now().toString().slice(-5)}-${Math.floor(Math.random() * 1000)}`;
     const config = structuredClone(window.ukpaElementDefinitions?.[type]?.default || {});
-    const html = window.generateElementHTML(type, newId, config);
 
-    // ✅ Build element HTML
     const el = document.createElement('div');
     el.classList.add('ukpa-element');
     el.setAttribute('draggable', 'true');
     el.setAttribute('data-type', type);
     el.setAttribute('data-id', newId);
     el.setAttribute('data-config', JSON.stringify(config));
-    el.innerHTML = `<div class="ukpa-admin-id-label">🆔 <strong>${newId}</strong></div>` + html;
+    el.innerHTML = `<div class="ukpa-admin-id-label">🆔 <strong>${newId}</strong></div>`;
 
-    // ✅ Add editor + drag events
-    el.addEventListener("click", (e) => {
-      e.stopPropagation();
-      window.editElementById?.(newId);
-    });
-
-    el.addEventListener("dragstart", () => {
-      el.classList.add("dragging");
-      window.draggingElement = el;
-      console.log(`🟢 Drag start <${type}> (from toolbox)`);
-    });
-
-    el.addEventListener("dragend", () => {
-      el.classList.remove("dragging");
-      window.draggingElement = null;
-      console.log(`🛑 Drag end <${type}>`);
-    });
-
-    newColumn = wrapInColumn(el);
-  } else {
-    // ✅ Reuse existing element being moved
-    newColumn = dragged.closest('.ukpa-column');
-    if (!newColumn) {
-      console.warn("⚠️ Could not find a .ukpa-column for dragged element.");
-      return;
+    const htmlOutput = window.generateElementHTML(type, newId, config);
+    if (htmlOutput instanceof HTMLElement) {
+      el.appendChild(htmlOutput);
+    } else {
+      el.innerHTML += htmlOutput;
     }
+
+    newElement = el;
+  } else {
+    const original = dragged.closest('.ukpa-element');
+    if (!original) return;
+    newElement = original.cloneNode(true);
+    setTimeout(() => original.remove(), 10);
   }
 
-  const column = target.closest('.ukpa-column');
-  const row = column?.closest('.ukpa-row');
+  const targetElement = target.closest('.ukpa-element');
+  const targetContainer = target.closest('.element-container-ukpa');
 
-  // ✅ Case 1: Drop into empty section
-  if (!column && target.classList.contains('ukpa-drop-zone')) {
-    const newRow = document.createElement('div');
-    newRow.classList.add('ukpa-row');
-    newRow.appendChild(newColumn);
-    target.appendChild(newRow);
+  // ✅ If no existing elements in zone (empty), just add new container
+  if (!targetElement || !targetContainer) {
+    const newContainer = document.createElement('div');
+    newContainer.classList.add('element-container-ukpa');
+    newContainer.dataset.containerId = containerId;
+    newContainer.appendChild(newElement);
+    dropZone.appendChild(newContainer);
+    markAsDirty();
+    saveCalculatorLayout();
+    return;
+  }
+
+  // ⬆⬇ Drop ABOVE or BELOW = Create a new container
+  if (direction === 'top' || direction === 'bottom') {
+    const newContainer = document.createElement('div');
+    newContainer.classList.add('element-container-ukpa');
+    newContainer.dataset.containerId = containerId;
+    newContainer.appendChild(newElement);
+
+    direction === 'top'
+      ? dropZone.insertBefore(newContainer, targetContainer)
+      : dropZone.insertBefore(newContainer, targetContainer.nextSibling);
 
     markAsDirty();
-    saveLayout();
-    console.log(`✅ ${isFromToolbox ? 'Created' : 'Moved'} <${type}> into empty section`);
+    saveCalculatorLayout();
     return;
   }
 
-  // ✅ Case 2: Drop beside another element
-  if (!row || !column) {
-    console.warn("⚠️ Invalid drop target (no row/column). Drop aborted.");
+  // ⬅➡ Drop LEFT or RIGHT = Insert into same container
+  if (direction === 'left' || direction === 'right') {
+    const siblings = [...targetContainer.children];
+    const targetIndex = siblings.findIndex(el => el === targetElement);
+
+    if (direction === 'left') {
+      targetContainer.insertBefore(newElement, targetElement);
+    } else {
+      targetContainer.insertBefore(newElement, targetElement.nextSibling);
+    }
+
+    markAsDirty();
+    saveCalculatorLayout();
     return;
   }
 
-  switch (direction) {
-    case 'top':
-    case 'left':
-      row.insertBefore(newColumn, column);
-      break;
-    case 'bottom':
-    case 'right':
-      if (column.nextSibling) {
-        row.insertBefore(newColumn, column.nextSibling);
-      } else {
-        row.appendChild(newColumn);
-      }
-      break;
-  }
+  // 🔁 Fallback: Drop at end in new container
+  const fallback = document.createElement('div');
+  fallback.classList.add('element-container-ukpa');
+  fallback.dataset.containerId = containerId;
+  fallback.appendChild(newElement);
+  dropZone.appendChild(fallback);
 
   markAsDirty();
-  saveLayout();
-  console.log(`✅ ${isFromToolbox ? 'Created and dropped' : 'Moved'} <${type}> ${direction} of <${target.dataset.id}>`);
-}
+  saveCalculatorLayout();
 
-// ✅ Helper to wrap in .ukpa-column
-function wrapInColumn(el) {
-  const col = document.createElement('div');
-  col.classList.add('ukpa-column');
-  col.appendChild(el);
-  return col;
+  setTimeout(() => removeEmptyColumnsAndRows(dropZone), 100);
 }

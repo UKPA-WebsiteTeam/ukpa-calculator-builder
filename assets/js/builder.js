@@ -1,26 +1,21 @@
 // ✅ Module Imports
 import { addElementToBuilder } from './modules/addElementToBuilder.js';
-import { initSortable } from './modules/initSortable.js';
+import { initAdvancedSortable } from './modules/initAdvancedSortable.js'; // ✅ Only advanced sortable now
 import { saveCalculatorLayout } from './modules/saveCalculatorLayout.js';
-import { markAsDirty } from './modules/markAsDirty.js';
-import { registerElementEvents } from './modules/registerElementEvents.js';
 import { toggleBox } from './modules/toggleBox.js';
 import { injectTestApiButton } from './modules/injectTestApiButton.js';
 import { renderResults } from './shared/render-results.js';
+import { renderSavedLayout } from './modules/renderSavedLayout.js';
+
 window.renderResults = renderResults;
 
-// ✅ Dynamic imports
-import('./modules/editElementById.js').then(mod => {
-  window.editElementById = mod.editElementById;
-});
+import { editElementById } from './modules/editElementById.js';
+import { ukpaElementDefinitions } from './element-definitions.js';
+import { generateElementHTML } from './element-renderer.js';
 
-import('./element-definitions.js').then(mod => {
-  window.ukpaElementDefinitions = mod.ukpaElementDefinitions;
-});
-
-import('./element-renderer.js').then(mod => {
-  window.generateElementHTML = mod.generateElementHTML;
-});
+window.editElementById = editElementById;
+window.ukpaElementDefinitions = ukpaElementDefinitions;
+window.generateElementHTML = generateElementHTML;
 
 // ✅ Global assignments
 window.draggingElement = null;
@@ -29,23 +24,25 @@ window.toggleBox = toggleBox;
 window.cssEditor = null;
 window.jsEditor = null;
 
+// ✅ Main DOM Ready block
 document.addEventListener('DOMContentLoaded', () => {
   // ✅ Calculator ID
   window.ukpaCalculatorId = new URLSearchParams(window.location.search).get('calc_id');
 
-  // ✅ Register input + UI events
-  registerElementEvents();
+  // ✅ Render saved layout — pass elements explicitly for new calculators
+  const initialElements = window.ukpa_calc_data?.elements || [];
+  renderSavedLayout(initialElements); // ✅ Fix: ensure elements are passed!
 
-  // ✅ Save button check
+  // ✅ Save button setup
   const saveBtn = document.getElementById('ukpa-save-builder');
   if (saveBtn) {
     saveBtn.addEventListener('click', saveCalculatorLayout);
     injectTestApiButton(saveBtn);
   } else {
-    console.log("❌ Save button not found, cannot inject Test API button");
+    console.warn("❌ Save button not found, cannot inject Test API button");
   }
 
-  // ✅ Ctrl+S / Cmd+S shortcut
+  // ✅ Ctrl+S / Cmd+S to save
   document.addEventListener('keydown', function (e) {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
       e.preventDefault();
@@ -53,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // ✅ Warn before exit if unsaved
+  // ✅ Warn on unsaved exit
   const exitBtn = document.querySelector(".ukpa-builder-exit");
   if (exitBtn) {
     exitBtn.addEventListener("click", function (e) {
@@ -64,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ✅ Setup CodeMirror for Custom CSS
+  // ✅ CodeMirror for CSS
   const cssTextarea = document.getElementById('ukpa_custom_css');
   if (cssTextarea && typeof CodeMirror !== 'undefined') {
     window.cssEditor = CodeMirror.fromTextArea(cssTextarea, {
@@ -72,13 +69,12 @@ document.addEventListener('DOMContentLoaded', () => {
       mode: 'css',
       theme: 'default',
     });
-
     if (window.ukpa_calc_data?.custom_css) {
       window.cssEditor.setValue(window.ukpa_calc_data.custom_css);
     }
   }
 
-  // ✅ Setup CodeMirror for Custom JS
+  // ✅ CodeMirror for JS
   const jsTextarea = document.getElementById('ukpa_custom_js');
   if (jsTextarea && typeof CodeMirror !== 'undefined') {
     window.jsEditor = CodeMirror.fromTextArea(jsTextarea, {
@@ -86,12 +82,11 @@ document.addEventListener('DOMContentLoaded', () => {
       mode: 'javascript',
       theme: 'default',
     });
-
     if (window.ukpa_calc_data?.custom_js) {
       window.jsEditor.setValue(window.ukpa_calc_data.custom_js);
     }
   }
 
-  // ✅ Init drag & drop after DOM is ready
-  initSortable();
+  // ✅ Init advanced sortable system
+  initAdvancedSortable();
 });

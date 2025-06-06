@@ -43,11 +43,12 @@ function handle_ukpa_unified_save_calculator() {
 
     $success = update_option('ukpa_calc_' . $calc_id, $old);
 
-    if ($success) {
-        wp_send_json_success(['message' => 'Saved successfully']);
+    if ($success || get_option("ukpa_calc_$calc_id") === $old) {
+        wp_send_json_success(['message' => $success ? 'Saved successfully' : 'No changes detected, but considered successful']);
     } else {
-        wp_send_json_error(['message' => 'Update failed']);
+        wp_send_json_error(['message' => 'Failed to save calculator']);
     }
+
 }
 
 

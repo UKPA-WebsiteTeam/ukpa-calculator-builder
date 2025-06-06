@@ -1,5 +1,6 @@
 import { markAsDirty } from './markAsDirty.js';
-import { initSortable } from './initSortable.js';
+import { initAdvancedSortable} from './initAdvancedSortable.js';
+
 
 export function addElementToBuilder(type, config = null, id = null, sectionOverride = null) {
   const def = window.ukpaElementDefinitions?.[type];
@@ -9,7 +10,8 @@ export function addElementToBuilder(type, config = null, id = null, sectionOverr
     `wise-${type}-${Date.now().toString().slice(-5)}-${Math.floor(Math.random() * 1000)}`;
   const finalId = id || generateUniqueElementId(type);
   const finalConfig = config || structuredClone(def.default);
-  const html = window.generateElementHTML(type, finalId, finalConfig);
+
+  const htmlEl = window.generateElementHTML(type, finalId, finalConfig); // ✅ real DOM
 
   const el = document.createElement('div');
   el.classList.add('ukpa-element');
@@ -17,7 +19,15 @@ export function addElementToBuilder(type, config = null, id = null, sectionOverr
   el.setAttribute('data-type', type);
   el.setAttribute('data-id', finalId);
   el.setAttribute('data-config', JSON.stringify(finalConfig));
-  el.innerHTML = `<div class="ukpa-admin-id-label">🆔 <strong>${finalId}</strong></div>` + html;
+
+  // ✅ Add ID label first
+  const idLabel = document.createElement('div');
+  idLabel.className = 'ukpa-admin-id-label';
+  idLabel.innerHTML = `🆔 <strong>${finalId}</strong>`;
+  el.appendChild(idLabel);
+
+  // ✅ Append the DOM node safely
+  el.appendChild(htmlEl);
 
   el.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -38,7 +48,7 @@ export function addElementToBuilder(type, config = null, id = null, sectionOverr
   const container = document.querySelector(`#${section}-preview`);
   if (container) {
     container.appendChild(el);
-    initSortable(container);
+    initAdvancedSortable();
     markAsDirty();
   }
 }

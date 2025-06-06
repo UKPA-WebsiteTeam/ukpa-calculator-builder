@@ -3,105 +3,137 @@ import { handleDrop } from './handleDrop.js';
 export function initAdvancedSortable() {
   const dropZones = document.querySelectorAll('.ukpa-drop-zone');
 
-  // ✅ Bind drag events to toolbox elements
-  document.querySelectorAll('.draggable').forEach(el => {
+  dropZones.forEach(dropZone => {
+    dropZone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropZone.classList.add('ukpa-drop-active');
+
+      clearHoverClasses();
+
+      const targetRow = e.target.closest('.ukpa-row');
+      const targetCol = e.target.closest('.ukpa-column');
+
+      if (targetCol) {
+        // Hovering inside a column → handle left/right
+        const rect = targetCol.getBoundingClientRect();
+        const offsetX = e.clientX - rect.left;
+        const direction = offsetX < rect.width / 2 ? 'left' : 'right';
+        targetCol.classList.add(`ukpa-hover-${direction}`);
+      } else if (targetRow) {
+        // Hovering over a row (not over a specific column) → handle top/bottom
+        const rect = targetRow.getBoundingClientRect();
+        const offsetY = e.clientY - rect.top;
+        const direction = offsetY < rect.height / 2 ? 'top' : 'bottom';
+        targetRow.classList.add(`ukpa-hover-${direction}`);
+      }
+    });
+
+
+
+
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('ukpa-drop-active');
+      clearHoverClasses();
+    });
+
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('ukpa-drop-active');
+
+      const dragged = window.draggingElement;
+      if (!dragged) {
+        console.warn("❌ No draggingElement set.");
+        return;
+      }
+
+      const targetEl = e.target.closest('.ukpa-column, .ukpa-row, .ukpa-element') || dropZone;
+      clearHoverClasses();
+
+      // Determine direction for insert
+      let direction = 'bottom';
+      if (targetEl && targetEl !== dropZone) {
+        const rect = targetEl.getBoundingClientRect();
+        const offsetY = e.clientY - rect.top;
+        const offsetX = e.clientX - rect.left;
+
+        const isVertical = rect.height > rect.width;
+        direction = isVertical
+          ? (offsetY < rect.height / 2 ? 'top' : 'bottom')
+          : (offsetX < rect.width / 2 ? 'left' : 'right');
+      }
+
+      if (dragged.source === 'toolbox') {
+        handleDrop({ source: 'toolbox', type: dragged.type }, targetEl, direction);
+      } else {
+        handleDrop(dragged, targetEl, direction);
+      }
+
+      // Rebind interactivity after drop
+      dropZone.querySelectorAll('.ukpa-element').forEach(el => {
+        bindInteractivity(el);
+      });
+    });
+  });
+
+  // Toolbox drag
+  const toolboxItems = document.querySelectorAll('.ukpa-toolbox .draggable');
+  toolboxItems.forEach(item => {
+    item.setAttribute('draggable', 'true');
+    item.addEventListener('dragstart', () => {
+      window.draggingElement = {
+        source: 'toolbox',
+        type: item.dataset.type
+      };
+    });
+    item.addEventListener('dragend', () => {
+      window.draggingElement = null;
+    });
+  });
+
+  // Rebind existing elements
+  document.querySelectorAll('.ukpa-element').forEach(el => {
+    bindInteractivity(el);
+  });
+
+  console.log('✅ Advanced sortable initialized.');
+}
+
+function bindInteractivity(el, id = null) {
+  if (!el || !el.classList.contains('ukpa-element')) return;
+
+  const elementId = id || el.dataset.id;
+  const type = el.dataset.type;
+
+  if (type === 'wrapper' && elementId === 'secondary-result-wrapper') {
+    el.removeAttribute('draggable');
+  } else {
     el.setAttribute('draggable', 'true');
-
     el.addEventListener('dragstart', e => {
-      el.classList.add('dragging');
+      el.classList.add("dragging");
       window.draggingElement = el;
-
       e.dataTransfer.effectAllowed = "move";
-      e.dataTransfer.setData("text/plain", el.dataset.type);
-
-      console.log(`🟢 Drag started from toolbox: <${el.dataset.type}>`);
+      e.dataTransfer.setData("text/plain", elementId);
     });
 
     el.addEventListener('dragend', () => {
-      el.classList.remove('dragging');
+      el.classList.remove("dragging");
       window.draggingElement = null;
-      document.querySelectorAll('.ukpa-element').forEach(el =>
-        el.classList.remove('hover-top', 'hover-bottom', 'hover-left', 'hover-right')
-      );
-      console.log("🛑 Drag ended");
     });
+  }
+
+  el.addEventListener('click', (e) => {
+    e.stopPropagation();
+    window.editElementById?.(elementId);
   });
+}
 
-  // ✅ Setup drop zones
-  dropZones.forEach(zone => {
-    zone.addEventListener('dragover', e => {
-      e.preventDefault();
-
-      const target = e.target.closest('.ukpa-element') || zone;
-
-      document.querySelectorAll('.ukpa-element').forEach(el =>
-        el.classList.remove('hover-top', 'hover-bottom', 'hover-left', 'hover-right')
-      );
-
-      if (target.classList.contains('ukpa-element')) {
-        const rect = target.getBoundingClientRect();
-        const offsetX = e.clientX - rect.left;
-        const offsetY = e.clientY - rect.top;
-
-        if (offsetY < rect.height / 4) {
-          target.classList.add('hover-top');
-        } else if (offsetY > rect.height * 3 / 4) {
-          target.classList.add('hover-bottom');
-        } else if (offsetX < rect.width / 2) {
-          target.classList.add('hover-left');
-        } else {
-          target.classList.add('hover-right');
-        }
-      }
-    });
-
-    zone.addEventListener('drop', e => {
-      e.preventDefault();
-      const dragged = document.querySelector('.dragging');
-      const target = e.target.closest('.ukpa-element');
-
-      if (!dragged) {
-        console.warn("🚫 Drop failed: no element being dragged.");
-        return;
-      }
-
-      const fallbackRow = zone.querySelector('.ukpa-row');
-      if (!target) {
-        if (fallbackRow) {
-          console.log("⬇️ Dropping into empty zone (bottom)");
-          handleDrop(dragged, fallbackRow, 'bottom');
-        } else {
-          console.warn("⚠️ No fallback .ukpa-row inside this zone");
-        }
-        return;
-      }
-
-      const rect = target.getBoundingClientRect();
-      const offsetX = e.clientX - rect.left;
-      const offsetY = e.clientY - rect.top;
-
-      let direction = 'bottom';
-      if (offsetY < rect.height / 4) {
-        direction = 'top';
-      } else if (offsetY > rect.height * 3 / 4) {
-        direction = 'bottom';
-      } else if (offsetX < rect.width / 2) {
-        direction = 'left';
-      } else {
-        direction = 'right';
-      }
-
-      console.log(`📥 Dropping <${dragged.dataset.type}> ${direction} of <${target.dataset.id}>`);
-      document.querySelectorAll('.ukpa-element').forEach(el =>
-        el.classList.remove('hover-top', 'hover-bottom', 'hover-left', 'hover-right')
-      );
-
-      handleDrop(dragged, target, direction);
-    });
-  });
-
-  // ✅ Global dragover to allow drop
-  document.addEventListener('dragover', e => {
-    e.preventDefault();
-  }, { passive: false });
+function clearHoverClasses() {
+  document.querySelectorAll('.ukpa-hover-top, .ukpa-hover-bottom, .ukpa-hover-left, .ukpa-hover-right')
+    .forEach(el => el.classList.remove(
+      'ukpa-hover-top',
+      'ukpa-hover-bottom',
+      'ukpa-hover-left',
+      'ukpa-hover-right'
+    ));
 }

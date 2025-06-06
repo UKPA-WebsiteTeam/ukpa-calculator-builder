@@ -1,3 +1,4 @@
+
 export function renderResults() {
   console.log('🔄 renderResults triggered');
   console.log('🌐 Current window.ukpaResults:', window.ukpaResults);
@@ -116,4 +117,45 @@ export function renderResults() {
 
     window.ukpaCharts[key] = chart;
   });
+
+  // ✅ Apply config to Secondary Result Wrapper
+  const wrapper = document.querySelector('.ab-secondary-result-wrapper');
+  if (wrapper && wrapper.dataset.config) {
+    try {
+      const config = JSON.parse(wrapper.dataset.config);
+
+      if (config.layout === 'row') {
+        wrapper.style.flexDirection = 'row';
+        wrapper.style.display = 'flex';
+        wrapper.style.flexWrap = 'nowrap';
+      } else if (config.layout === 'column') {
+        wrapper.style.flexDirection = 'column';
+        wrapper.style.display = 'flex';
+        wrapper.style.flexWrap = 'nowrap';
+      } else {
+        wrapper.style.flexDirection = 'row';
+        wrapper.style.display = 'flex';
+        wrapper.style.flexWrap = 'wrap';
+      }
+
+      if (config.gap) {
+        wrapper.style.gap = typeof config.gap === 'number' ? `${config.gap}px` : config.gap;
+      }
+
+      if (config.columnWidths) {
+        const left = wrapper.querySelector('.ab-chart-results');
+        const right = wrapper.querySelector('.ab-other-results');
+
+        if (left && config.columnWidths.left) {
+          left.style.width = config.columnWidths.left;
+        }
+        if (right && config.columnWidths.right) {
+          right.style.width = config.columnWidths.right;
+        }
+      }
+
+    } catch (e) {
+      console.warn('⚠️ Failed to parse wrapper config:', e);
+    }
+  }
 }

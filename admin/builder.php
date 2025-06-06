@@ -63,6 +63,7 @@ $route = $data['route'] ?? '';
           </select>
         </div>
       </div>
+      <input type="hidden" id="ukpa_calc_layout_json" name="ukpa_calc_layout_json" value="[]">
       <button type="submit" id="ukpa-save-builder" class="button button-primary save-calculator">✅ Save Calculator</button>
 </form>
     
@@ -104,93 +105,173 @@ $route = $data['route'] ?? '';
       </div>
     </div>
 
-    <div class="ukpa-preview">
-      <!-- Input + Result in a row -->
-      <div style="display: flex; flex-direction: row; gap: 20px; align-items: flex-start;">
-        <div class="ukpa-section ukpa-drop-zone" id="inputs-preview" data-section="inputs" style="width: 35%;">
-          <h3>Input Section</h3>
-          <?php foreach ($elements as $el): ?>
-            <?php if ($el['section'] === 'inputs'): ?>
-              <div class="ukpa-element"
+
+      <!-- ✅ LEFT SIDE: MAIN PREVIEW -->
+      <div class="ukpa-preview" style="flex: 1; min-width: 0;">
+
+        <div style="display: flex; flex-direction: row; gap: 20px; align-items: flex-start;">
+
+          <!-- ✅ INPUT SECTION -->
+          <div class="ukpa-section ukpa-drop-zone" id="inputs-preview" data-section="inputs" style="width: 35%;">
+            <h3>Input Section</h3>
+            <?php
+            $inputGroups = [];
+            foreach ($elements as $el) {
+              if ($el['section'] === 'inputs') {
+                $group = $el['group'] ?? uniqid();
+                $inputGroups[$group][] = $el;
+              }
+            }
+            if (empty($inputGroups)) {
+              echo '<p style="padding: 5px 0 10px 0; color: #999;">Drag input elements here</p>';
+            }
+            foreach ($inputGroups as $groupEls): ?>
+              <div class="element-container-ukpa">
+                <?php foreach ($groupEls as $el): ?>
+                  <div class="ukpa-element"
+                    draggable="true"
+                    data-id="<?php echo esc_attr($el['id']); ?>"
+                    data-type="<?php echo esc_attr($el['type']); ?>"
+                    data-config='<?php echo esc_attr(json_encode($el['config'])); ?>'>
+                    <div class="ukpa-admin-id-label">
+                      🆔 <strong><?php echo esc_html($el['id']); ?></strong>
+                    </div>
+                    <?php echo $el['html']; ?>
+                  </div>
+                <?php endforeach; ?>
+              </div>
+            <?php endforeach; ?>
+          </div>
+
+          <!-- ✅ RESULT SECTION -->
+          <div class="ukpa-section" id="results-preview" data-section="results" style="width: 65%;">
+            <h3>Result Section</h3>
+
+            <!-- ✅ MAIN RESULT -->
+            <div class="ukpa-drop-zone" id="main-result-zone" data-allowed="mainResult" data-section="results">
+              <h4>Main Result</h4>
+              <?php
+              $mainGroups = [];
+              foreach ($elements as $el) {
+                if ($el['section'] === 'results' && $el['type'] === 'mainResult') {
+                  $group = $el['group'] ?? uniqid();
+                  $mainGroups[$group][] = $el;
+                }
+              }
+              foreach ($mainGroups as $groupEls): ?>
+                <div class="element-container-ukpa">
+                  <?php foreach ($groupEls as $el): ?>
+                    <div class="ukpa-element"
+                      draggable="true"
+                      data-id="<?php echo esc_attr($el['id']); ?>"
+                      data-type="<?php echo esc_attr($el['type']); ?>"
+                      data-config='<?php echo esc_attr(json_encode($el['config'])); ?>'>
+                      <div class="ukpa-admin-id-label">
+                        🆔 <strong><?php echo esc_html($el['id']); ?></strong>
+                      </div>
+                      <?php echo $el['html']; ?>
+                    </div>
+                  <?php endforeach; ?>
+                </div>
+              <?php endforeach; ?>
+            </div>
+
+            <!-- ✅ OTHER RESULTS & CHARTS (with wrapper) -->
+            <?php
+            $secondaryWrapperConfig = $data['secondaryWrapper'] ?? [
+              'wrap' => 'wrap',
+              'layout' => 'row',
+              'widths' => new stdClass()
+            ];
+            $otherGroups = [];
+            foreach ($elements as $el) {
+              if ($el['section'] === 'results' && in_array($el['type'], ['barChart', 'otherResult'])) {
+                $group = $el['group'] ?? uniqid();
+                $otherGroups[$group][] = $el;
+              }
+            }
+            ?>
+            <div class="ukpa-element"
+              data-id="secondary-result-wrapper"
+              data-type="wrapper"
+              data-config='<?php echo esc_attr(json_encode($secondaryWrapperConfig)); ?>'>
+              <div class="ukpa-admin-id-label ukpa-editable-wrapper-label">
+                🧩 <strong>Secondary Result Wrapper</strong>
+              </div>
+              <div class="ukpa-drop-zone"
+                id="secondary-result-zone"
+                data-allowed="barChart,otherResult"
+                data-section="results">
+                <h4>Other Results & Charts</h4>
+                <?php foreach ($otherGroups as $groupEls): ?>
+                  <div class="element-container-ukpa">
+                    <?php foreach ($groupEls as $el): ?>
+                      <div class="ukpa-element"
+                        draggable="true"
+                        data-id="<?php echo esc_attr($el['id']); ?>"
+                        data-type="<?php echo esc_attr($el['type']); ?>"
+                        data-config='<?php echo esc_attr(json_encode($el['config'])); ?>'>
+                        <div class="ukpa-admin-id-label">
+                          🆔 <strong><?php echo esc_html($el['id']); ?></strong>
+                        </div>
+                        <?php echo $el['html']; ?>
+                      </div>
+                    <?php endforeach; ?>
+                  </div>
+                <?php endforeach; ?>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ✅ DISCLAIMER SECTION -->
+        <div class="ukpa-section ukpa-drop-zone" id="disclaimer-preview" data-section="disclaimer">
+          <div class="ukpa-settings-header disclaimer" onclick="toggleBox('disclaimer-body')">
+            <h3>Disclaimer Section</h3>
+            <span class="toggle-indicator">↰</span>
+          </div>
+          <div id="disclaimer-body" class="ukpa-settings-body">
+            <?php foreach ($elements as $el): ?>
+              <?php if ($el['section'] === 'disclaimer'): ?>
+                <div class="ukpa-element"
+                  draggable="true"
                   data-id="<?php echo esc_attr($el['id']); ?>"
                   data-type="<?php echo esc_attr($el['type']); ?>"
                   data-config='<?php echo esc_attr(json_encode($el['config'])); ?>'>
-                  
-                <div class="ukpa-admin-id-label">
-                  🆔 <strong><?php echo esc_html($el['id']); ?></strong>
+                  <?php echo $el['html']; ?>
                 </div>
-
-                <?php echo $el['html']; ?>
-              </div>
-
-            <?php endif; ?>
-          <?php endforeach; ?>
+              <?php endif; ?>
+            <?php endforeach; ?>
+          </div>
         </div>
 
-        <div class="ukpa-section ukpa-drop-zone" id="results-preview" data-section="results" style="width: 65%;">
-          <h3>Result Section</h3>
-
-          <?php foreach ($elements as $el): ?>
-            <?php if ($el['section'] === 'results' && $el['type'] !== 'disclaimer'): ?>
-              <div class="ukpa-element"
+        <!-- ✅ CONTENT SECTION -->
+        <div class="ukpa-section ukpa-drop-zone" id="content-preview" data-section="content">
+          <div class="ukpa-settings-header content" onclick="toggleBox('content-body')">
+            <h3>Content Section</h3>
+            <span class="toggle-indicator">↰</span>
+          </div>
+          <div id="content-body" class="ukpa-settings-body">
+            <?php foreach ($elements as $el): ?>
+              <?php if ($el['section'] === 'content'): ?>
+                <div class="ukpa-element"
+                  draggable="true"
                   data-id="<?php echo esc_attr($el['id']); ?>"
                   data-type="<?php echo esc_attr($el['type']); ?>"
                   data-config='<?php echo esc_attr(json_encode($el['config'])); ?>'>
-                  
-                <div class="ukpa-admin-id-label">
-                  🆔 <strong><?php echo esc_html($el['id']); ?></strong>
+                  <?php echo $el['html']; ?>
                 </div>
-
-                <?php echo $el['html']; ?>
-              </div>
-            <?php endif; ?>
-          <?php endforeach; ?>
-
+              <?php endif; ?>
+            <?php endforeach; ?>
+          </div>
         </div>
+
+        <div id="ukpa-save-status" class="ukpa-save-status"></div>
       </div>
 
-      <!-- Minimizable Disclaimer Section -->
-      <div class="ukpa-section ukpa-drop-zone" id="disclaimer-preview" data-section="disclaimer">
-        <div class="ukpa-settings-header disclaimer" onclick="toggleBox('disclaimer-body')">
-          <h3>Disclaimer Section</h3>
-          <span class="toggle-indicator">↰</span>
-        </div>
-        <div id="disclaimer-body" class="ukpa-settings-body">
-          <?php foreach ($elements as $el): ?>
-            <?php if ($el['section'] === 'disclaimer'): ?>
-              <div class="ukpa-element"
-                   data-id="<?php echo esc_attr($el['id']); ?>"
-                   data-type="<?php echo esc_attr($el['type']); ?>"
-                   data-config='<?php echo esc_attr(json_encode($el['config'])); ?>'>
-                <?php echo $el['html']; ?>
-              </div>
-            <?php endif; ?>
-          <?php endforeach; ?>
-        </div>
-      </div>
 
-      <!-- Minimizable Content Section (moved to last) -->
-      <div class="ukpa-section ukpa-drop-zone" id="content-preview" data-section="content">
-        <div class="ukpa-settings-header content" onclick="toggleBox('content-body')">
-          <h3>Content Section</h3>
-          <span class="toggle-indicator">↰</span>
-        </div>
-        <div id="content-body" class="ukpa-settings-body">
-          <?php foreach ($elements as $el): ?>
-            <?php if ($el['section'] === 'content'): ?>
-              <div class="ukpa-element"
-                   data-id="<?php echo esc_attr($el['id']); ?>"
-                   data-type="<?php echo esc_attr($el['type']); ?>"
-                   data-config='<?php echo esc_attr(json_encode($el['config'])); ?>'>
-                <?php echo $el['html']; ?>
-              </div>
-            <?php endif; ?>
-          <?php endforeach; ?>
-        </div>
-      </div>
 
-      <div id="ukpa-save-status" class="ukpa-save-status"></div>
-    </div>
+
 
     <!-- Settings Panels remain untouched -->
     <?php /* everything below this remains unchanged */ ?>

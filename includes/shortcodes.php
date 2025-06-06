@@ -124,27 +124,60 @@ function render_ukpa_calculator_shortcode($atts = []) {
                             <?php endforeach; ?>
                         </div>
 
-                        <!-- 🟢 Other Charts + Results -->
-                        <div class="ab-secondary-result-wrapper">
-                            <?php foreach ($data['elements'] as $el): ?>
-                            <?php if ($el['section'] === 'results' && $el['type'] !== 'mainResult'): ?>
-                                <?php
-                                $config = $el['config'] ?? [];
-                                $id = esc_attr($el['id']);
-                                $style = (!empty($config['conditions']['rules'])) ? 'display:none;' : '';
-                                $html = preg_replace('/<div class="ukpa-admin-id-label">.*?<\/div>/', '', $el['html']);
-                                $html = preg_replace('/<(input|select|textarea)([^>]+)>/i', '<$1 name="' . $id . '"$2>', $html);
-                                ?>
-                                <div class="ukpa-element"
-                                    data-id="<?= $id ?>"
-                                    data-type="<?= esc_attr($el['type']) ?>"
-                                    data-config='<?= esc_attr(json_encode($config)) ?>'
-                                    style="<?= esc_attr($style) ?>">
-                                <?= $html ?>
-                                </div>
-                            <?php endif; ?>
-                            <?php endforeach; ?>
-                        </div>
+                    <!-- 🟢 Combined Results Wrapper -->
+                    <div class="ukpa-element ab-secondary-result-wrapper"
+                        data-id="secondary-result-wrapper"
+                        data-type="wrapper"
+                        data-config='<?= json_encode(["layout" => "wrap", "columnWidths" => []]) ?>'>
+
+
+                    <!-- 🔷 Chart Section -->
+                    <div class="ab-chart-results">
+                        <?php foreach ($data['elements'] as $el): ?>
+                        <?php if ($el['section'] === 'results' && $el['type'] === 'barChart'): ?>
+                            <?php
+                            $config = $el['config'] ?? [];
+                            $id = esc_attr($el['id']);
+                            $style = (!empty($config['conditions']['rules'])) ? 'display:none;' : '';
+                            $html = preg_replace('/<div class="ukpa-admin-id-label">.*?<\/div>/', '', $el['html']);
+                            $html = preg_replace('/<(input|select|textarea)([^>]+)>/i', '<$1 name="' . $id . '"$2>', $html);
+                            ?>
+                            <div class="ukpa-element"
+                                data-id="<?= $id ?>"
+                                data-type="<?= esc_attr($el['type']) ?>"
+                                data-config='<?= esc_attr(json_encode($config)) ?>'
+                                style="<?= esc_attr($style) ?>">
+                            <?= $html ?>
+                            </div>
+                        <?php endif; ?>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <!-- 🔶 Other Result Section -->
+                    <div class="ab-other-results">
+                        <?php foreach ($data['elements'] as $el): ?>
+                        <?php if ($el['section'] === 'results' && $el['type'] === 'otherResult'): ?>
+                            <?php
+                            $config = $el['config'] ?? [];
+                            $id = esc_attr($el['id']);
+                            $style = (!empty($config['conditions']['rules'])) ? 'display:none;' : '';
+                            $html = preg_replace('/<div class="ukpa-admin-id-label">.*?<\/div>/', '', $el['html']);
+                            $html = preg_replace('/<(input|select|textarea)([^>]+)>/i', '<$1 name="' . $id . '"$2>', $html);
+                            ?>
+                            <div class="ukpa-element"
+                                data-id="<?= $id ?>"
+                                data-type="<?= esc_attr($el['type']) ?>"
+                                data-config='<?= esc_attr(json_encode($config)) ?>'
+                                style="<?= esc_attr($style) ?>">
+                            <?= $html ?>
+                            </div>
+                        <?php endif; ?>
+                        <?php endforeach; ?>
+                    </div>
+
+                    </div>
+
+
 
                         </div>
 

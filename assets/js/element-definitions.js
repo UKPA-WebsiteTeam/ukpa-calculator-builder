@@ -61,10 +61,7 @@ export const ukpaElementDefinitions = {
     default: {
       label: "Select an option",
       name: "Dropdown Selection",
-      options: [
-        { value: "yes", label: "Yes" },
-        { value: "no", label: "No" }
-      ],
+      options: [{ label: 'Option A', value: 'a' }, { label: 'Option B', value: 'b' }],
       defaultValue: "yes",
       conditions: []
     },
@@ -98,6 +95,41 @@ export const ukpaElementDefinitions = {
       conditions: []
     }
   },
+
+  wrapper: {
+    label: 'Secondary Result Wrapper',
+    icon: '🧩',
+    allowedZones: [],
+    fields: [],
+    settings: [
+      {
+        key: 'layout',
+        label: 'Layout',
+        type: 'select',
+        options: ['wrap', 'row', 'column']
+      },
+      {
+        key: 'gap',
+        label: 'Gap Between Items',
+        type: 'text',
+        placeholder: 'e.g. 10px or 1rem'
+      },
+      {
+        key: 'columnWidths.left',
+        label: 'Chart Section Width',
+        type: 'text',
+        placeholder: 'e.g. 60%'
+      },
+      {
+        key: 'columnWidths.right',
+        label: 'Other Results Width',
+        type: 'text',
+        placeholder: 'e.g. 40%'
+      }
+    ]
+  },
+
+
 
   // ======================
   // 📦 Content Elements
