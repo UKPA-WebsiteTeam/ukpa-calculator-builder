@@ -178,11 +178,13 @@ $route = $data['route'] ?? '';
 
             <!-- ✅ OTHER RESULTS & CHARTS (with wrapper) -->
             <?php
-            $secondaryWrapperConfig = $data['secondaryWrapper'] ?? [
-              'wrap' => 'wrap',
-              'layout' => 'row',
-              'widths' => new stdClass()
-            ];
+            $secondaryWrapperConfig = ['wrap' => 'wrap', 'layout' => 'row', 'widths' => new stdClass()];
+            foreach ($elements as $el) {
+              if ($el['id'] === 'secondary-result-wrapper') {
+                $secondaryWrapperConfig = $el['config'] ?? $secondaryWrapperConfig;
+                break;
+              }
+            }
             $otherGroups = [];
             foreach ($elements as $el) {
               if ($el['section'] === 'results' && in_array($el['type'], ['barChart', 'otherResult'])) {
@@ -221,6 +223,7 @@ $route = $data['route'] ?? '';
                 <?php endforeach; ?>
               </div>
             </div>
+
           </div>
         </div>
 

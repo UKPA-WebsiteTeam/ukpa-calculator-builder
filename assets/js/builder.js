@@ -11,7 +11,7 @@ window.renderResults = renderResults;
 
 import { editElementById } from './modules/editElementById.js';
 import { ukpaElementDefinitions } from './element-definitions.js';
-import { generateElementHTML } from './element-renderer.js';
+import { generateElementHTML } from './generateElementHTML.js';
 
 window.editElementById = editElementById;
 window.ukpaElementDefinitions = ukpaElementDefinitions;

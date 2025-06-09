@@ -109,6 +109,15 @@ export const ukpaElementDefinitions = {
         options: ['wrap', 'row', 'column']
       },
       {
+        key: 'layoutMode',
+        label: 'Layout Mode',
+        type: 'select',
+        options: [
+          'Full Width (Chart & Other stacked)',
+          'Stacked (Chart 70% + Other 30%)'
+        ]
+      },
+      {
         key: 'gap',
         label: 'Gap Between Items',
         type: 'text',

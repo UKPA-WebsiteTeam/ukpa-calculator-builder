@@ -108,7 +108,27 @@ export function generateElementHTML(type, id, config = {}) {
       </div>`;
   }
 
-  // ✅ Wrap all fields and apply conditional visibility if configured
+  // ✅ Special rendering for Secondary Wrapper (preserve inner zone)
+  if (type === 'wrapper' && id === 'secondary-result-wrapper') {
+    const wrapperEl = document.createElement('div');
+    wrapperEl.classList.add('ukpa-element');
+
+    wrapperEl.innerHTML = `
+      <div class="ukpa-admin-id-label ukpa-editable-wrapper-label">
+        🧩 <strong>${config.label || 'Secondary Result Wrapper'}</strong>
+      </div>
+      <div class="ukpa-drop-zone"
+           id="secondary-result-zone"
+           data-allowed="barChart,otherResult"
+           data-section="results">
+        <h4>Other Results & Charts</h4>
+      </div>
+    `;
+
+    return wrapperEl;
+  }
+
+  // ✅ For normal elements
   const wrapperEl = document.createElement('div');
   wrapperEl.classList.add('ukpa-field-wrapper');
 
@@ -120,7 +140,6 @@ export function generateElementHTML(type, id, config = {}) {
   wrapperEl.innerHTML = html;
 
   if (window.ukpaBuilderMode) {
-    // ✅ Add ID label (unless it's the secondary result wrapper)
     if (id !== 'secondary-result-wrapper') {
       const idLabel = document.createElement('div');
       idLabel.className = 'ukpa-admin-id-label';
@@ -128,8 +147,7 @@ export function generateElementHTML(type, id, config = {}) {
       wrapperEl.prepend(idLabel);
     }
 
-    // ✅ Add cross/delete button (unless it's the secondary result wrapper)
-   if (!(type === 'wrapper' && id === 'secondary-result-wrapper')) {
+    if (!(type === 'wrapper' && id === 'secondary-result-wrapper')) {
       const closeBtn = document.createElement('span');
       closeBtn.className = 'ukpa-element-close';
       closeBtn.innerHTML = '&times;';
@@ -139,22 +157,16 @@ export function generateElementHTML(type, id, config = {}) {
         e.stopPropagation();
         if (confirm('Are you sure you want to delete this element?')) {
           const element = document.querySelector(`.ukpa-element[data-id="${id}"]`);
-
           if (element) {
             const column = element.closest('.ukpa-column');
             const row = column?.closest('.ukpa-row');
-
             element.remove();
 
-            // 🧹 Remove column if it has no ukpa-element
             if (column && column.querySelectorAll('.ukpa-element').length === 0) {
               column.remove();
             }
 
-            // 🧹 Remove row if it has no columns
             removeEmptyColumnsAndRows(document.querySelector('.ukpa-drop-zone'));
-
-
             window.markAsDirty?.();
           }
         }
@@ -162,13 +174,11 @@ export function generateElementHTML(type, id, config = {}) {
 
       wrapperEl.appendChild(closeBtn);
     }
-
-
-
   }
 
   return wrapperEl;
 }
+
 
 export function evaluateConditions(rules = []) {
   return rules.every(rule => {

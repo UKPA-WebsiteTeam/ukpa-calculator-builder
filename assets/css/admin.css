@@ -36,7 +36,10 @@ body.ukpa-fullscreen-builder .ukpa-builder-wrap {
   color: red;
   font-weight: bold;
 }
-
+.ab-chart-results,
+.ab-other-results {
+  box-sizing: border-box;
+}
 .ukpa-builder-exit {
   position: fixed;
   top: -15px;
@@ -61,7 +64,7 @@ body.ukpa-fullscreen-builder .ukpa-builder-wrap {
 .element-container-ukpa{
   background-color: #acecff;
   padding: 2px;
-  margin: 2px;
+  margin: 5px;
   border-radius: 5px;
 }
 .ukpa-builder-wrap {
@@ -437,6 +440,7 @@ select{
   border-radius: 6px;
   background: #effaf8;
   cursor: pointer;
+  margin:5px;
 }
 
 /* === SIDEBAR SETTINGS === */

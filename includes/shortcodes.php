@@ -125,14 +125,18 @@ function render_ukpa_calculator_shortcode($atts = []) {
                         </div>
 
                     <!-- 🟢 Combined Results Wrapper -->
-                    <div class="ukpa-element ab-secondary-result-wrapper"
-                        data-id="secondary-result-wrapper"
-                        data-type="wrapper"
-                        data-config='<?= json_encode(["layout" => "wrap", "columnWidths" => []]) ?>'>
+                    <?php
+                    $wrapperConfig = $el['config'] ?? [];
+                    $layoutMode = $wrapperConfig['layoutMode'] ?? 'full';
+                    ?>
+                    <div class="ukpa-element ab-secondary-result-wrapper <?= esc_attr($layoutMode); ?>"
+                    data-id="secondary-result-wrapper"
+                    data-type="wrapper"
+                    data-config='<?= esc_attr(json_encode($wrapperConfig)) ?>'>
 
 
                     <!-- 🔷 Chart Section -->
-                    <div class="ab-chart-results">
+                    <div class="ab-chart-results" style="<?= $layoutMode === 'stacked' ? 'width:70%; display:inline-block; vertical-align:top;' : 'width:100%;' ?>">
                         <?php foreach ($data['elements'] as $el): ?>
                         <?php if ($el['section'] === 'results' && $el['type'] === 'barChart'): ?>
                             <?php
@@ -154,7 +158,7 @@ function render_ukpa_calculator_shortcode($atts = []) {
                     </div>
 
                     <!-- 🔶 Other Result Section -->
-                    <div class="ab-other-results">
+                    <div class="ab-other-results" style="<?= $layoutMode === 'stacked' ? 'width:30%; display:inline-block; vertical-align:top;' : 'width:100%;' ?>">
                         <?php foreach ($data['elements'] as $el): ?>
                         <?php if ($el['section'] === 'results' && $el['type'] === 'otherResult'): ?>
                             <?php

@@ -203,55 +203,27 @@ export function editElementById(id) {
     wrapper.appendChild(dynamicGroup);
   }
 
-  if (type === 'secondaryWrapper') {
-    const layoutField = document.createElement('div');
-    layoutField.className = 'ukpa-editor-field';
-    layoutField.innerHTML = `
-      <label>Layout</label>
+  if (type === 'wrapper' && id === 'secondary-result-wrapper') {
+    const layoutModeField = document.createElement('div');
+    layoutModeField.className = 'ukpa-editor-field';
+    layoutModeField.innerHTML = `
+      <label>Layout Mode</label>
       <select class="ukpa-input">
-        <option value="row">Row</option>
-        <option value="column">Column</option>
+        <option value="full">Full Width (Chart & Other stacked)</option>
+        <option value="stacked">Stacked (Chart 70% + Other 30%)</option>
       </select>
     `;
-    const layoutSelect = layoutField.querySelector('select');
-    layoutSelect.value = config.layout || 'row';
-    layoutSelect.addEventListener('change', () => {
-      config.layout = layoutSelect.value;
+
+    const select = layoutModeField.querySelector('select');
+    select.value = config.layoutMode || 'full';
+    select.addEventListener('change', () => {
+      config.layoutMode = select.value;
       saveConfig();
     });
-    wrapper.appendChild(layoutField);
 
-    const wrapField = document.createElement('div');
-    wrapField.className = 'ukpa-editor-field';
-    wrapField.innerHTML = `
-      <label><input type="checkbox" ${config.wrap !== 'no-wrap' ? 'checked' : ''} /> Enable wrapping</label>
-    `;
-    const wrapCheckbox = wrapField.querySelector('input');
-    wrapCheckbox.addEventListener('change', () => {
-      config.wrap = wrapCheckbox.checked ? 'wrap' : 'no-wrap';
-      saveConfig();
-    });
-    wrapper.appendChild(wrapField);
-
-    const widthsField = document.createElement('div');
-    widthsField.className = 'ukpa-editor-field';
-    widthsField.innerHTML = `
-      <label>Column Widths (optional)</label>
-      <textarea class="ukpa-input" rows="4" placeholder='e.g. {"result1": "30%", "result2": "70%"}'></textarea>
-    `;
-    const textarea = widthsField.querySelector('textarea');
-    textarea.value = JSON.stringify(config.widths || {}, null, 2);
-    textarea.addEventListener('input', () => {
-      try {
-        config.widths = JSON.parse(textarea.value);
-        textarea.classList.remove('ukpa-error');
-        saveConfig();
-      } catch {
-        textarea.classList.add('ukpa-error');
-      }
-    });
-    wrapper.appendChild(widthsField);
+    wrapper.appendChild(layoutModeField);
   }
+
 
   function saveConfig() {
     saveElementConfig({ el, type, id, config, editElementById });
