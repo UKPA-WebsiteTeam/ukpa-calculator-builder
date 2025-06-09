@@ -97,7 +97,7 @@ export const ukpaElementDefinitions = {
   },
 
   wrapper: {
-    label: 'Secondary Result Wrapper',
+    label: 'Secondary Results Wrapper',
     icon: '🧩',
     allowedZones: [],
     fields: [],

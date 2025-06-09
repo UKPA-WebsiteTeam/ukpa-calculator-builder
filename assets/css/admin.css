@@ -61,12 +61,40 @@ body.ukpa-fullscreen-builder .ukpa-builder-wrap {
   background: #fff;
   box-shadow: 0 2px 10px rgba(0,0,0,0.05);
 }
+
 .element-container-ukpa{
-  background-color: #acecff;
+  background-color: #4181764d;
   padding: 2px;
   margin: 5px;
   border-radius: 5px;
 }
+/* Default vertical stack */
+.element-container-ukpa.ukpa-secondary-layout-full {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Stacked side-by-side layout */
+.element-container-ukpa.ukpa-secondary-layout-stacked {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.element-container-ukpa.ukpa-secondary-layout-stacked > .ukpa-element {
+  flex: 1 1 auto;
+}
+
+.element-container-ukpa.ukpa-secondary-layout-stacked > .ukpa-element:first-child {
+  width: 70%;
+}
+
+.element-container-ukpa.ukpa-secondary-layout-stacked > .ukpa-element:last-child {
+  width: 30%;
+}
+
 .ukpa-builder-wrap {
   display: flex;
   flex-direction: row;

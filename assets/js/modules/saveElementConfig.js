@@ -1,13 +1,15 @@
+import { initAdvancedSortable } from './initAdvancedSortable.js';
+
 export function saveElementConfig({ el, type, id, config, editElementById }) {
   if (!el || !type || !id || !config || typeof editElementById !== 'function') {
     console.warn('Missing parameters in saveElementConfig');
     return;
   }
 
-  // ✅ Set updated config
+  // ✅ Set updated config on the wrapper element
   el.setAttribute('data-config', JSON.stringify(config));
 
-  // ✅ Update only internal content if not secondaryWrapper
+  // ✅ Standard update for all non-secondaryWrapper elements
   if (type !== 'secondaryWrapper') {
     const htmlEl = window.generateElementHTML(type, id, config);
     if (!htmlEl) return;
@@ -15,7 +17,7 @@ export function saveElementConfig({ el, type, id, config, editElementById }) {
     el.innerHTML = '';
     el.appendChild(htmlEl);
 
-    // ✅ ID label (skip for wrapper)
+    // ✅ Add ID label (except for secondary wrapper)
     if (id !== 'secondary-result-wrapper') {
       const idLabel = document.createElement('div');
       idLabel.className = 'ukpa-admin-id-label';
@@ -23,23 +25,36 @@ export function saveElementConfig({ el, type, id, config, editElementById }) {
       el.insertBefore(idLabel, el.firstChild);
     }
   } else {
-    // ✅ For secondaryWrapper: update .ukpa-drop-zone wrapper only
-    const dropZone = el.querySelector('.ukpa-drop-zone');
-    if (dropZone) {
-      dropZone.dataset.allowed = "barChart,otherResult";
-      dropZone.dataset.section = "results";
+    // ✅ For secondary-wrapper: update drop zone attributes, preserve children
+    const existingDropZone = el.querySelector('.ukpa-drop-zone');
+    if (existingDropZone) {
+      existingDropZone.dataset.allowed = "barChart,otherResult";
+      existingDropZone.dataset.section = "results";
+
+      // 🔁 Rebind events on each child inside drop zone
+      existingDropZone.querySelectorAll('.ukpa-element').forEach(child => {
+        const childId = child.dataset.id;
+        if (childId) {
+          child.onclick = (e) => {
+            e.stopPropagation();
+            editElementById(childId);
+          };
+          child.setAttribute('draggable', 'true');
+        }
+      });
     }
 
-    // Optional: update label if config.label exists
+    // ✅ Update wrapper label if changed
     const wrapperLabel = el.querySelector('.ukpa-editable-wrapper-label');
     if (wrapperLabel && config.label) {
       wrapperLabel.innerHTML = `🧩 <strong>${config.label}</strong>`;
     }
 
-    // ❌ Do NOT clear el.innerHTML — preserve elements inside drop zone
+    // ✅ Re-initialize drag and drop logic
+    initAdvancedSortable();
   }
 
-  // ✅ Always rebind click
+  // ✅ Always rebind the main element's edit handler
   el.onclick = (e) => {
     e.stopPropagation();
     editElementById(id);

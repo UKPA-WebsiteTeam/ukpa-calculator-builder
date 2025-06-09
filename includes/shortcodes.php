@@ -40,72 +40,103 @@ function render_ukpa_calculator_shortcode($atts = []) {
     </script>
 
     <div class="ab-main-wrapper">
-        <div class="ab-wrapper">
-            <!-- LEFT: Informative content section -->
-            <div class="ab-content" id="ab-content-section">
-                <?php foreach ($data['elements'] as $el): ?>
-                    <?php if ($el['section'] === 'content'): ?>
-                        <?php
-                            $config = $el['config'] ?? [];
-                            $id = esc_attr($el['id']);
-                            $style = (!empty($config['conditions']['rules'])) ? 'display:none;' : '';
-                        ?>
-                        <div class="ukpa-element"
-                             data-id="<?= $id ?>"
-                             data-type="<?= esc_attr($el['type']) ?>"
-                             data-config='<?= esc_attr(json_encode($config)) ?>'
-                             style="<?= esc_attr($style) ?>">
-                            <?= $el['html'] ?>
-                        </div>
-                    <?php endif; ?>
-                <?php endforeach; ?>
-            </div>
+            <div class="ab-wrapper">
+                <!-- LEFT: Informative content section -->
+                <div class="ab-content" id="ab-content-section">
+                    <?php foreach ($data['elements'] as $el): ?>
+                        <?php if ($el['section'] === 'content'): ?>
+                            <?php
+                                $config = $el['config'] ?? [];
+                                $id = esc_attr($el['id']);
+                                $style = (!empty($config['conditions']['rules'])) ? 'display:none;' : '';
+                            ?>
+                            <div class="ukpa-element"
+                                data-id="<?= $id ?>"
+                                data-type="<?= esc_attr($el['type']) ?>"
+                                data-config='<?= esc_attr(json_encode($config)) ?>'
+                                style="<?= esc_attr($style) ?>">
+                                <?= $el['html'] ?>
+                            </div>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                </div>
 
-            <div class="ab-input" id="ab-input-box">
-                <!-- Scrollable Input Form -->
-                <div class="ab-input-scrollable">
-                    <form onsubmit="return false;">
-                        <?php foreach ($data['elements'] as $el): ?>
-                            <?php if ($el['section'] === 'inputs'): ?>
-                                <?php
+                <div class="ab-input" id="ab-input-box">
+                    <!-- Scrollable Input Form -->
+                    <div class="ab-input-scrollable">
+                        <form onsubmit="return false;">
+                            <?php foreach ($data['elements'] as $el): ?>
+                                <?php if ($el['section'] === 'inputs'): ?>
+                                    <?php
+                                        $config = $el['config'] ?? [];
+                                        $id = esc_attr($el['id']);
+                                        $style = (!empty($config['conditions']['rules'])) ? 'display:none;' : '';
+                                        $html = preg_replace('/<div class="ukpa-admin-id-label">.*?<\/div>/', '', $el['html']);
+                                        $html = preg_replace('/<(input|select|textarea)([^>]+)>/i', '<$1 name="' . $id . '"$2>', $html);
+                                    ?>
+                                    <div class="ukpa-element"
+                                        data-id="<?= $id ?>"
+                                        data-type="<?= esc_attr($el['type']) ?>"
+                                        data-config='<?= esc_attr(json_encode($config)) ?>'
+                                        style="<?= esc_attr($style) ?>">
+                                        <?= $html ?>
+                                    </div>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        </form>
+                    </div>
+                    
+
+                    <!-- Sticky Reset Button -->
+                    <div class="ab-btn-div">
+                        <div class="input-bottom-container">
+                            <div id="ukpa-error-message" class="ukpa-error-message"></div>
+                            <button type="button" class="ab-reset-button" onclick="resetForm()">Reset</button>
+                        </div>
+                    </div>
+                </div>
+
+
+
+                <!-- RIGHT: Result section -->
+                <div class="main-result-container" id="main-result-container" style="display: none;">
+                    <div class="ab-result-wrapper">
+                        <div class="ab-result" id="ab-result-container">
+                            <!-- 🔵 Main Result Section -->
+                            <div class="ab-main-result-wrapper">
+                                <?php foreach ($data['elements'] as $el): ?>
+                                <?php if ($el['section'] === 'results' && $el['type'] === 'mainResult'): ?>
+                                    <?php
                                     $config = $el['config'] ?? [];
                                     $id = esc_attr($el['id']);
                                     $style = (!empty($config['conditions']['rules'])) ? 'display:none;' : '';
                                     $html = preg_replace('/<div class="ukpa-admin-id-label">.*?<\/div>/', '', $el['html']);
                                     $html = preg_replace('/<(input|select|textarea)([^>]+)>/i', '<$1 name="' . $id . '"$2>', $html);
-                                ?>
-                                <div class="ukpa-element"
-                                    data-id="<?= $id ?>"
-                                    data-type="<?= esc_attr($el['type']) ?>"
-                                    data-config='<?= esc_attr(json_encode($config)) ?>'
-                                    style="<?= esc_attr($style) ?>">
+                                    ?>
+                                    <div class="ukpa-element"
+                                        data-id="<?= $id ?>"
+                                        data-type="<?= esc_attr($el['type']) ?>"
+                                        data-config='<?= esc_attr(json_encode($config)) ?>'
+                                        style="<?= esc_attr($style) ?>">
                                     <?= $html ?>
-                                </div>
-                            <?php endif; ?>
-                        <?php endforeach; ?>
-                    </form>
-                </div>
-                
+                                    </div>
+                                <?php endif; ?>
+                                <?php endforeach; ?>
+                            </div>
 
-                <!-- Sticky Reset Button -->
-                <div class="ab-btn-div">
-                    <div class="input-bottom-container">
-                        <div id="ukpa-error-message" class="ukpa-error-message"></div>
-                        <button type="button" class="ab-reset-button" onclick="resetForm()">Reset</button>
-                    </div>
-                </div>
-            </div>
+                        <?php
+                        $wrapperConfig = $el['config'] ?? [];
+                        $layoutMode = $wrapperConfig['layoutMode'] ?? 'full';
+                        $layoutClass = $layoutMode === 'stacked' ? 'ukpa-secondary-layout-stacked' : 'ukpa-secondary-layout-full';
+                        ?>
+                        <div class="ukpa-element ab-secondary-result-wrapper"
+                            data-id="secondary-result-wrapper"
+                            data-type="wrapper"
+                            data-config='<?= esc_attr(json_encode($wrapperConfig)) ?>'>
 
-
-
-            <!-- RIGHT: Result section -->
-            <div class="main-result-container" id="main-result-container" style="display: none;">
-                <div class="ab-result-wrapper">
-                    <div class="ab-result" id="ab-result-container">
-                        <!-- 🔵 Main Result Section -->
-                        <div class="ab-main-result-wrapper">
+                        <div class="element-container-ukpa <?= esc_attr($layoutClass); ?>">
                             <?php foreach ($data['elements'] as $el): ?>
-                            <?php if ($el['section'] === 'results' && $el['type'] === 'mainResult'): ?>
+                            <?php if ($el['section'] === 'results' && in_array($el['type'], ['barChart', 'otherResult'])): ?>
                                 <?php
                                 $config = $el['config'] ?? [];
                                 $id = esc_attr($el['id']);
@@ -123,118 +154,60 @@ function render_ukpa_calculator_shortcode($atts = []) {
                             <?php endif; ?>
                             <?php endforeach; ?>
                         </div>
-
-                    <!-- 🟢 Combined Results Wrapper -->
-                    <?php
-                    $wrapperConfig = $el['config'] ?? [];
-                    $layoutMode = $wrapperConfig['layoutMode'] ?? 'full';
-                    ?>
-                    <div class="ukpa-element ab-secondary-result-wrapper <?= esc_attr($layoutMode); ?>"
-                    data-id="secondary-result-wrapper"
-                    data-type="wrapper"
-                    data-config='<?= esc_attr(json_encode($wrapperConfig)) ?>'>
-
-
-                    <!-- 🔷 Chart Section -->
-                    <div class="ab-chart-results" style="<?= $layoutMode === 'stacked' ? 'width:70%; display:inline-block; vertical-align:top;' : 'width:100%;' ?>">
-                        <?php foreach ($data['elements'] as $el): ?>
-                        <?php if ($el['section'] === 'results' && $el['type'] === 'barChart'): ?>
-                            <?php
-                            $config = $el['config'] ?? [];
-                            $id = esc_attr($el['id']);
-                            $style = (!empty($config['conditions']['rules'])) ? 'display:none;' : '';
-                            $html = preg_replace('/<div class="ukpa-admin-id-label">.*?<\/div>/', '', $el['html']);
-                            $html = preg_replace('/<(input|select|textarea)([^>]+)>/i', '<$1 name="' . $id . '"$2>', $html);
-                            ?>
-                            <div class="ukpa-element"
-                                data-id="<?= $id ?>"
-                                data-type="<?= esc_attr($el['type']) ?>"
-                                data-config='<?= esc_attr(json_encode($config)) ?>'
-                                style="<?= esc_attr($style) ?>">
-                            <?= $html ?>
-                            </div>
-                        <?php endif; ?>
-                        <?php endforeach; ?>
-                    </div>
-
-                    <!-- 🔶 Other Result Section -->
-                    <div class="ab-other-results" style="<?= $layoutMode === 'stacked' ? 'width:30%; display:inline-block; vertical-align:top;' : 'width:100%;' ?>">
-                        <?php foreach ($data['elements'] as $el): ?>
-                        <?php if ($el['section'] === 'results' && $el['type'] === 'otherResult'): ?>
-                            <?php
-                            $config = $el['config'] ?? [];
-                            $id = esc_attr($el['id']);
-                            $style = (!empty($config['conditions']['rules'])) ? 'display:none;' : '';
-                            $html = preg_replace('/<div class="ukpa-admin-id-label">.*?<\/div>/', '', $el['html']);
-                            $html = preg_replace('/<(input|select|textarea)([^>]+)>/i', '<$1 name="' . $id . '"$2>', $html);
-                            ?>
-                            <div class="ukpa-element"
-                                data-id="<?= $id ?>"
-                                data-type="<?= esc_attr($el['type']) ?>"
-                                data-config='<?= esc_attr(json_encode($config)) ?>'
-                                style="<?= esc_attr($style) ?>">
-                            <?= $html ?>
-                            </div>
-                        <?php endif; ?>
-                        <?php endforeach; ?>
-                    </div>
-
-                    </div>
-
-
-
                         </div>
 
-
-                    <!-- Lead form -->
-                    <form class="ab-lead-form" onsubmit="handleLeadSubmit(event)">
-                        <span></span>
-                            <small class="leadform-title">Enter contact details below to receive more detailed result in your email.</small>
-                        <div class="ab-lead-fields">
-                            <div class="ab-lead-input-group">
-                                <label for="ab-fullName">Full Name</label>
-                                <input type="text" id="ab-fullName" name="fullName" placeholder="Type your full name..." required>
+                    </div>
+                            <!-- Lead form -->
+                        <form class="ab-lead-form" onsubmit="handleLeadSubmit(event)">
+                            <span></span>
+                                <small class="leadform-title">Enter contact details below to receive more detailed result in your email.</small>
+                            <div class="ab-lead-fields">
+                                <div class="ab-lead-input-group">
+                                    <label for="ab-fullName">Full Name</label>
+                                    <input type="text" id="ab-fullName" name="fullName" placeholder="Type your full name..." required>
+                                </div>
+                                <div class="ab-lead-input-group">
+                                    <label for="ab-email">Email Address</label>
+                                    <input type="email" id="ab-email" name="email" placeholder="Type your email..." required>
+                                </div>
+                                <button type="submit" class="ab-send-btn">
+                                    <img src="https://www.ukpropertyaccountants.co.uk/wp-content/uploads/2025/03/paper-send.svg" alt="Send">
+                                </button>
                             </div>
-                            <div class="ab-lead-input-group">
-                                <label for="ab-email">Email Address</label>
-                                <input type="email" id="ab-email" name="email" placeholder="Type your email..." required>
+                            <div class="ab-lead-consent">
+                                <input type="checkbox" id="ab-consent" required>
+                                <label for="ab-consent">
+                                    I consent to having my information processed to receive personalised marketing material in accordance with the
+                                    <a href="/privacy-policy" target="_blank">Privacy Policy</a>.
+                                </label>
                             </div>
-                            <button type="submit" class="ab-send-btn">
-                                <img src="https://www.ukpropertyaccountants.co.uk/wp-content/uploads/2025/03/paper-send.svg" alt="Send">
-                            </button>
-                        </div>
-                        <div class="ab-lead-consent">
-                            <input type="checkbox" id="ab-consent" required>
-                            <label for="ab-consent">
-                                I consent to having my information processed to receive personalised marketing material in accordance with the
-                                <a href="/privacy-policy" target="_blank">Privacy Policy</a>.
-                            </label>
-                        </div>
-                        <div id="ab-lead-status" class="ab-lead-status"></div>
-                    </form>
+                            <div id="ab-lead-status" class="ab-lead-status"></div>
+                        </form>
                 </div>
             </div>
-        </div>
 
-        <!-- Footer disclaimer -->
-        <?php foreach ($data['elements'] as $el): ?>
-            <?php if ($el['section'] === 'disclaimer'): ?>
-                <?php
-                    $config = $el['config'] ?? [];
-                    $id = esc_attr($el['id']);
-                    $style = (!empty($config['conditions']['rules'])) ? 'display:none;' : '';
-                    $html = preg_replace('/<div class="ukpa-admin-id-label">.*?<\/div>/', '', $el['html']);
-                    $html = preg_replace('/<(input|select|textarea)([^>]+)>/i', '<$1 name="' . $id . '"$2>', $html);
-                ?>
-                <p class="ab-disclaimer ukpa-element"
-                   data-id="<?= $id ?>"
-                   data-type="<?= esc_attr($el['type']) ?>"
-                   data-config='<?= esc_attr(json_encode($config)) ?>'
-                   style="<?= esc_attr($style) ?>">
-                    <?= $html ?>
-                </p>
-            <?php endif; ?>
-        <?php endforeach; ?>
+            
+    </div>
+    <!-- Footer disclaimer -->
+     <div>
+            <?php foreach ($data['elements'] as $el): ?>
+                <?php if ($el['section'] === 'disclaimer'): ?>
+                    <?php
+                        $config = $el['config'] ?? [];
+                        $id = esc_attr($el['id']);
+                        $style = (!empty($config['conditions']['rules'])) ? 'display:none;' : '';
+                        $html = preg_replace('/<div class="ukpa-admin-id-label">.*?<\/div>/', '', $el['html']);
+                        $html = preg_replace('/<(input|select|textarea)([^>]+)>/i', '<$1 name="' . $id . '"$2>', $html);
+                    ?>
+                    <p class="ab-disclaimer ukpa-element"
+                    data-id="<?= $id ?>"
+                    data-type="<?= esc_attr($el['type']) ?>"
+                    data-config='<?= esc_attr(json_encode($config)) ?>'
+                    style="<?= esc_attr($style) ?>">
+                        <?= $html ?>
+                    </p>
+                <?php endif; ?>
+            <?php endforeach; ?>
     </div>
     <?php
     return ob_get_clean();

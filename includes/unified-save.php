@@ -58,6 +58,8 @@ function ukpa_unified_save_calculator() {
     // ✅ No changes, but still return success
     wp_send_json_success(['message' => 'No changes detected, but considered successful']);
   }
+  console.log("🧪 Final data being saved:", elements);
+
 }
 
 error_log('CUSTOM JS RECEIVED: ' . ($_POST['custom_js'] ?? '[not set]'));

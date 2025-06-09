@@ -185,6 +185,8 @@ $route = $data['route'] ?? '';
                 break;
               }
             }
+
+            // Get grouped charts and other results
             $otherGroups = [];
             foreach ($elements as $el) {
               if ($el['section'] === 'results' && in_array($el['type'], ['barChart', 'otherResult'])) {
@@ -192,19 +194,27 @@ $route = $data['route'] ?? '';
                 $otherGroups[$group][] = $el;
               }
             }
+
+            // Determine layout class from saved config
+            $layoutMode = $secondaryWrapperConfig['layoutMode'] ?? 'full';
+            $layoutClass = 'ukpa-secondary-layout-' . $layoutMode;
             ?>
-            <div class="ukpa-element"
+
+            <div class="ukpa-element <?php echo esc_attr($layoutClass); ?>"
               data-id="secondary-result-wrapper"
               data-type="wrapper"
               data-config='<?php echo esc_attr(json_encode($secondaryWrapperConfig)); ?>'>
+
               <div class="ukpa-admin-id-label ukpa-editable-wrapper-label">
                 🧩 <strong>Secondary Result Wrapper</strong>
               </div>
+
               <div class="ukpa-drop-zone"
                 id="secondary-result-zone"
                 data-allowed="barChart,otherResult"
                 data-section="results">
                 <h4>Other Results & Charts</h4>
+
                 <?php foreach ($otherGroups as $groupEls): ?>
                   <div class="element-container-ukpa">
                     <?php foreach ($groupEls as $el): ?>
@@ -223,6 +233,7 @@ $route = $data['route'] ?? '';
                 <?php endforeach; ?>
               </div>
             </div>
+
 
           </div>
         </div>

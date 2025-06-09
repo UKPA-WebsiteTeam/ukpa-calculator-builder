@@ -70,17 +70,23 @@ export function editElementById(id) {
     wrapper.appendChild(labelDiv);
   }
 
-  const requiredDiv = document.createElement('div');
-  requiredDiv.className = 'ukpa-editor-field';
-  requiredDiv.innerHTML = `
-    <label><input type="checkbox" ${config.calcRequired ? 'checked' : ''} /> Required</label>
-  `;
-  const checkbox = requiredDiv.querySelector('input');
-  checkbox.addEventListener('change', () => {
-    config.calcRequired = checkbox.checked;
-    saveConfig();
-  });
-  wrapper.appendChild(requiredDiv);
+  // ✅ Only show "Required" for input elements
+  const inputTypes = ['number', 'text', 'email', 'dropdown', 'radio', 'checkbox', 'date'];
+
+  if (inputTypes.includes(type)) {
+    const requiredDiv = document.createElement('div');
+    requiredDiv.className = 'ukpa-editor-field';
+    requiredDiv.innerHTML = `
+      <label><input type="checkbox" ${config.calcRequired ? 'checked' : ''} /> Required</label>
+    `;
+    const checkbox = requiredDiv.querySelector('input');
+    checkbox.addEventListener('change', () => {
+      config.calcRequired = checkbox.checked;
+      saveConfig();
+    });
+    wrapper.appendChild(requiredDiv);
+  }
+
 
   if (Array.isArray(def.fields) && def.fields.includes('name')) {
     const nameDiv = document.createElement('div');
@@ -202,7 +208,6 @@ export function editElementById(id) {
     dynamicGroup.appendChild(dynamicSelect);
     wrapper.appendChild(dynamicGroup);
   }
-
   if (type === 'wrapper' && id === 'secondary-result-wrapper') {
     const layoutModeField = document.createElement('div');
     layoutModeField.className = 'ukpa-editor-field';
@@ -210,19 +215,42 @@ export function editElementById(id) {
       <label>Layout Mode</label>
       <select class="ukpa-input">
         <option value="full">Full Width (Chart & Other stacked)</option>
-        <option value="stacked">Stacked (Chart 70% + Other 30%)</option>
+        <option value="stacked">Horizontally Stacked (Chart 70% + Other 30%)</option>
       </select>
     `;
 
     const select = layoutModeField.querySelector('select');
-    select.value = config.layoutMode || 'full';
+    const validValues = ['full', 'stacked'];
+    select.value = validValues.includes(config.layoutMode) ? config.layoutMode : 'full';
+
+    // ✅ Apply saved layout class visually on load
+    const wrapperEl = document.querySelector(`.ukpa-element[data-id="${id}"]`);
+    const container = wrapperEl?.querySelector('.element-container-ukpa');
+    if (container) {
+      container.classList.remove('ukpa-secondary-layout-full', 'ukpa-secondary-layout-stacked');
+      container.classList.add(`ukpa-secondary-layout-${select.value}`);
+    }
+
     select.addEventListener('change', () => {
       config.layoutMode = select.value;
-      saveConfig();
+
+      if (wrapperEl) {
+        wrapperEl.setAttribute('data-config', JSON.stringify(config));
+      }
+
+      const inner = wrapperEl?.querySelector('.element-container-ukpa');
+      if (inner) {
+        inner.classList.remove('ukpa-secondary-layout-full', 'ukpa-secondary-layout-stacked');
+        inner.classList.add(`ukpa-secondary-layout-${select.value}`);
+      }
+
+      saveConfig(); // ✅ Persist config
     });
 
     wrapper.appendChild(layoutModeField);
   }
+
+
 
 
   function saveConfig() {
