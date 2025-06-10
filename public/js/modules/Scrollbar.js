@@ -9,10 +9,23 @@ export function scrollBar() {
   }
 }
 
+// ✅ Ensure passive support for resize listener
+const supportsPassive = (() => {
+  let supported = false;
+  try {
+    window.addEventListener("test", null, Object.defineProperty({}, 'passive', {
+      get: () => supported = true
+    }));
+  } catch (e) {}
+  return supported;
+})();
+
 document.addEventListener("DOMContentLoaded", () => {
   scrollBar();
 
-  // Optionally re-check after input rendering
+  // Recheck after dynamic rendering
   setTimeout(scrollBar, 300);
-  window.addEventListener('resize', scrollBar);
+
+  // ✅ Safe resize listener
+  window.addEventListener('resize', scrollBar, supportsPassive ? { passive: true } : false);
 });

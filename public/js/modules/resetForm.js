@@ -1,6 +1,6 @@
 import { applyAllConditions } from './applyAllConditions.js';
 import { bindInputTriggers } from './bindInputTriggers.js';
-import { renderResults } from './renderResults.js';
+import { renderResultsFrontend } from './renderResultsFrontend.js';
 
 export function resetForm(inputBox, contentSection, resultContainer) {
   const form = inputBox?.querySelector('form');
@@ -35,5 +35,5 @@ export function resetForm(inputBox, contentSection, resultContainer) {
 
   applyAllConditions();
   bindInputTriggers(inputBox, contentSection, resultContainer);
-  renderResults();
+  renderResultsFrontend();
 }

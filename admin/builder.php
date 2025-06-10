@@ -56,6 +56,7 @@ $route = $data['route'] ?? '';
             <option value="">-- Select Route --</option>
             <option value="ltt/calculate" <?php selected($route, 'ltt/calculate'); ?>>LTT Calculator</option>
             <option value="sdlt/calculate" <?php selected($route, 'sdlt/calculate'); ?>>SDLT Calculator</option>
+            <option value="it/calculate" <?php selected($route, 'it/calculate'); ?>>Income Tax Calculator</option>
             <option value="ated/calculate" <?php selected($route, 'ated/calculate'); ?>>ATED Calculator</option>
             <option value="cgt/calculate" <?php selected($route, 'cgt/calculate'); ?>>CGT Calculator</option>
             <option value="prr/calculate" <?php selected($route, 'prr/calculate'); ?>>PRR Calculator</option>
@@ -96,7 +97,7 @@ $route = $data['route'] ?? '';
         <hr />
         <div class="ukpa-tool-group">
           <div class="draggable button" data-type="mainResult">Main Result</div>
-          <div class="draggable button" data-type="breakdown">Breakdown Table</div>
+          <div class="draggable button" data-type="breakdown">Tax Breakdown Table</div>
           <div class="draggable button" data-type="barChart">Bar Chart</div>
           <div class="draggable button" data-type="disclaimer">Disclaimer</div>
           <div class="draggable button" data-type="otherResult">Other Result</div>

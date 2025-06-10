@@ -61,6 +61,17 @@ body.ukpa-fullscreen-builder .ukpa-builder-wrap {
   background: #fff;
   box-shadow: 0 2px 10px rgba(0,0,0,0.05);
 }
+.ab-chart-wrapper {
+  width: 100%;
+  max-height: 200px;
+  overflow: hidden;
+}
+
+.ab-bar-chart {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
 
 .element-container-ukpa{
   background-color: #4181764d;

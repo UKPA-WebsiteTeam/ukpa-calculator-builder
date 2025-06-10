@@ -5,11 +5,22 @@ export function generateElementHTML(type, id, config = {}) {
   const isCalcRequiredAttr = config.calcRequired ? 'data-calc-required="true"' : '';
   const requiredMark = config.calcRequired ? '<span class="ukpa-required-star">*</span>' : '';
 
-  if (['number', 'text', 'email'].includes(type)) {
+  if (type === 'number') {
+    const value = config.value !== undefined && config.value !== null ? config.value : 0;
     html = `<label for="${id}">${config.label || ''} ${requiredMark}</label>
-    <input type="${type}" id="${id}" placeholder="${config.placeholder || ''}" class="ukpa-input" ${dataAttr} ${isCalcRequiredAttr} />`;
+      <input type="number" id="${id}" value="${value}" placeholder="${config.placeholder || ''}" class="ukpa-input" ${dataAttr} ${isCalcRequiredAttr} />`;
   }
 
+  else if (type === 'text') {
+    html = `<label for="${id}">${config.label || ''} ${requiredMark}</label>
+      <input type="text" id="${id}" value="${config.value || ''}" placeholder="${config.placeholder || ''}" class="ukpa-input" ${dataAttr} ${isCalcRequiredAttr} />`;
+  }
+
+  else if (type === 'email') {
+    html = `<label for="${id}">${config.label || ''} ${requiredMark}</label>
+      <input type="email" id="${id}" value="${config.value || ''}" placeholder="${config.placeholder || ''}" class="ukpa-input" ${dataAttr} ${isCalcRequiredAttr} />`;
+  }
+  
   else if (type === 'dropdown') {
     const options = (config.options || []).map(opt => {
       const label = typeof opt === 'object' ? opt.label : opt;
@@ -85,10 +96,14 @@ export function generateElementHTML(type, id, config = {}) {
 
   else if (type === 'barChart') {
     html = `
-      <div class="ab-chart-wrapper">
-        <canvas id="${id}" style="width:100px;" class="ab-bar-chart" data-result-key="${config.dynamicResult || 'breakdown'}"></canvas>
+      <div class="ab-chart-wrapper" style="width: 100%; max-height: 250px;">
+        <canvas id="${id}"
+          class="ab-bar-chart"
+          style="width: 100%; height: 100%; display: block;"
+          data-result-key="${config.dynamicResult || 'breakdown'}"></canvas>
       </div>`;
   }
+
 
   else if (type === 'disclaimer') {
     html = `

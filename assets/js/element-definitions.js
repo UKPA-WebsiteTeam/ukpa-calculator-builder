@@ -13,7 +13,8 @@ export const ukpaElementDefinitions = {
       min: '',
       max: '',
       step: '1',
-      conditions: []
+      conditions: [],
+      value: 0
     }
   },
 

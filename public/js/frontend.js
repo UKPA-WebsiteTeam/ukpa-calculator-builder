@@ -1,6 +1,6 @@
 import { evaluateConditions } from './modules/evaluateConditions.js';
 import { applyAllConditions } from './modules/applyAllConditions.js';
-import { renderResults } from './modules/renderResults.js';
+import { renderResultsFrontend } from './modules/renderResultsFrontend.js';
 import { sendToBackend, debounce } from './modules/sendToBackend.js';
 import { bindInputTriggers } from './modules/bindInputTriggers.js';
 import { resetForm } from './modules/resetForm.js';
@@ -48,7 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
   bindInputTriggers(inputBox, contentSection, resultContainer, breakdown);
 
   // ✅ Make tools globally accessible (for testing or re-use)
-  window.renderResults = renderResults;
+  window.renderResults = renderResultsFrontend;
   window.applyAllConditions = applyAllConditions;
   window.debouncedSendToBackend = debouncedSendToBackend;
 

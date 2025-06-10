@@ -1,4 +1,4 @@
-import { renderResults } from './renderResults.js';
+import { renderResultsFrontend } from './renderResultsFrontend.js';
 
 // ✅ Debounce helper
 function debounce(func, wait = 600) {
@@ -28,10 +28,18 @@ export function sendToBackend(inputs) {
     const config = wrapper ? JSON.parse(wrapper.dataset.config || '{}') : {};
     const paramName = config.name?.trim() || config.label?.trim() || elementId;
 
+    let finalValue = value;
+
+    // ✅ Convert empty number fields to 0
+    if (inputEl?.type === 'number' && (value === '' || value === null || value === undefined)) {
+      finalValue = 0;
+    }
+
     if (paramName) {
-      payload[paramName] = value;
+      payload[paramName] = finalValue;
     }
   }
+
 
   console.log("📤 Sending to backend:", payload);
 
