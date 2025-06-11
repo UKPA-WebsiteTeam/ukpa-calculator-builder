@@ -351,6 +351,13 @@ body.ukpa-fullscreen-builder .ukpa-builder-wrap {
   margin: 10px 0 20px;
   color: #555;
 }
+.ukpa-tooltip-icon {
+  display: inline-block;
+  margin-left: 6px;
+  cursor: help;
+  font-size: 0.9em;
+  color: #888;
+}
 
 .ukpa-modal-actions {
   display: flex;
@@ -363,6 +370,7 @@ body.ukpa-fullscreen-builder .ukpa-builder-wrap {
   position: sticky;
   top: 0;
   z-index: 9;
+  width: -webkit-fill-available;
   background: #effaf8;
   padding: 14px 20px;
   border-bottom: 1px solid #ddd;

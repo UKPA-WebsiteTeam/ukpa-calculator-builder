@@ -1,18 +1,16 @@
+import render from './render.js';
+import settings from './settings.js';
+
 export default {
+  type: 'checkbox',
   label: 'Checkbox',
   icon: '☑️',
-  fields: [
-    { group: 'Basic Settings', fields: ['label', 'name', 'calcRequired', 'defaultChecked'] },
-    { group: 'Advanced Settings', fields: ['cssClass', 'disabled', 'tooltip', 'conditions'] }
-  ],
   default: {
-    label: 'Checkbox Label',
-    name: 'checkboxField',
-    defaultChecked: false,
+    label: 'Tick if true',
+    name: 'checkbox',
     calcRequired: false,
-    cssClass: '',
-    disabled: false,
-    tooltip: '',
     conditions: []
-  }
+  },
+  settings,
+  render
 };

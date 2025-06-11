@@ -1,17 +1,15 @@
+import render from './render.js';
+import settings from './settings.js';
+
 export default {
-  label: 'Link',
+  type: 'link',
+  label: 'Hyperlink',
   icon: '🔗',
-  fields: [
-    { group: 'Basic Settings', fields: ['label', 'href'] },
-    { group: 'Advanced Settings', fields: ['target', 'cssClass', 'tooltip', 'alignment', 'conditions'] }
-  ],
   default: {
     label: 'Click Here',
-    href: '#',
-    target: '_blank',
-    cssClass: '',
-    tooltip: '',
-    alignment: 'left',
+    url: '#',
     conditions: []
-  }
+  },
+  settings,
+  render
 };

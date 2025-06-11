@@ -1,20 +1,11 @@
-export default function renderBarChart(id, config) {
-  const style = `
-    width: 100%;
-    height: ${config.chartHeight || '250px'};
-    margin-top: ${config.marginTop};
-    margin-bottom: ${config.marginBottom};
-  `;
-  const tooltipAttr = config.tooltip ? `title="${config.tooltip}"` : '';
-  const resultKey = config.dynamicResult || 'breakdown';
-
+export default function renderBarChart(id, config, meta) {
+  const key = config.resultDropdownKey || 'chart';
   return `
-    <div class="ab-chart-wrapper ${config.cssClass || ''}" style="${style}" ${tooltipAttr}
-         data-id="${id}" data-name="${config.name || config.label || id}">
+    <div class="ab-chart-wrapper" style="width: 100%; max-height: 250px;">
       <canvas id="${id}"
-              class="ab-bar-chart"
-              style="width: 100%; height: 100%; display: block;"
-              data-result-key="${resultKey}"></canvas>
+        class="ab-bar-chart"
+        style="width: 100%; height: 100%; display: block;"
+        data-result-key="${key}"></canvas>
     </div>
   `;
 }

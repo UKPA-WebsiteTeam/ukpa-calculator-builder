@@ -90,20 +90,26 @@ export function handleDrop(dragged, target, direction) {
   }
 
   // ⬆⬇ Drop ABOVE or BELOW = Create a new container
-  if (direction === 'top' || direction === 'bottom') {
-    const newContainer = document.createElement('div');
-    newContainer.classList.add('element-container-ukpa');
-    newContainer.dataset.containerId = containerId;
-    newContainer.appendChild(newElement);
+    if (direction === 'top' || direction === 'bottom') {
+      const newContainer = document.createElement('div');
+      newContainer.classList.add('element-container-ukpa');
+      newContainer.dataset.containerId = containerId;
+      newContainer.appendChild(newElement);
 
-    direction === 'top'
-      ? dropZone.insertBefore(newContainer, targetContainer)
-      : dropZone.insertBefore(newContainer, targetContainer.nextSibling);
+      // Ensure safe insertion only if targetContainer is a direct child
+      if (dropZone.contains(targetContainer) && targetContainer.parentNode === dropZone) {
+        direction === 'top'
+          ? dropZone.insertBefore(newContainer, targetContainer)
+          : dropZone.insertBefore(newContainer, targetContainer.nextSibling);
+      } else {
+        dropZone.appendChild(newContainer); // fallback if structure mismatch
+      }
 
-    markAsDirty();
-    saveCalculatorLayout();
-    return;
-  }
+      markAsDirty();
+      saveCalculatorLayout();
+      return;
+    }
+
 
   // ⬅➡ Drop LEFT or RIGHT = Insert into same container
   if (direction === 'left' || direction === 'right') {

@@ -1,25 +1,21 @@
+import render from './render.js';
+import settings from './settings.js';
+
 export default {
+  type: 'dropdown',
   label: 'Dropdown',
-  icon: '📋',
-  fields: [
-    { group: 'Basic Settings', fields: ['label', 'name', 'placeholder', 'options', 'value', 'calcRequired'] },
-    { group: 'Dynamic Options', fields: ['dynamicResult'] },
-    { group: 'Advanced Settings', fields: ['cssClass', 'disabled', 'tooltip', 'conditions'] }
-  ],
+  icon: '⬇️',
   default: {
-    label: 'Dropdown',
+    label: 'Select an option',
     name: 'dropdown',
-    placeholder: 'Select...',
-    options: [
-      { label: 'Option 1', value: '1' },
-      { label: 'Option 2', value: '2' }
-    ],
-    value: '',
-    dynamicResult: '',
+    placeholder: '',
     calcRequired: false,
-    cssClass: '',
-    disabled: false,
-    tooltip: '',
+    options: [
+      { value: 'a', label: 'Option A' },
+      { value: 'b', label: 'Option B' }
+    ],
     conditions: []
-  }
+  },
+  settings,
+  render
 };

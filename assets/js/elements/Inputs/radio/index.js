@@ -1,20 +1,20 @@
+import render from './render.js';
+import settings from './settings.js';
+
 export default {
-  label: 'Radio Group',
+  type: 'radio',
+  label: 'Radio',
   icon: '🔘',
-  fields: [
-    { group: 'Basic Settings', fields: ['label', 'name', 'options', 'calcRequired'] },
-    { group: 'Advanced Settings', fields: ['defaultValue', 'layout', 'cssClass', 'disabled', 'tooltip', 'conditions'] }
-  ],
   default: {
-    label: 'Radio Group',
-    name: 'radioField',
-    options: ['Option 1', 'Option 2'],
-    defaultValue: '',
-    layout: 'vertical', // or 'horizontal'
+    label: 'Select one',
+    name: 'radio',
+    options: [
+      { label: 'Option A', value: 'a' },
+      { label: 'Option B', value: 'b' }
+    ],
     calcRequired: false,
-    cssClass: '',
-    disabled: false,
-    tooltip: '',
     conditions: []
-  }
+  },
+  settings,
+  render
 };

@@ -1,21 +1,17 @@
+import render from './render.js';
+import settings from './settings.js';
+
 export default {
-  label: 'Date Picker',
+  type: 'date',
+  label: 'Date',
   icon: '📅',
-  fields: [
-    { group: 'Basic Settings', fields: ['label', 'name', 'placeholder', 'calcRequired'] },
-    { group: 'Advanced Settings', fields: ['minDate', 'maxDate', 'defaultValue', 'cssClass', 'disabled', 'tooltip', 'conditions'] }
-  ],
   default: {
-    label: 'Date Field',
-    name: 'dateField',
-    placeholder: 'Select a date',
-    defaultValue: '',
-    minDate: '',
-    maxDate: '',
+    label: 'Pick a date',
+    name: 'date',
+    placeholder: '',
     calcRequired: false,
-    cssClass: '',
-    disabled: false,
-    tooltip: '',
     conditions: []
-  }
+  },
+  settings,
+  render
 };

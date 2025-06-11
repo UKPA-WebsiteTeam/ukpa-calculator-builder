@@ -1,16 +1,15 @@
+import render from './render.js';
+import settings from './settings.js';
+
 export default {
-  label: 'Header',
+  type: 'header',
+  label: 'Heading',
   icon: '🔠',
-  fields: [
-    { group: 'Basic Settings', fields: ['label'] },
-    { group: 'Advanced Settings', fields: ['level', 'alignment', 'cssClass', 'tooltip', 'conditions'] }
-  ],
   default: {
-    label: 'Header Title',
+    label: 'Heading Text',
     level: 'h2',
-    alignment: 'left',
-    cssClass: '',
-    tooltip: '',
     conditions: []
-  }
+  },
+  settings,
+  render
 };

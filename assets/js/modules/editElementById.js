@@ -8,10 +8,9 @@ import { renderDropdownEditor } from './editors/dropdownEditor.js';
 export function editElementById(id) {
   const el = document.querySelector(`.ukpa-element[data-id="${id}"]`);
   if (!el) return;
-  console.log("🛠️ editElementById triggered for:", id); 
   const type = el.dataset.type;
 
-  // ✅ Defensive config parsing
+  // Defensive config parsing
   let config;
   try {
     config = JSON.parse(el.dataset.config || '{}');
@@ -32,7 +31,6 @@ export function editElementById(id) {
   if (!editorBody || !title) return;
 
   editorBody.innerHTML = '';
-
   const wrapper = document.createElement('div');
   wrapper.className = 'ukpa-editor-wrapper';
 
@@ -47,32 +45,172 @@ export function editElementById(id) {
     };
     wrapper.appendChild(closeBtn);
   }
-
-  const heading = document.createElement('h3');
-  heading.className = 'ukpa-editor-title';
-  heading.textContent = `Editing: ${def.label}`;
-  wrapper.appendChild(heading);
-
+  // Admin ID
   const idLabel = document.createElement('div');
   idLabel.className = 'ukpa-admin-id-label';
   idLabel.innerHTML = `🆔 <strong>${id}</strong>`;
   wrapper.appendChild(idLabel);
 
-  if (Array.isArray(def.fields) && def.fields.includes('label')) {
-    const labelDiv = document.createElement('div');
-    labelDiv.className = 'ukpa-editor-field';
-    labelDiv.innerHTML = `<label>Label</label><input type="text" class="ukpa-input" value="${config.label || ''}" />`;
-    const input = labelDiv.querySelector('input');
-    input.addEventListener('input', () => {
-      config.label = input.value;
-      saveConfig();
+  // Generic fields
+  if (Array.isArray(def.fields) && !def.settings) {
+    if (def.fields.includes('label')) {
+      const labelDiv = document.createElement('div');
+      labelDiv.className = 'ukpa-editor-field';
+      labelDiv.innerHTML = `<label>Label</label><input type="text" class="ukpa-input" value="${config.label || ''}" />`;
+      const input = labelDiv.querySelector('input');
+      input.addEventListener('input', () => {
+        config.label = input.value;
+        saveConfig();
+      });
+      wrapper.appendChild(labelDiv);
+    }
+
+    if (def.fields.includes('name')) {
+      const nameDiv = document.createElement('div');
+      nameDiv.className = 'ukpa-editor-field';
+      nameDiv.innerHTML = `<label>Backend Label (Name)</label><input type="text" class="ukpa-input" value="${config.name || ''}" />`;
+      const input = nameDiv.querySelector('input');
+      input.addEventListener('input', () => {
+        config.name = input.value;
+        saveConfig();
+      });
+      wrapper.appendChild(nameDiv);
+    }
+
+    if (def.fields.includes('placeholder')) {
+      const phDiv = document.createElement('div');
+      phDiv.className = 'ukpa-editor-field';
+      phDiv.innerHTML = `<label>Placeholder</label><input type="text" class="ukpa-input" value="${config.placeholder || ''}" />`;
+      const input = phDiv.querySelector('input');
+      input.addEventListener('input', () => {
+        config.placeholder = input.value;
+        saveConfig();
+      });
+      wrapper.appendChild(phDiv);
+    }
+
+    if (def.fields.includes('conditions')) {
+      wrapper.appendChild(renderConditionalLogicEditor(config, saveConfig));
+    }
+  }
+  const heading = document.createElement('h3');
+  heading.className = 'ukpa-editor-title';
+  heading.textContent = `Editing: ${def.label}`;
+  wrapper.appendChild(heading);
+
+  // Modular Grouped Settings Support (via def.settings)
+  if (Array.isArray(def.settings)) {
+    def.settings.forEach(group => {
+      const groupWrapper = document.createElement('div');
+      groupWrapper.className = 'ukpa-editor-group';
+
+      const groupTitle = document.createElement('h4');
+      groupTitle.textContent = group.group;
+      groupWrapper.appendChild(groupTitle);
+
+      group.options.forEach(option => {
+        const fieldDiv = document.createElement('div');
+        fieldDiv.className = 'ukpa-editor-field';
+        const value = config[option.key];
+
+        if (option.type === 'optionList') {
+          const listDiv = document.createElement('div');
+          listDiv.className = 'ukpa-editor-field';
+          listDiv.innerHTML = `<label>${option.label}</label>`;
+
+          const listWrapper = document.createElement('div');
+          listWrapper.className = 'ukpa-option-list';
+
+          function renderOptions() {
+            listWrapper.innerHTML = '';
+            (config[option.key] || []).forEach((opt, i) => {
+              const row = document.createElement('div');
+              row.className = 'ukpa-option-row';
+              row.innerHTML = `
+                <input type="text" placeholder="Label" value="${opt.label || ''}" />
+                <input type="text" placeholder="Value" value="${opt.value || ''}" />
+                <button type="button" class="ukpa-remove-option">✖</button>
+              `;
+
+              const [labelInput, valueInput, removeBtn] = row.querySelectorAll('input, button');
+
+              labelInput.addEventListener('input', () => {
+                config[option.key][i].label = labelInput.value;
+                saveConfig();
+              });
+
+              valueInput.addEventListener('input', () => {
+                config[option.key][i].value = valueInput.value;
+                saveConfig();
+              });
+
+              removeBtn.addEventListener('click', () => {
+                config[option.key].splice(i, 1);
+                renderOptions();
+                saveConfig();
+              });
+
+              listWrapper.appendChild(row);
+            });
+
+            const addBtn = document.createElement('button');
+            addBtn.textContent = '➕ Add Option';
+            addBtn.type = 'button';
+            addBtn.className = 'ukpa-add-option';
+            addBtn.addEventListener('click', () => {
+              config[option.key].push({ label: '', value: '' });
+              renderOptions();
+              saveConfig();
+            });
+
+            listWrapper.appendChild(addBtn);
+          }
+
+          if (!Array.isArray(config[option.key])) config[option.key] = [];
+          renderOptions();
+          listDiv.appendChild(listWrapper);
+          groupWrapper.appendChild(listDiv);
+          return; // Prevent further generic rendering for this option
+        }
+
+
+        if (['text', 'number'].includes(option.type)) {
+          fieldDiv.innerHTML = `
+            <label>
+              ${option.label || option.key}
+              ${option.tooltip ? `<span class="ukpa-tooltip-icon" title="${option.tooltip}">ℹ️</span>` : ''}
+            </label>
+            <input type="${option.type}" class="ukpa-input" value="${value ?? option.default ?? ''}" />
+          `;
+          const input = fieldDiv.querySelector('input');
+          input.addEventListener('input', () => {
+            config[option.key] = option.type === 'number' ? parseFloat(input.value) : input.value;
+            saveConfig();
+          });
+        }
+
+        if (option.type === 'checkbox') {
+          const checked = value === true ? 'checked' : '';
+          fieldDiv.innerHTML = `
+            <label><input type="checkbox" ${checked} /> ${option.label}</label>
+          `;
+          const input = fieldDiv.querySelector('input');
+          input.addEventListener('change', () => {
+            config[option.key] = input.checked;
+            saveConfig();
+          });
+        }
+
+        groupWrapper.appendChild(fieldDiv);
+      });
+
+      wrapper.appendChild(groupWrapper);
     });
-    wrapper.appendChild(labelDiv);
   }
 
-  // ✅ Only show "Required" for input elements
-  const inputTypes = ['number', 'text', 'email', 'dropdown', 'radio', 'checkbox', 'date'];
 
+
+  const inputTypes = ['number', 'text', 'email', 'dropdown', 'radio', 'checkbox', 'date'];
   if (inputTypes.includes(type)) {
     const requiredDiv = document.createElement('div');
     requiredDiv.className = 'ukpa-editor-field';
@@ -87,34 +225,10 @@ export function editElementById(id) {
     wrapper.appendChild(requiredDiv);
   }
 
-
-  if (Array.isArray(def.fields) && def.fields.includes('name')) {
-    const nameDiv = document.createElement('div');
-    nameDiv.className = 'ukpa-editor-field';
-    nameDiv.innerHTML = `<label>Backend Label (Name)</label><input type="text" class="ukpa-input" value="${config.name || ''}" />`;
-    const input = nameDiv.querySelector('input');
-    input.addEventListener('input', () => {
-      config.name = input.value;
-      saveConfig();
-    });
-    wrapper.appendChild(nameDiv);
-  }
-
-  if (Array.isArray(def.fields) && def.fields.includes('placeholder')) {
-    const phDiv = document.createElement('div');
-    phDiv.className = 'ukpa-editor-field';
-    phDiv.innerHTML = `<label>Placeholder</label><input type="text" class="ukpa-input" value="${config.placeholder || ''}" />`;
-    const input = phDiv.querySelector('input');
-    input.addEventListener('input', () => {
-      config.placeholder = input.value;
-      saveConfig();
-    });
-    wrapper.appendChild(phDiv);
-  }
-
-  if (['dropdown', 'radio'].includes(type)) {
+  if (['dropdown', 'radio'].includes(type) && !def.settings) {
     wrapper.appendChild(renderDropdownEditor(config, saveConfig));
   }
+
 
   if (type === 'header') {
     const levelDiv = document.createElement('div');
@@ -162,22 +276,13 @@ export function editElementById(id) {
     wrapper.appendChild(linkDiv);
   }
 
-  if (Array.isArray(def.fields) && def.fields.includes('conditions')) {
-    wrapper.appendChild(renderConditionalLogicEditor(config, saveConfig));
-  }
-
-  const resultTypes = ['mainResult', 'breakdown', 'barChart','otherResult'];
-
-  if (resultTypes.includes(type)) {
+  if (['mainResult', 'breakdown', 'barChart', 'otherResult'].includes(type)) {
     let resultKeys = [];
 
     if (window.ukpaResults && typeof window.ukpaResults === 'object') {
-      if (type === 'mainResult') {
-        resultKeys = flattenScalarKeys(window.ukpaResults);
-      } else {
-        resultKeys = getArrayKeys(window.ukpaResults);
-      }
-      window.ukpaResultKeys = resultKeys;
+      resultKeys = type === 'mainResult'
+        ? flattenScalarKeys(window.ukpaResults)
+        : getArrayKeys(window.ukpaResults);
     }
 
     const dynamicGroup = document.createElement("div");
@@ -208,6 +313,7 @@ export function editElementById(id) {
     dynamicGroup.appendChild(dynamicSelect);
     wrapper.appendChild(dynamicGroup);
   }
+
   if (type === 'wrapper' && id === 'secondary-result-wrapper') {
     const layoutModeField = document.createElement('div');
     layoutModeField.className = 'ukpa-editor-field';
@@ -218,12 +324,10 @@ export function editElementById(id) {
         <option value="stacked">Horizontally Stacked (Chart 70% + Other 30%)</option>
       </select>
     `;
-
     const select = layoutModeField.querySelector('select');
     const validValues = ['full', 'stacked'];
     select.value = validValues.includes(config.layoutMode) ? config.layoutMode : 'full';
 
-    // ✅ Apply saved layout class visually on load
     const wrapperEl = document.querySelector(`.ukpa-element[data-id="${id}"]`);
     const container = wrapperEl?.querySelector('.element-container-ukpa');
     if (container) {
@@ -233,25 +337,17 @@ export function editElementById(id) {
 
     select.addEventListener('change', () => {
       config.layoutMode = select.value;
-
-      if (wrapperEl) {
-        wrapperEl.setAttribute('data-config', JSON.stringify(config));
-      }
-
+      wrapperEl?.setAttribute('data-config', JSON.stringify(config));
       const inner = wrapperEl?.querySelector('.element-container-ukpa');
       if (inner) {
         inner.classList.remove('ukpa-secondary-layout-full', 'ukpa-secondary-layout-stacked');
         inner.classList.add(`ukpa-secondary-layout-${select.value}`);
       }
-
-      saveConfig(); // ✅ Persist config
+      saveConfig();
     });
 
     wrapper.appendChild(layoutModeField);
   }
-
-
-
 
   function saveConfig() {
     saveElementConfig({ el, type, id, config, editElementById });
@@ -261,5 +357,5 @@ export function editElementById(id) {
   editorBody.appendChild(wrapper);
 }
 
-// Optional global fallback
+// Fallback to global window
 window.editElementById = editElementById;

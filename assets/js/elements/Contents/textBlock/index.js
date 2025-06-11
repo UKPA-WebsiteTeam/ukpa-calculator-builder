@@ -1,16 +1,14 @@
+import render from './render.js';
+import settings from './settings.js';
+
 export default {
+  type: 'textBlock',
   label: 'Text Block',
   icon: '📝',
-  fields: [
-    { group: 'Basic Settings', fields: ['label'] },
-    { group: 'Advanced Settings', fields: ['tag', 'cssClass', 'alignment', 'tooltip', 'conditions'] }
-  ],
   default: {
-    label: 'This is a text block.',
-    tag: 'p',
-    cssClass: '',
-    alignment: 'left',
-    tooltip: '',
+    label: 'This is a block of text.',
     conditions: []
-  }
+  },
+  settings,
+  render
 };
