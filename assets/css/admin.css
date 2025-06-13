@@ -17,6 +17,7 @@ body.ukpa-fullscreen-builder .ukpa-builder-wrap {
   display: flex;
   flex-direction: column;
   z-index: 999999;
+  
   overflow: hidden;
 }
 .wrap.ukpa-builder-wrap{
