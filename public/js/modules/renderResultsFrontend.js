@@ -55,150 +55,190 @@ export function renderResultsFrontend() {
 
   // ✅ Render Bar Charts
   window.ukpaCharts = window.ukpaCharts || {};
-
   document.querySelectorAll('.ab-bar-chart').forEach(canvas => {
-    const ctx = canvas.getContext('2d');
-    const key = canvas.dataset.resultKey || 'breakdown';
+      const renderChart = () => {
+        const ctx = canvas.getContext('2d');
+        let key = canvas.dataset.resultKey;
 
-    // ✅ Support dot notation like "tables.incomeTax"
-    let breakdown = window.ukpaResults;
-    key.split('.').forEach(part => {
-      breakdown = breakdown?.[part];
-    });
-
-    console.log('📊 Breakdown for chart:', key, breakdown);
-
-    if (!breakdown || typeof breakdown !== 'object') return;
-
-    if (window.ukpaCharts[key]) {
-      window.ukpaCharts[key].destroy();
-    }
-
-    let labels = [];
-    let values = [];
-
-    if (Array.isArray(breakdown)) {
-      // ✅ Case 1: [{ band, tax }]
-      if ('band' in breakdown[0] && 'tax' in breakdown[0]) {
-        labels = breakdown.map((row, i) => {
-          const bandRaw = row.band?.toString() || '';
-          const numericBand = Number(bandRaw.replace(/[£,]/g, ''));
-          if (i === breakdown.length - 1 && numericBand > 1e9) {
-            const prev = breakdown[i - 1]?.band?.toString().replace(/[£,]/g, '') || '0';
-            return `Above £${Number(prev).toLocaleString()}`;
-          }
-          return `£${numericBand.toLocaleString()}`;
-        });
-
-        values = breakdown.map(row => {
-          const taxStr = row.tax || '0';
-          return parseFloat(taxStr.toString().replace(/[£,]/g, '')) || 0;
-        });
-      }
-
-      // ✅ Case 2: [{ label, value }]
-      else if ('label' in breakdown[0] && 'value' in breakdown[0]) {
-        labels = breakdown.map(row => row.label);
-        values = breakdown.map(row => parseFloat(row.value) || 0);
-      }
-    }
-
-    // ✅ Case 3: { key: value }
-    else {
-      labels = Object.keys(breakdown).map(key =>
-        key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
-      );
-      values = Object.values(breakdown).map(val => parseFloat(val) || 0);
-    }
-
-    // ✅ Unique bar colors
-    const barColors = [
-      '#3B82F6', '#EF4444', '#10B981',
-      '#F59E0B', '#8B5CF6', '#EC4899',
-      '#6366F1', '#22D3EE', '#F43F5E'
-    ];
-    const colors = values.map((_, i) => barColors[i % barColors.length]);
-
-    const chart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [{
-          label: 'Tax',
-          data: values,
-          backgroundColor: colors
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: context => `£${context.raw.toLocaleString()}`
-            }
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: {
-              callback: value => '£' + value.toLocaleString()
-            }
+        // 🔁 Use dynamicResult from config if present
+        const configAttr = canvas.closest('.ukpa-element')?.dataset.config;
+        if (configAttr) {
+          try {
+            const cfg = JSON.parse(configAttr);
+            if (cfg.dynamicResult) key = cfg.dynamicResult;
+          } catch (e) {
+            console.warn('⚠️ Failed to parse bar chart config:', e);
           }
         }
-      }
-    });
 
-    window.ukpaCharts[key] = chart;
+        // 🧠 Safely access breakdown
+        let breakdown = window.ukpaResults;
+        if (key) {
+          key.split('.').forEach(part => {
+            breakdown = breakdown?.[isNaN(part) ? part : parseInt(part)];
+          });
+        }
+
+        if (!ctx || !breakdown || typeof breakdown !== 'object') return;
+
+        // 🧹 Clean up old chart
+        if (window.ukpaCharts?.[key]) {
+          window.ukpaCharts[key].destroy();
+        }
+
+        // 🎯 Determine chart labels and values
+        let labels = [], values = [];
+
+        if (Array.isArray(breakdown)) {
+          const first = breakdown[0] || {};
+
+          if ('label' in first && 'value' in first) {
+            labels = breakdown.map(row => row.label || '—');
+            values = breakdown.map(row => parseFloat(row.value) || 0);
+          } else if ('band' in first && 'tax' in first) {
+            labels = breakdown.map((row, i) => {
+              const val = Number((row.band || '0').toString().replace(/[£,]/g, ''));
+              return i === breakdown.length - 1 && val > 1e9
+                ? `Above £${Number(breakdown[i - 1]?.band || 0).toLocaleString()}`
+                : `£${val.toLocaleString()}`;
+            });
+            values = breakdown.map(row => parseFloat((row.tax || '0').toString().replace(/[£,]/g, '')) || 0);
+          }
+        } else if (typeof breakdown === 'object') {
+          labels = Object.keys(breakdown);
+          values = Object.values(breakdown).map(v =>
+            typeof v === 'number' ? v : parseFloat(String(v).replace(/[£,]/g, '')) || 0
+          );
+        }
+
+        // 🖼️ Resize canvas for clarity
+        const wrapper = canvas.closest('.ab-chart-wrapper');
+        const rawWidth = wrapper?.offsetWidth || 400;
+        const rawHeight = wrapper?.offsetHeight || 250;
+        const ratio = window.devicePixelRatio || 1;
+
+        canvas.width = rawWidth * ratio;
+        canvas.height = rawHeight * ratio;
+        canvas.style.width = `${rawWidth}px`;
+        canvas.style.height = `${rawHeight}px`;
+
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(ratio, ratio);
+
+        // 📊 Create chart
+        const chart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Tax',
+              data: values,
+              backgroundColor: values.map((_, i) =>
+                ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899'][i % 6]
+              )
+            }]
+          },
+          options: {
+            responsive: false,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: ctx => `£${ctx.raw.toLocaleString()}`
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: val => `£${val.toLocaleString()}`
+                }
+              }
+            }
+          }
+        });
+
+        window.ukpaCharts = window.ukpaCharts || {};
+        window.ukpaCharts[key] = chart;
+      };
+
+      // 🧠 Run after layout settles
+      const observer = new ResizeObserver(() => renderChart());
+      observer.observe(canvas.closest('.ab-chart-wrapper'));
+
+      // ⏳ Fallback if ResizeObserver fails
+      requestAnimationFrame(() => renderChart());
   });
+
 
 
 
   // ✅ Render Other Result Cards
-  document.querySelectorAll('.ab-other-result').forEach(wrapper => {
-    const key = wrapper.dataset.key;
-    const layout = wrapper.dataset.layout || 'column';
-    const wrap = wrapper.dataset.wrap || 'wrap';
-    const data = window.ukpaResults?.[key];
+document.querySelectorAll('.ab-other-result').forEach(wrapper => {
+  let key = wrapper.dataset.key;
 
-    if (!Array.isArray(data)) {
-      wrapper.innerHTML = `<div class="ab-other-label">${wrapper.dataset.label || 'loading results'}</div><div class="ab-other-value">--</div>`;
-      return;
+  // 🔍 Fallback to dynamicResult if config exists
+  if (!key && wrapper.closest('.ukpa-element')?.dataset.config) {
+    try {
+      const cfg = JSON.parse(wrapper.closest('.ukpa-element').dataset.config);
+      key = cfg.dynamicResult || '';
+    } catch (e) {
+      console.warn('❌ Config parse failed for Other Result:', e);
+    }
+  }
+
+  if (!key) {
+    wrapper.innerHTML = '<div class="ab-other-label">No result key</div><div class="ab-other-value">--</div>';
+    return;
+  }
+
+  const layout = wrapper.dataset.layout || 'column';
+  const wrapSetting = wrapper.dataset.wrap !== 'false'; // default true
+  const data = window.ukpaResults?.[key];
+
+  if (!Array.isArray(data)) {
+    wrapper.innerHTML = `<div class="ab-other-label">${wrapper.dataset.label || 'loading results'}</div><div class="ab-other-value">--</div>`;
+    return;
+  }
+
+  const widths = (() => {
+    try {
+      return JSON.parse(wrapper.dataset.widths || '{}');
+    } catch {
+      return {};
+    }
+  })();
+
+  const container = document.createElement('div');
+  container.className = `ab-other-wrapper ab-other-${layout} ${wrapSetting ? 'wrap-enabled' : 'no-wrap'}`;
+  container.style.flexWrap = wrapSetting ? 'wrap' : 'nowrap';
+
+  const formatCurrency = val =>
+    typeof val === 'number'
+      ? `£${val.toLocaleString()}`
+      : (typeof val === 'string' && val.startsWith('£'))
+        ? val
+        : `£${Number(val).toLocaleString()}`;
+
+  data.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'ab-other-card';
+
+    if (layout === 'row' && item.id && widths[item.id]) {
+      card.style.width = widths[item.id];
     }
 
-    const container = document.createElement('div');
-    const wrapSetting = wrapper.dataset.wrap === 'true';
-    container.className = `ab-other-wrapper ab-other-${layout} ${wrapSetting ? 'wrap-enabled' : 'no-wrap'}`;
-
-    container.style.flexWrap = wrap === 'no-wrap' ? 'nowrap' : 'wrap';
-
-    const widths = (() => {
-      try {
-        return JSON.parse(wrapper.dataset.widths || '{}');
-      } catch {
-        return {};
-      }
-    })();
-
-    data.forEach(item => {
-      const card = document.createElement('div');
-      card.className = 'ab-other-card';
-
-      if (layout === 'row' && item.id && widths[item.id]) {
-        card.style.width = widths[item.id];
-      }
-
-      card.innerHTML = `
-        <div class="ab-other-label">${item.label}</div>
-        <div class="ab-other-value">${item.value}</div>
-      `;
-      container.appendChild(card);
-    });
-
-
-    wrapper.innerHTML = '';
-    wrapper.appendChild(container);
+    card.innerHTML = `
+      <div class="ab-other-label">${item.label}</div>
+      <div class="ab-other-value">${formatCurrency(item.value)}</div>
+    `;
+    container.appendChild(card);
   });
+
+  wrapper.innerHTML = '';
+  wrapper.appendChild(container);
+});
+
 }

@@ -69,7 +69,12 @@ export function sendToBackend(inputs) {
       if (res.ok && data?.success) {
         window.ukpaResults = data;
         renderResults();
-      } else {
+
+        // ✅ Reopen editor if one is active — to populate dynamic dropdowns
+        if (window.currentEditingElementId) {
+          window.editElementById(window.currentEditingElementId);
+        }
+      }else {
         console.warn("🟡 Error from API:", data.message || data);
 
         if (errorBox) {

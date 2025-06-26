@@ -60,13 +60,16 @@ $route = $data['route'] ?? '';
             <option value="ated/calculate" <?php selected($route, 'ated/calculate'); ?>>ATED Calculator</option>
             <option value="cgt/calculate" <?php selected($route, 'cgt/calculate'); ?>>CGT Calculator</option>
             <option value="prr/calculate" <?php selected($route, 'prr/calculate'); ?>>PRR Calculator</option>
+            <option value="nic/calculate" <?php selected($route, 'nic/calculate'); ?>>NIC Calculator</option>
             <option value="Salary" <?php selected($route, 'Salary'); ?>>Salary Tax Calculator</option>
           </select>
         </div>
       </div>
       <input type="hidden" id="ukpa_calc_layout_json" name="ukpa_calc_layout_json" value="[]">
       <button type="submit" id="ukpa-save-builder" class="button button-primary save-calculator">✅ Save Calculator</button>
-</form>
+      <span id="ukpa-save-spinner" class="ukpa-spinner" style="display: none; margin-left: 10px;"></span>
+      <span id="ukpa-save-status" style="margin-left: 10px; display: none; color: green; font-weight: bold;">✅ Saved!</span>
+    </form>
     
   </div>
 

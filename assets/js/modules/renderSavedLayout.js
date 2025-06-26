@@ -34,11 +34,14 @@ export function renderSavedLayout(elements = []) {
         elDiv.innerHTML = `<div class="ukpa-admin-id-label">🆔 <strong>${el.id}</strong></div>`;
 
         const html = window.generateElementHTML(el.type, el.id, el.config || {});
-        if (html instanceof HTMLElement) {
-          elDiv.appendChild(html);
-        } else {
-          elDiv.innerHTML += html;
-        }
+          if (html instanceof HTMLElement) {
+            elDiv.appendChild(html);
+          } else {
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = html;
+            elDiv.appendChild(wrapper.firstElementChild);
+          }
+
 
         wrapper.appendChild(elDiv);
       });

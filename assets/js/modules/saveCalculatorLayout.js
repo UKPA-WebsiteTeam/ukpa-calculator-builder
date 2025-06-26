@@ -1,4 +1,6 @@
 export function saveCalculatorLayout() {
+  const spinner = document.getElementById('ukpa-save-spinner');
+  if (spinner) spinner.style.display = 'inline-block';
   const elements = [];
 
   document.querySelectorAll('.ukpa-drop-zone').forEach(sectionZone => {
@@ -90,7 +92,8 @@ export function saveCalculatorLayout() {
   formData.append('custom_top_html', customTopHTML);
   formData.append('custom_bottom_html', customBottomHTML);
 
-  fetch(ukpa_calc_data.ajaxurl, {
+  // ✅ Define saveRequest first
+  const saveRequest = fetch(ukpa_calc_data.ajaxurl, {
     method: 'POST',
     headers: { 'X-Requested-With': 'XMLHttpRequest' },
     body: formData,
@@ -112,6 +115,25 @@ export function saveCalculatorLayout() {
     .catch(err => {
       console.error("❌ Save request failed:", err);
     });
+
+    // ✅ Show Save spinner and status
+    const saveStatus = document.getElementById('ukpa-save-status');
+
+    Promise.all([
+      saveRequest,
+      new Promise(resolve => setTimeout(resolve, 1000)) // ⏳ At least 2 seconds
+    ]).finally(() => {
+      if (spinner) spinner.style.display = 'none';
+      if (saveStatus) {
+        saveStatus.style.display = 'inline';
+        saveStatus.textContent = '✅ Saved!';
+        setTimeout(() => {
+          saveStatus.style.display = 'none';
+        }, 2000);
+      }
+    });
+
+
 }
 
 // 🧠 Helper to get latest config object from DOM

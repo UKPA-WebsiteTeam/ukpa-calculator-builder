@@ -12,14 +12,27 @@ export default [
         key: 'resultDropdownKey',
         label: 'Result Key',
         type: 'text',
-        tooltip: 'Key from the backend result to display here'
+        tooltip: 'Key from the backend result to display here (e.g. allTypesOfTaxesCalculated)'
       },
       {
         key: 'layout',
         label: 'Layout',
         type: 'select',
         options: ['row', 'column'],
-        tooltip: 'Display layout: row (inline) or column (stacked)'
+        tooltip: 'Display layout: row (side-by-side) or column (stacked)'
+      },
+      {
+        key: 'wrap',
+        label: 'Wrap Items',
+        type: 'toggle',
+        tooltip: 'Allow items to wrap to the next line if they exceed the width (row layout only)'
+      },
+      {
+        key: 'widths',
+        label: 'Card Widths (JSON)',
+        type: 'code',
+        language: 'json',
+        tooltip: 'Optional: Set custom widths per item in row layout (e.g. {"nonSavingIncomeTax": "33%", "savingsIncomeTax": "33%"})'
       }
     ]
   }

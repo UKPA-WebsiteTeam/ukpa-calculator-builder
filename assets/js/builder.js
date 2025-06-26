@@ -36,8 +36,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // ✅ Save button setup
   const saveBtn = document.getElementById('ukpa-save-builder');
   if (saveBtn) {
-    saveBtn.addEventListener('click', saveCalculatorLayout);
+    saveBtn.addEventListener('click', function (e) {
+      e.preventDefault(); 
+      saveCalculatorLayout();
+    });
+
     injectTestApiButton(saveBtn);
+    
   } else {
     console.warn("❌ Save button not found, cannot inject Test API button");
   }

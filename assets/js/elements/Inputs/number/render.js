@@ -1,17 +1,30 @@
-export default function renderNumber(id, config = {}, meta = {}) {
-  const value = config.value ?? 0;
-  const dataAttr = meta.dataAttr || `data-id="${id}" data-name="${config.name || config.label || id}"`;
-  const isCalcRequiredAttr = meta.isCalcRequiredAttr || '';
-  const requiredMark = meta.requiredMark || '';
-  const style = config.width ? `style="width: ${config.width};"` : '';
+export default function renderNumber(id, config, meta) {
+  const isDigitLimit = !!config.maxChar; // If maxChar is set, we use text input with numeric pattern
+
+  const minAttr = config.min !== '' ? `min="${config.min}"` : '';
+  const maxAttr = config.max !== '' ? `max="${config.max}"` : '';
+  const stepAttr = !isDigitLimit ? `step="${config.step ?? 1}"` : '';
+  const widthStyle = config.width ? `style="width: ${config.width};"` : '';
+
+  const typeSpecificAttrs = isDigitLimit
+    ? `maxlength="${config.maxChar}" type="text" inputmode="numeric" pattern="\\d*"`
+    : `type="number"`;
 
   return `
-    <label for="${id}">${config.label || ''} ${requiredMark}</label>
-    <input type="number" id="${id}" value="${value}"
+    <label for="${id}">${config.label || ''} ${meta.requiredMark}</label>
+    <input
+      id="${id}"
+      name="${config.name || id}"
       placeholder="${config.placeholder || ''}"
+      value="${config.value ?? ''}"
+      ${minAttr}
+      ${maxAttr}
+      ${stepAttr}
+      ${typeSpecificAttrs}
+      ${widthStyle}
       class="ukpa-input"
-      ${dataAttr} ${isCalcRequiredAttr}
-      min="${config.min}" max="${config.max}" step="${config.step}"
-      ${style} />
+      ${meta.dataAttr}
+      ${meta.isCalcRequiredAttr}
+    />
   `;
 }

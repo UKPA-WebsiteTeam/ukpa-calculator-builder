@@ -1,5 +1,6 @@
 import { flattenKeys, flattenScalarKeys } from './flattenKeys.js';
 import { getArrayKeys } from './getArrayKeys.js';
+import { renderBackendSettings } from './renderBackendSettings.js';
 
 import { renderConditionalLogicEditor } from '../conditional-logic-editor.js';
 import { saveElementConfig } from './saveElementConfig.js';
@@ -54,16 +55,24 @@ export function editElementById(id) {
   // Generic fields
   if (Array.isArray(def.fields) && !def.settings) {
     if (def.fields.includes('label')) {
+      const labelId = `${id}-label-input`;
       const labelDiv = document.createElement('div');
       labelDiv.className = 'ukpa-editor-field';
-      labelDiv.innerHTML = `<label>Label</label><input type="text" class="ukpa-input" value="${config.label || ''}" />`;
+
+      labelDiv.innerHTML = `
+        <label for="${labelId}">Label</label>
+        <input type="text" id="${labelId}" class="ukpa-input" value="${config.label || ''}" />
+      `;
+
       const input = labelDiv.querySelector('input');
       input.addEventListener('input', () => {
         config.label = input.value;
         saveConfig();
       });
+
       wrapper.appendChild(labelDiv);
     }
+
 
     if (def.fields.includes('name')) {
       const nameDiv = document.createElement('div');
@@ -116,7 +125,7 @@ export function editElementById(id) {
         if (option.type === 'optionList') {
           const listDiv = document.createElement('div');
           listDiv.className = 'ukpa-editor-field';
-          listDiv.innerHTML = `<label>${option.label}</label>`;
+          listDiv.innerHTML = `<h3>${option.label}</h3>`;
 
           const listWrapper = document.createElement('div');
           listWrapper.className = 'ukpa-option-list';
@@ -124,11 +133,19 @@ export function editElementById(id) {
           function renderOptions() {
             listWrapper.innerHTML = '';
             (config[option.key] || []).forEach((opt, i) => {
+              const labelId = `${option.key}-label-${i}`;
+              const valueId = `${option.key}-value-${i}`;
+
               const row = document.createElement('div');
-              row.className = 'ukpa-option-row';
+              row.className = 'ukpa-option-row element-settings-dropdown-row';
+
               row.innerHTML = `
-                <input type="text" placeholder="Label" value="${opt.label || ''}" />
-                <input type="text" placeholder="Value" value="${opt.value || ''}" />
+                <label class="ukpa-option-label screen-reader-text" for="${labelId}">Label</label>
+                <input type="text" id="${labelId}" class="element-settings-dropdown-options" placeholder="Label" value="${opt.label || ''}" />
+
+                <label class="ukpa-option-label screen-reader-text" for="${valueId}">Value</label>
+                <input type="text" id="${valueId}" class="element-settings-dropdown-options" placeholder="Value" value="${opt.value || ''}" />
+
                 <button type="button" class="ukpa-remove-option">✖</button>
               `;
 
@@ -165,6 +182,7 @@ export function editElementById(id) {
 
             listWrapper.appendChild(addBtn);
           }
+
 
           if (!Array.isArray(config[option.key])) config[option.key] = [];
           renderOptions();
@@ -276,45 +294,8 @@ export function editElementById(id) {
     wrapper.appendChild(linkDiv);
   }
 
-  if (['mainResult', 'breakdown', 'barChart', 'otherResult'].includes(type)) {
-    let resultKeys = [];
 
-    if (window.ukpaResults && typeof window.ukpaResults === 'object') {
-      resultKeys = type === 'mainResult'
-        ? flattenScalarKeys(window.ukpaResults)
-        : getArrayKeys(window.ukpaResults);
-    }
-
-    const dynamicGroup = document.createElement("div");
-    dynamicGroup.className = "ukpa-editor-field";
-
-    const dynamicLabel = document.createElement("label");
-    dynamicLabel.textContent = "Dynamic Result Value:";
-
-    const dynamicSelect = document.createElement("select");
-    dynamicSelect.className = "ukpa-input dynamic-result-options ukpa-element";
-    dynamicSelect.id = "ukpa-dynamic-result";
-    dynamicSelect.innerHTML = `<option value="">-- Select --</option>`;
-
-    resultKeys.forEach(key => {
-      const opt = document.createElement("option");
-      opt.value = key;
-      opt.textContent = key;
-      if (config.dynamicResult === key) opt.selected = true;
-      dynamicSelect.appendChild(opt);
-    });
-
-    dynamicSelect.addEventListener("change", () => {
-      config.dynamicResult = dynamicSelect.value;
-      saveConfig();
-    });
-
-    dynamicGroup.appendChild(dynamicLabel);
-    dynamicGroup.appendChild(dynamicSelect);
-    wrapper.appendChild(dynamicGroup);
-  }
-
-  if (type === 'wrapper' && id === 'secondary-result-wrapper') {
+ if (type === 'wrapper' && id === 'secondary-result-wrapper') {
     const layoutModeField = document.createElement('div');
     layoutModeField.className = 'ukpa-editor-field';
     layoutModeField.innerHTML = `
@@ -324,6 +305,7 @@ export function editElementById(id) {
         <option value="stacked">Horizontally Stacked (Chart 70% + Other 30%)</option>
       </select>
     `;
+
     const select = layoutModeField.querySelector('select');
     const validValues = ['full', 'stacked'];
     select.value = validValues.includes(config.layoutMode) ? config.layoutMode : 'full';
@@ -348,6 +330,31 @@ export function editElementById(id) {
 
     wrapper.appendChild(layoutModeField);
   }
+  
+  if (['barChart', 'otherResult'].includes(type)) {
+  const dynamicKeys = window.dynamicResultKeys || [];
+  const dynamicField = document.createElement('div');
+  dynamicField.className = 'ukpa-editor-field';
+
+  dynamicField.innerHTML = `
+    <label for="resultDropdownKey">Dynamic Result Key</label>
+    <select name="resultDropdownKey" class="ukpa-input">
+      <option value="">-- Select a result key --</option>
+      ${dynamicKeys.map(key => `
+        <option value="${key}" ${config.resultDropdownKey === key ? 'selected' : ''}>${key}</option>
+      `).join('')}
+    </select>
+  `;
+
+  const select = dynamicField.querySelector('select');
+  select.addEventListener('change', () => {
+    config.resultDropdownKey = select.value;
+    saveConfig();
+  });
+
+  wrapper.appendChild(dynamicField);
+}
+
 
   function saveConfig() {
     saveElementConfig({ el, type, id, config, editElementById });
@@ -355,6 +362,8 @@ export function editElementById(id) {
 
   wrapper.setAttribute('data-id', id);
   editorBody.appendChild(wrapper);
+  renderBackendSettings(id, config);
+
 }
 
 // Fallback to global window
