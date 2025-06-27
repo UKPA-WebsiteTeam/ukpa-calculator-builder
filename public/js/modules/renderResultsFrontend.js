@@ -172,9 +172,6 @@ export function renderResultsFrontend() {
       requestAnimationFrame(() => renderChart());
   });
 
-
-
-
   // ✅ Render Other Result Cards
 document.querySelectorAll('.ab-other-result').forEach(wrapper => {
   let key = wrapper.dataset.key;
@@ -240,5 +237,67 @@ document.querySelectorAll('.ab-other-result').forEach(wrapper => {
   wrapper.innerHTML = '';
   wrapper.appendChild(container);
 });
+
+// ✅ Collect dynamic results for lead form submission
+const collectedResults = {};
+
+// 1. Main Result
+document.querySelectorAll('.ab-main-result-value').forEach(el => {
+  const label = el.closest('.ukpa-element')?.querySelector('.ukpa-label')?.textContent?.trim() || 'Main Result';
+  const key = el.dataset.key;
+  let value = window.ukpaResults;
+
+  key?.split('.').forEach(part => {
+    value = value?.[isNaN(part) ? part : parseInt(part)];
+  });
+
+  collectedResults[label] = value ?? '--';
+});
+
+// 2. Other Result Cards
+document.querySelectorAll('.ab-other-result').forEach(wrapper => {
+  const label = wrapper.dataset.label?.trim() || 'Other Result';
+  let key = wrapper.dataset.key;
+
+  if (!key && wrapper.closest('.ukpa-element')?.dataset.config) {
+    try {
+      const cfg = JSON.parse(wrapper.closest('.ukpa-element').dataset.config);
+      key = cfg.dynamicResult || '';
+    } catch {}
+  }
+
+  if (key) {
+    let value = window.ukpaResults;
+    key.split('.').forEach(part => {
+      value = value?.[isNaN(part) ? part : parseInt(part)];
+    });
+    collectedResults[label] = value ?? '--';
+  }
+});
+
+// 3. Bar Charts
+document.querySelectorAll('.ab-bar-chart').forEach(canvas => {
+  const label = canvas.dataset.label?.trim() || 'Bar Chart';
+  let key = canvas.dataset.resultKey;
+
+  if (!key && canvas.closest('.ukpa-element')?.dataset.config) {
+    try {
+      const cfg = JSON.parse(canvas.closest('.ukpa-element')?.dataset.config);
+      key = cfg.dynamicResult || '';
+    } catch {}
+  }
+
+  if (key) {
+    let value = window.ukpaResults;
+    key.split('.').forEach(part => {
+      value = value?.[isNaN(part) ? part : parseInt(part)];
+    });
+    collectedResults[label] = value ?? '--';
+  }
+});
+
+// ✅ Store to window for lead form submission
+window.ukpa_api_data = window.ukpa_api_data || {};
+window.ukpa_api_data.result = collectedResults;
 
 }

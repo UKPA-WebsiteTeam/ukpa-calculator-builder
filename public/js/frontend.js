@@ -5,6 +5,8 @@ import { sendToBackend, debounce } from './modules/sendToBackend.js';
 import { bindInputTriggers } from './modules/bindInputTriggers.js';
 import { resetForm } from './modules/resetForm.js';
 import { scrollBar } from './modules/Scrollbar.js';
+import { handleLeadSubmit } from '../js/modules/handleLeadSubmit.js';
+
 
 // ✅ Debounced sendToBackend exposed to window and bindings
 export const debouncedSendToBackend = debounce(sendToBackend, 500);
@@ -51,7 +53,8 @@ document.addEventListener("DOMContentLoaded", () => {
   window.renderResults = renderResultsFrontend;
   window.applyAllConditions = applyAllConditions;
   window.debouncedSendToBackend = debouncedSendToBackend;
-
+  const form = document.querySelector('.ab-lead-form');
+    if (form) form.addEventListener('submit', handleLeadSubmit);
   // ✅ Manual reset via window
   window.resetForm = () =>
     resetForm(inputBox, contentSection, resultContainer, breakdown);

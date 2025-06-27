@@ -435,6 +435,7 @@ p,h1,h2,h3,h4,h5,h6,span,div,a,button,label,ul,li {
 	flex-grow: 1;
 	display: flex;
     flex-direction: column;
+	gap: 20px;	
     justify-content: space-around;
   }
   
@@ -640,6 +641,11 @@ p,h1,h2,h3,h4,h5,h6,span,div,a,button,label,ul,li {
 	color: #666;
 	line-height: 1.4;
 }
+.ab-chart-box canvas {
+	  min-height: 250px;
+  height: auto;
+}
+
 
 @media (max-width: 768px) {
 	.ab-wrapper {

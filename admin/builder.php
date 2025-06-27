@@ -220,7 +220,13 @@ $route = $data['route'] ?? '';
                 <h4>Other Results & Charts</h4>
 
                 <?php foreach ($otherGroups as $groupEls): ?>
-                  <div class="element-container-ukpa">
+                  <?php
+                    $containerClass = 'element-container-ukpa';
+                    if (isset($secondaryWrapperConfig['layoutMode'])) {
+                      $containerClass .= ' ukpa-secondary-layout-' . $secondaryWrapperConfig['layoutMode'];
+                    }
+                  ?>
+                  <div class="<?php echo esc_attr($containerClass); ?>">
                     <?php foreach ($groupEls as $el): ?>
                       <div class="ukpa-element"
                         draggable="true"

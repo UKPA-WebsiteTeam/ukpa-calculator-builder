@@ -37,6 +37,7 @@ function render_ukpa_calculator_shortcode($atts = []) {
         window.ukpaCalculatorId = "<?php echo esc_js($calc_id); ?>";
         window.ukpa_api_data = window.ukpa_api_data || {};
         window.ukpa_api_data.backend_route = "<?php echo $backend_route; ?>";
+        
     </script>
 
     <div class="ab-main-wrapper">
@@ -158,7 +159,7 @@ function render_ukpa_calculator_shortcode($atts = []) {
 
                     </div>
                             <!-- Lead form -->
-                        <form class="ab-lead-form" onsubmit="handleLeadSubmit(event)">
+                        <form class="ab-lead-form">
                             <span></span>
                                 <small class="leadform-title">Enter contact details below to receive more detailed result in your email.</small>
                             <div class="ab-lead-fields">

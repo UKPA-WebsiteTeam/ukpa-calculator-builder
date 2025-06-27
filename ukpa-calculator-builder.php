@@ -54,6 +54,7 @@ add_action('admin_enqueue_scripts', function ($hook) {
 
     // ✅ Localise config for JS modules
     $plugin_token = get_option('ukpa_plugin_token', '');
+    $selected_website = get_option('ukpa_selected_website', 'UKPA'); // ✅ NEW
     $api_base_url = 'http://localhost:3002/ana/v1';
 
     $calc_id = isset($_GET['calc_id']) ? sanitize_text_field($_GET['calc_id']) : '';
@@ -69,6 +70,7 @@ add_action('admin_enqueue_scripts', function ($hook) {
             'base_url'      => $api_base_url,
             'backend_route' => $route,
             'nonce'         => wp_create_nonce('ukpa_api_nonce'),
+            'website'       => $selected_website, // ✅ Injected
         ])
     ), 'after');
 
@@ -114,6 +116,7 @@ add_action('wp_enqueue_scripts', function () {
 
         // ✅ Localize frontend API config
         $plugin_token = get_option('ukpa_plugin_token', '');
+        $selected_website = get_option('ukpa_selected_website', 'UKPA'); // ✅ NEW
         global $ukpa_calc_ids_to_inject;
 
         $calc_id = is_array($ukpa_calc_ids_to_inject) && count($ukpa_calc_ids_to_inject) > 0
@@ -129,6 +132,7 @@ add_action('wp_enqueue_scripts', function () {
             'backend_route' => $backend_route,
             'ajaxurl'       => admin_url('admin-ajax.php'),
             'nonce'         => wp_create_nonce('ukpa_api_nonce'),
+            'website'       => $selected_website, // ✅ Injected
         ]);
     }
 });
