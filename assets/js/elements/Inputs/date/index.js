@@ -3,12 +3,12 @@ import settings from './settings.js';
 
 export default {
   type: 'date',
-  label: 'Date',
+  label: 'Custom Date',
   icon: '📅',
   default: {
     label: 'Pick a date',
-    name: 'date',
-    placeholder: '',
+    name: 'customDate',
+    placeholder: 'Month Date, Year',
     calcRequired: false,
     conditions: []
   },

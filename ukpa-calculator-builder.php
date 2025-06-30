@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) exit;
 define('UKPA_CALC_PATH', plugin_dir_path(__FILE__));
 define('UKPA_CALC_URL', plugin_dir_url(__FILE__));
 
-// ✅ Optional: Load .env (if using vlucas/phpdotenv)
+// Optional: Load .env (if using vlucas/phpdotenv)
 if (file_exists(__DIR__ . '/vendor/autoload.php')) {
     require_once __DIR__ . '/vendor/autoload.php';
     $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
@@ -35,16 +35,19 @@ add_action('admin_enqueue_scripts', function ($hook) {
     $page = $_GET['page'] ?? '';
     if (!in_array($page, ['ukpa-calculator-builder', 'ukpa-calculator-add-new'])) return;
 
-    // ✅ Enqueue CodeMirror for editor support
+    // ✅ Enqueue CodeMirror
     wp_enqueue_script('codemirror-core', 'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js', [], null, true);
     wp_enqueue_script('codemirror-js', 'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js', ['codemirror-core'], null, true);
     wp_enqueue_script('codemirror-css', 'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/css/css.min.js', ['codemirror-core'], null, true);
     wp_enqueue_style('codemirror-style', 'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css', [], null);
 
-    // ✅ Load Chart.js for visualisation support
+    // ✅ Load Flatpickr for date/time fields in builder
+    wp_enqueue_script('flatpickr', 'https://cdn.jsdelivr.net/npm/flatpickr', [], null, true);
+    wp_enqueue_style('flatpickr-style', 'https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css', [], null);
+
+    // ✅ Chart.js for visualisation support
     wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js', [], null, true);
 
-    // ✅ Only enqueue CSS (JS loaded via <script type="module">)
     wp_enqueue_style(
         'ukpa-calc-admin-css',
         UKPA_CALC_URL . 'assets/css/admin.css',
@@ -52,16 +55,15 @@ add_action('admin_enqueue_scripts', function ($hook) {
         filemtime(UKPA_CALC_PATH . 'assets/css/admin.css')
     );
 
-    // ✅ Localise config for JS modules
+    // ✅ Local config for JS
     $plugin_token = get_option('ukpa_plugin_token', '');
-    $selected_website = get_option('ukpa_selected_website', 'UKPA'); // ✅ NEW
+    $selected_website = get_option('ukpa_selected_website', 'UKPA');
     $api_base_url = 'http://localhost:3002/ana/v1';
 
     $calc_id = isset($_GET['calc_id']) ? sanitize_text_field($_GET['calc_id']) : '';
     $calc_data = get_option('ukpa_calc_' . $calc_id, []);
     $route = $calc_data['route'] ?? '';
 
-    // ✅ Inject general API config
     wp_add_inline_script('chart-js', sprintf(
         'window.ukpa_api_data = %s;',
         json_encode([
@@ -70,11 +72,10 @@ add_action('admin_enqueue_scripts', function ($hook) {
             'base_url'      => $api_base_url,
             'backend_route' => $route,
             'nonce'         => wp_create_nonce('ukpa_api_nonce'),
-            'website'       => $selected_website, // ✅ Injected
+            'website'       => $selected_website,
         ])
     ), 'after');
 
-    // ✅ Inject calculator-specific config (used in builder.js)
     wp_add_inline_script('chart-js', sprintf(
         'window.ukpa_calc_data = %s;',
         json_encode([
@@ -87,7 +88,7 @@ add_action('admin_enqueue_scripts', function ($hook) {
     ), 'after');
 });
 
-// ✅ Frontend assets (calculator preview or public use)
+// ✅ Frontend assets (calculator preview/public)
 add_action('wp_enqueue_scripts', function () {
     if (!is_admin()) {
         wp_enqueue_style(
@@ -97,12 +98,17 @@ add_action('wp_enqueue_scripts', function () {
             '1.0'
         );
 
+        // ✅ Chart.js
         wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js', [], '4.4.0', true);
+
+        // ✅ Flatpickr for frontend date fields
+        wp_enqueue_script('flatpickr', 'https://cdn.jsdelivr.net/npm/flatpickr', [], null, true);
+        wp_enqueue_style('flatpickr-style', 'https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css', [], null);
 
         wp_enqueue_script(
             'ukpa-calc-frontend-js',
             UKPA_CALC_URL . 'public/js/frontend.js',
-            ['chart-js'],
+            ['chart-js', 'flatpickr'],
             filemtime(UKPA_CALC_PATH . 'public/js/frontend.js'),
             true
         );
@@ -114,9 +120,9 @@ add_action('wp_enqueue_scripts', function () {
             return $tag;
         }, 10, 2);
 
-        // ✅ Localize frontend API config
+        // ✅ Local config for frontend
         $plugin_token = get_option('ukpa_plugin_token', '');
-        $selected_website = get_option('ukpa_selected_website', 'UKPA'); // ✅ NEW
+        $selected_website = get_option('ukpa_selected_website', 'UKPA');
         global $ukpa_calc_ids_to_inject;
 
         $calc_id = is_array($ukpa_calc_ids_to_inject) && count($ukpa_calc_ids_to_inject) > 0
@@ -132,7 +138,7 @@ add_action('wp_enqueue_scripts', function () {
             'backend_route' => $backend_route,
             'ajaxurl'       => admin_url('admin-ajax.php'),
             'nonce'         => wp_create_nonce('ukpa_api_nonce'),
-            'website'       => $selected_website, // ✅ Injected
+            'website'       => $selected_website,
         ]);
     }
 });

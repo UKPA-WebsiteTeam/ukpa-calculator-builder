@@ -35,27 +35,28 @@ export function allRequiredFieldsFilled() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  const inputBox = document.querySelector(".ab-input");
+  const inputBox = document.querySelector(".ab-input"); // ✅ OR document
   const contentSection = document.querySelector(".ab-content");
   const resultContainer = document.querySelector(".main-result-container");
   const breakdown = document.querySelector(".ab-breakdown-table");
 
-  // ✅ Clear results on load
   window.ukpaResults = {};
   resetForm(inputBox, contentSection, resultContainer, breakdown);
 
-  // ✅ Setup logic and UI
   applyAllConditions();
   scrollBar();
+
+  // ✅ Bind safely
   bindInputTriggers(inputBox, contentSection, resultContainer, breakdown);
 
-  // ✅ Make tools globally accessible (for testing or re-use)
   window.renderResults = renderResultsFrontend;
   window.applyAllConditions = applyAllConditions;
   window.debouncedSendToBackend = debouncedSendToBackend;
+
   const form = document.querySelector('.ab-lead-form');
-    if (form) form.addEventListener('submit', handleLeadSubmit);
-  // ✅ Manual reset via window
+  if (form) form.addEventListener('submit', handleLeadSubmit);
+
   window.resetForm = () =>
     resetForm(inputBox, contentSection, resultContainer, breakdown);
 });
+

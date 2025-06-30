@@ -11,6 +11,8 @@ window.renderResults = renderResults;
 
 import { editElementById } from './modules/editElementById.js';
 import { ukpaElementDefinitions } from './element-definitions.js';
+import { bindInputTriggers as builderBindInputTriggers } from './modules/builderBindInputTriggers.js';
+
 import { generateElementHTML } from './generateElementHTML.js';
 
 window.editElementById = editElementById;
@@ -91,7 +93,10 @@ document.addEventListener('DOMContentLoaded', () => {
       window.jsEditor.setValue(window.ukpa_calc_data.custom_js);
     }
   }
-
+const builderContainer = document.getElementById('ukpa-builder-main');
+if (builderContainer) {
+  builderBindInputTriggers(builderContainer);
+}
   // ✅ Init advanced sortable system
   initAdvancedSortable();
 });

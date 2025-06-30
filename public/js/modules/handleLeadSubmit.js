@@ -48,9 +48,10 @@ export async function handleLeadSubmit(event) {
   const calculatorId = window.ukpaCalculatorId || '';
   const website = window.ukpa_api_data?.website || 'UKPA';
   const calculatorName =
-    window.ukpa_calc_data?.title ||
-    document.querySelector('.ukpa-builder-header h1')?.textContent?.replace(/^Edit Calculator:\s*/, '') ||
-    document.title || 'Untitled Calculator';
+  window.ukpa_calc_data?.title?.split(/[|–-]/)[0].trim() ||
+  document.querySelector('.ukpa-builder-header h1')?.textContent?.replace(/^Edit Calculator:\s*/, '') ||
+  document.title.split(/[|–-]/)[0].trim() ||
+  'Untitled Calculator';
 
   const payload = {
     fullName,
