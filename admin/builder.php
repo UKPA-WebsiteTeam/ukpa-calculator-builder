@@ -96,6 +96,8 @@ $route = $data['route'] ?? '';
           <div class="draggable button" data-type="radio">Radio</div>
           <div class="draggable button" data-type="checkbox">Checkbox</div>
           <div class="draggable button" data-type="date">Date Picker</div>
+          <div class="draggable button" data-type="dateLegacy">Legacy Date Picker</div>
+
         </div>
         <hr />
         <div class="ukpa-tool-group">

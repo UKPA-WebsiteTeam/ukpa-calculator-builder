@@ -2,6 +2,7 @@
 import renderNumber from './elements/Inputs/number/render.js';
 import renderDropdown from './elements/Inputs/dropdown/render.js';
 import renderDate from './elements/Inputs/date/render.js';
+import renderDateLegacy from './elements/Inputs/dateLegacy/render.js';
 import renderCheckbox from './elements/Inputs/checkbox/render.js';
 import renderRadio from './elements/Inputs/radio/render.js';
 import renderText from './elements/Inputs/text/render.js';
@@ -41,6 +42,9 @@ export function generateElementHTML(type, id, config = {}) {
   }
   else if (type === 'date') {
     html = renderDate(id, config, { dataAttr, isCalcRequiredAttr, requiredMark });
+  }
+  else if (type === 'dateLegacy') {
+    html = renderDateLegacy(id, config, { dataAttr, isCalcRequiredAttr, requiredMark });
   }
   else if (type === 'checkbox') {
     html = renderCheckbox(id, config, { dataAttr, isCalcRequiredAttr, requiredMark });

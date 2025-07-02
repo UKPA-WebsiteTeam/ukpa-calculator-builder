@@ -1,6 +1,7 @@
 import numberDefinition from './elements/Inputs/number/index.js';
 import dropdownDefinition from './elements/Inputs/dropdown/index.js';
 import dateDefinition from './elements/Inputs/date/index.js';
+import dateLegacyDefinition from './elements/Inputs/dateLegacy/index.js';
 import checkboxDefinition from './elements/Inputs/checkbox/index.js';
 import radioDefinition from './elements/Inputs/radio/index.js';
 import textDefinition from './elements/Inputs/text/index.js';
@@ -30,6 +31,7 @@ export const ukpaElementDefinitions = {
   number:numberDefinition,
   dropdown: dropdownDefinition,
   date: dateDefinition,
+  dateLegacy: dateLegacyDefinition,
   checkbox: checkboxDefinition,
   radio: radioDefinition,
   text: textDefinition,

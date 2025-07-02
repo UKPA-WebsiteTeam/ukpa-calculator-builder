@@ -24,6 +24,20 @@ export default [
         tooltip: 'Text shown when the field is empty.'
       },
       {
+        key: 'prefix',
+        label: 'Prefix',
+        type: 'text',
+        default: '',
+        tooltip: 'Text to show before the number (e.g. £, $, etc.)'
+      },
+      {
+        key: 'suffix',
+        label: 'Suffix',
+        type: 'text',
+        default: '',
+        tooltip: 'Text to show after the number (e.g. kg, %, etc.)'
+      },
+      {
         key: 'maxChar',
         label: 'Max Character',
         type: 'number',

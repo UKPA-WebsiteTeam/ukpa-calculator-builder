@@ -1,4 +1,3 @@
-
 *, *::before, *::after {
 	box-sizing: border-box;
 }
@@ -138,8 +137,38 @@
 	box-shadow: 0px 6px 20px 2px rgba(0, 0, 0, 0.05);
 	position: relative;
 	overflow: hidden;
+	min-height: 400px;
 }
-
+.ukpa-number-input-inside-wrapper {
+	position: relative;
+	width: 100%;
+}
+.ukpa-number-prefix-inside {
+	position: absolute;
+	top: 52%;
+	left: 10px;
+	transform: translateY(-50%);
+	color: #222;
+	pointer-events: none;
+	font-size: 20px;
+	z-index: 2;
+}
+.ukpa-number-suffix-inside {
+	position: absolute;
+	top: 50%;
+	right: 14px;
+	transform: translateY(-50%);
+	color: #222;
+	pointer-events: none;
+	font-size: 1.1em;
+	z-index: 2;
+}
+.ukpa-number-input.has-prefix {
+	padding-left: 25px;
+}
+.ukpa-number-input.has-suffix {
+	padding-right: 2em;
+}
 .ab-input form {
   flex: 1;
   overflow-y: auto;

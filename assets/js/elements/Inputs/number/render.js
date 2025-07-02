@@ -6,25 +6,28 @@ export default function renderNumber(id, config, meta) {
   const stepAttr = !isDigitLimit ? `step="${config.step ?? 1}"` : '';
   const widthStyle = config.width ? `style="width: ${config.width};"` : '';
 
-  const typeSpecificAttrs = isDigitLimit
-    ? `maxlength="${config.maxChar}" type="text" inputmode="numeric" pattern="\\d*"`
-    : `type="number"`;
+  const typeSpecificAttrs = isDigitLimit ? `maxlength="${config.maxChar}"` : '';
 
   return `
     <label for="${id}">${config.label || ''} ${meta.requiredMark}</label>
-    <input
-      id="${id}"
-      name="${config.name || id}"
-      placeholder="${config.placeholder || ''}"
-      value="${config.value ?? ''}"
-      ${minAttr}
-      ${maxAttr}
-      ${stepAttr}
-      ${typeSpecificAttrs}
-      ${widthStyle}
-      class="ukpa-input"
-      ${meta.dataAttr}
-      ${meta.isCalcRequiredAttr}
-    />
+    <div class="ukpa-number-input-inside-wrapper">
+      ${config.prefix ? `<span class="ukpa-number-prefix-inside">${config.prefix}</span>` : ''}
+      <input
+        id="${id}"
+        name="${config.name || id}"
+        placeholder="${config.placeholder || ''}"
+        value="${config.value ?? ''}"
+        ${minAttr}
+        ${maxAttr}
+        ${stepAttr}
+        type="text" inputmode="decimal" pattern="[0-9.,]*"
+        class="ukpa-input ukpa-number-input${config.prefix ? ' has-prefix' : ''}${config.suffix ? ' has-suffix' : ''}"
+        ${typeSpecificAttrs}
+        ${widthStyle}
+        ${meta.dataAttr}
+        ${meta.isCalcRequiredAttr}
+      />
+      ${config.suffix ? `<span class="ukpa-number-suffix-inside">${config.suffix}</span>` : ''}
+    </div>
   `;
 }

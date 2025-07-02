@@ -23,7 +23,33 @@ body.ukpa-fullscreen-builder .ukpa-builder-wrap {
   margin:0px !important;
 }
 
+.ukpa-number-prefix-inside {
+	position: absolute;
+	top: 52%;
+	left: 10px;
+	transform: translateY(-50%);
+	color: #222;
+	pointer-events: none;
+	font-size: 20px;
+	z-index: 5;
 
+}
+.ukpa-number-suffix-inside {
+	position: absolute;
+	top: 50%;
+	right: 14px;
+	transform: translateY(-50%);
+	color: #222;
+	pointer-events: none;
+	font-size: 1.1em;
+	z-index: 2;
+}
+.ukpa-number-input.has-prefix {
+	padding-left: 25px;
+}
+.ukpa-number-input.has-suffix {
+	padding-right: 2em;
+}
 /* css for custom date field */
 .abishek-DatePicker {
   position: relative;

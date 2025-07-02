@@ -30,8 +30,37 @@ export async function sendToBackend(inputs) {
 
     let finalValue = value;
 
-    if (inputEl?.type === 'number' && (value === '' || value === null || value === undefined)) {
-      finalValue = 0;
+    const isNumberField = (inputEl?.type === 'number') || inputEl?.classList.contains('ukpa-number-input');
+    const isDateField = (inputEl?.type === 'date') || inputEl?.classList.contains('ukpa-date-input');
+
+    if (isNumberField) {
+      // Remove commas and parse to float. Fallback to 0 if empty/invalid.
+      const numericStr = String(value ?? '').replace(/,/g, '');
+      finalValue = numericStr === '' || isNaN(numericStr) ? 0 : parseFloat(numericStr);
+    } else if (isDateField) {
+      // Convert to YYYY-MM-DD if possible, including flatpickr's '01 July 2022' format
+      if (value) {
+        let d;
+        // Try to parse 'DD MMMM YYYY' (e.g., '01 July 2022')
+        const flatpickrMatch = value.match(/^(\d{2}) ([A-Za-z]+) (\d{4})$/);
+        if (flatpickrMatch) {
+          const [ , day, monthName, year ] = flatpickrMatch;
+          // Map month name to number
+          const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+          const monthIdx = months.findIndex(m => m.toLowerCase() === monthName.toLowerCase());
+          if (monthIdx !== -1) {
+            d = new Date(Number(year), monthIdx, Number(day));
+          }
+        } else {
+          d = new Date(value);
+        }
+        if (d && !isNaN(d)) {
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          finalValue = `${yyyy}-${mm}-${dd}`;
+        }
+      }
     }
 
     if (paramName) {
@@ -61,9 +90,17 @@ export async function sendToBackend(inputs) {
       body: JSON.stringify(payload)
     });
 
-    const data = await response.json();
+    const text = await response.text();
+    console.log('Raw response text:', text);
+    let data;
+    try {
+      data = JSON.parse(text);
+      console.log("✅ Parsed Response:", data);
+    } catch (e) {
+      console.error('❌ Failed to parse JSON:', e);
+      data = null;
+    }
     console.log("📥 Raw Response:", response);
-    console.log("✅ Parsed Response:", data);
 
     const errorBox = document.getElementById('ukpa-error-message');
     if (errorBox) {
