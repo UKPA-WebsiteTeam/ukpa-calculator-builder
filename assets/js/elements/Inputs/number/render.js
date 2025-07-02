@@ -6,9 +6,10 @@ export default function renderNumber(id, config, meta) {
   const stepAttr = !isDigitLimit ? `step="${config.step ?? 1}"` : '';
   const widthStyle = config.width ? `style="width: ${config.width};"` : '';
 
+  // Always use text input to allow comma formatting while typing
   const typeSpecificAttrs = isDigitLimit
-    ? `maxlength="${config.maxChar}" type="text" inputmode="numeric" pattern="\\d*"`
-    : `type="number"`;
+    ? `maxlength="${config.maxChar}" type="text" inputmode="decimal" pattern="[0-9,]*"`
+    : `type="text" inputmode="decimal" pattern="[0-9,]*"`;
 
   return `
     <label for="${id}">${config.label || ''} ${meta.requiredMark}</label>

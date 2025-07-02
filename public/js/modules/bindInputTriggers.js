@@ -54,7 +54,15 @@ export function bindInputTriggers(inputBox, contentSection, resultContainer) {
           const collected = {};
           inputs.forEach(el => {
             const key = el.name || el.dataset.name || el.id;
-            collected[key] = el.type === 'checkbox' ? el.checked : el.value;
+            const isNumberInput = el.closest('.ukpa-element')?.dataset.type === 'number';
+            let val = el.type === 'checkbox' ? el.checked : el.value;
+
+            // Strip commas before collecting number values
+            if (isNumberInput && typeof val === 'string') {
+              val = val.replace(/,/g, '');
+            }
+
+            collected[key] = val;
           });
           debouncedSendToBackend(collected);
         }
@@ -71,6 +79,23 @@ export function bindInputTriggers(inputBox, contentSection, resultContainer) {
 
     // ✅ ✅ ✅ Other inputs
     input.addEventListener("input", () => {
+      // 🧮 Format number inputs with commas as the user types
+      const wrapper = input.closest('.ukpa-element');
+      if (wrapper?.dataset.type === 'number') {
+        // Remove existing commas and format
+        const rawValue = input.value.replace(/,/g, '');
+
+        // Allow negative and decimal numbers
+        const parsed = rawValue.replace(/[^0-9.-]/g, '');
+        if (parsed === '' || isNaN(parsed)) {
+          input.value = '';
+        } else {
+          const [intPart, decPart] = parsed.split('.');
+          const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+          input.value = decPart !== undefined ? `${formattedInt}.${decPart}` : formattedInt;
+        }
+      }
+
       applyAllConditions();
       if (!allRequiredFieldsFilled()) return;
 
@@ -84,7 +109,15 @@ export function bindInputTriggers(inputBox, contentSection, resultContainer) {
       const collected = {};
       inputs.forEach(el => {
         const key = el.name || el.dataset.name || el.id;
-        collected[key] = el.type === 'checkbox' ? el.checked : el.value;
+        const isNumberInput = el.closest('.ukpa-element')?.dataset.type === 'number';
+        let val = el.type === 'checkbox' ? el.checked : el.value;
+
+        // Strip commas before collecting number values
+        if (isNumberInput && typeof val === 'string') {
+          val = val.replace(/,/g, '');
+        }
+
+        collected[key] = val;
       });
 
       debouncedSendToBackend(collected);

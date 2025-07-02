@@ -30,7 +30,13 @@ export async function sendToBackend(inputs) {
 
     let finalValue = value;
 
-    if (inputEl?.type === 'number' && (value === '' || value === null || value === undefined)) {
+    // Detect if this is a number element via wrapper data-type
+    const isNumberInput = wrapper?.dataset.type === 'number';
+
+    if (isNumberInput && typeof value === 'string') {
+      const sanitized = value.replace(/,/g, '');
+      finalValue = sanitized === '' ? 0 : Number(sanitized);
+    } else if (inputEl?.type === 'number' && (value === '' || value === null || value === undefined)) {
       finalValue = 0;
     }
 
