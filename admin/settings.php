@@ -14,6 +14,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ukpa_save_token'])) {
     echo '<div class="notice notice-success is-dismissible"><p>✅ Settings saved successfully.</p></div>';
 }
 
+// ✅ Handle reset request
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ukpa_confirm_reset'])) {
+    if (isset($_POST['_wpnonce']) && wp_verify_nonce($_POST['_wpnonce'], 'ukpa_reset_calculators')) {
+        global $wpdb;
+
+        // Delete all calculator options
+        $options = $wpdb->get_col("SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE 'ukpa_calc_%'");
+        foreach ($options as $opt) delete_option($opt);
+
+        // Delete other plugin specific options
+        delete_option('ukpa_plugin_token');
+        delete_option('ukpa_selected_website');
+        delete_option('ukpa_api_base_url');
+
+        wp_safe_redirect( admin_url( 'admin.php?page=ukpa-calculator-builder&reset=1' ) );
+        exit;
+    }
+}
+
 // ✅ Retrieve current values from database
 $current_token = get_option('ukpa_plugin_token', '');
 $current_website = get_option('ukpa_selected_website', 'UKPA');
@@ -54,4 +73,30 @@ $current_website = get_option('ukpa_selected_website', 'UKPA');
 
         <?php submit_button('Save Settings'); ?>
     </form>
+
+    <hr />
+
+    <h2>Reset Plugin Data</h2>
+    <p><strong>Danger:</strong> This will delete <em>all</em> calculators and related plugin settings. This action cannot be undone.</p>
+
+    <form method="post" onsubmit="return confirm('This will permanently delete all UKPA Calculator data. Continue?');">
+        <?php wp_nonce_field('ukpa_reset_calculators'); ?>
+        <input type="hidden" name="ukpa_confirm_reset" value="1">
+        <label><input type="checkbox" id="ukpa_reset_chk"> Yes, I understand the consequences.</label>
+        <br><br>
+        <?php submit_button('Delete All Plugin Data', 'delete', 'ukpa_reset_btn', false, ['disabled' => 'disabled']); ?>
+    </form>
+
+    <script>
+    // Disable reset button until checkbox ticked
+    document.addEventListener('DOMContentLoaded', function(){
+      const chk = document.getElementById('ukpa_reset_chk');
+      const btn = document.getElementsByName('ukpa_reset_btn')[0];
+      if(chk && btn){
+        chk.addEventListener('change', ()=>{
+          btn.disabled = !chk.checked;
+        });
+      }
+    });
+    </script>
 </div>

@@ -58,7 +58,7 @@ add_action('admin_enqueue_scripts', function ($hook) {
     // ✅ Local config for JS
     $plugin_token = get_option('ukpa_plugin_token', '');
     $selected_website = get_option('ukpa_selected_website', 'UKPA');
-    $api_base_url = 'http://localhost:3002/ana/v1';
+    $api_base_url = 'https://ukpacalculator.com/ana/v1';
 
     $calc_id = isset($_GET['calc_id']) ? sanitize_text_field($_GET['calc_id']) : '';
     $calc_data = get_option('ukpa_calc_' . $calc_id, []);
@@ -105,12 +105,17 @@ add_action('wp_enqueue_scripts', function () {
         wp_enqueue_script('flatpickr', 'https://cdn.jsdelivr.net/npm/flatpickr', [], null, true);
         wp_enqueue_style('flatpickr-style', 'https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css', [], null);
 
+        // Load frontend JS in the header so that the localisation script defining
+        // window.ukpa_api_data executes BEFORE any inline scripts printed by the
+        // shortcode (which later fills in calculator-specific values such as
+        // backend_route). This avoids the localisation data from overwriting
+        // calculator-specific properties.
         wp_enqueue_script(
             'ukpa-calc-frontend-js',
             UKPA_CALC_URL . 'public/js/frontend.js',
             ['chart-js', 'flatpickr'],
             filemtime(UKPA_CALC_PATH . 'public/js/frontend.js'),
-            true
+            false // load in <head> instead of footer
         );
 
         add_filter('script_loader_tag', function ($tag, $handle) {
@@ -133,12 +138,14 @@ add_action('wp_enqueue_scripts', function () {
         $backend_route = $calc_data['route'] ?? '';
 
         wp_localize_script('ukpa-calc-frontend-js', 'ukpa_api_data', [
-            'base_url'      => 'http://localhost:3002/ana/v1',
+            'base_url'      => 'https://ukpacalculator.com/ana/v1',
             'plugin_token'  => $plugin_token,
             'backend_route' => $backend_route,
             'ajaxurl'       => admin_url('admin-ajax.php'),
             'nonce'         => wp_create_nonce('ukpa_api_nonce'),
             'website'       => $selected_website,
         ]);
+
+        // 🚀 Calculator backend route: nic/calculate   // ← or whatever route is saved
     }
 });

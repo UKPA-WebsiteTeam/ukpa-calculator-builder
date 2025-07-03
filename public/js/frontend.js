@@ -58,5 +58,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.resetForm = () =>
     resetForm(inputBox, contentSection, resultContainer, breakdown);
+
+  // Debug: show which backend route this calculator will use
+  if (window.ukpa_api_data?.backend_route) {
+    console.log("�� Calculator backend route:", window.ukpa_api_data.backend_route);
+  } else {
+    console.warn("⚠️ backend_route not set in ukpa_api_data");
+  }
 });
 
