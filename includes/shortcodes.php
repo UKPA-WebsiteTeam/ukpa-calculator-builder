@@ -1,5 +1,5 @@
 <?php
-add_shortcode('ukpa_calculator', 'render_ukpa_calculator_shortcode');
+add_shortcode('ukpa_calculator_ana', 'render_ukpa_calculator_shortcode');
 
 function render_ukpa_calculator_shortcode($atts = []) {
     $atts = shortcode_atts([
