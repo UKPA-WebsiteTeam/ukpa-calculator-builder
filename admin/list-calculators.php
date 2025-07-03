@@ -112,7 +112,7 @@ $results = $wpdb->get_results($query);
                 </div>
               </td>
 
-              <td><code><?php echo esc_html($row->option_name); ?></code></td>
+              <td><code>[ukpa_calculator_ana id="<?php echo esc_html($calc_id); ?>"]</code></td>
               <!-- <td>
                 <a href="<?php echo esc_url($edit_url); ?>" class="button">Edit</a>
               </td> -->

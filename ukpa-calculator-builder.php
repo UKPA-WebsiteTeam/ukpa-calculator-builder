@@ -138,7 +138,6 @@ add_action('wp_enqueue_scripts', function () {
         $backend_route = $calc_data['route'] ?? '';
 
         wp_localize_script('ukpa-calc-frontend-js', 'ukpa_api_data', [
-            'base_url'      => 'https://ukpacalculator.com/ana/v1',
             'plugin_token'  => $plugin_token,
             'backend_route' => $backend_route,
             'ajaxurl'       => admin_url('admin-ajax.php'),
@@ -149,3 +148,41 @@ add_action('wp_enqueue_scripts', function () {
         // 🚀 Calculator backend route: nic/calculate   // ← or whatever route is saved
     }
 });
+
+// --- AJAX proxy for frontend API calls ---
+add_action('wp_ajax_ukpa_proxy_api', 'ukpa_proxy_api_handler');
+add_action('wp_ajax_nopriv_ukpa_proxy_api', 'ukpa_proxy_api_handler');
+
+function ukpa_proxy_api_handler() {
+    $input = json_decode(file_get_contents('php://input'), true);
+    $nonce = $input['nonce'] ?? '';
+    if (!empty($nonce) && !wp_verify_nonce($nonce, 'ukpa_api_nonce')) {
+        wp_send_json_error(['error' => 'Invalid nonce'], 403);
+    }
+
+    $route = sanitize_text_field($input['route'] ?? '');
+    $payload = $input['payload'] ?? [];
+    $base_url = get_option('ukpa_api_base_url', 'https://ukpacalculator.com/ana/v1');
+    $url = trailingslashit($base_url) . 'routes/mainRouter/' . ltrim($route, '/');
+
+    $args = [
+        'headers' => [
+            'Authorization' => 'Bearer ' . get_option('ukpa_plugin_token', ''),
+            'Content-Type'  => 'application/json',
+        ],
+        'body' => is_array($payload) ? wp_json_encode($payload) : $payload,
+        'method' => 'POST',
+        'data_format' => 'body',
+    ];
+
+    $response = wp_remote_post($url, $args);
+    $body = wp_remote_retrieve_body($response);
+    $code = wp_remote_retrieve_response_code($response);
+    if (is_wp_error($response)) {
+        wp_send_json_error(['error' => $response->get_error_message()], 500);
+    }
+    wp_send_json_success([
+        'code' => $code,
+        'body' => json_decode($body, true),
+    ]);
+}

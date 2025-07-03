@@ -14,10 +14,13 @@ function debounce(func, wait = 600) {
 
 // ✅ Actual backend request
 export async function sendToBackend(inputs) {
-  const { base_url, plugin_token, backend_route } = window.ukpa_api_data || {};
+  const { plugin_token, backend_route, ajaxurl, nonce } = window.ukpa_api_data || {};
 
-  if (!base_url || !plugin_token || !backend_route) {
-    console.warn('⚠️ Missing plugin token, API URL, or backend route.');
+  if (!plugin_token || !backend_route || !ajaxurl) {
+    if (!plugin_token) console.error('❌ plugin_token is missing in window.ukpa_api_data:', window.ukpa_api_data);
+    if (!backend_route) console.error('❌ backend_route is missing in window.ukpa_api_data:', window.ukpa_api_data);
+    if (!ajaxurl) console.error('❌ ajaxurl is missing in window.ukpa_api_data:', window.ukpa_api_data);
+    console.warn('⚠️ Missing plugin token, backend route, or ajaxurl.');
     return;
   }
 
@@ -70,9 +73,6 @@ export async function sendToBackend(inputs) {
 
   console.log("📤 Sending to backend:", payload);
 
-  const requestUrl = `${base_url}/routes/mainRouter/${backend_route}`;
-  console.log("📡 Fetching from:", requestUrl);
-
   const statusDiv = document.getElementById('ab-lead-status');
   // Only show 'Submitting...' if user has filled email — i.e. actual form use
   if (document.querySelector('#ab-email')?.value?.trim()) {
@@ -80,14 +80,17 @@ export async function sendToBackend(inputs) {
   }
 
   try {
-    const response = await fetch(requestUrl, {
+    const response = await fetch(`${ajaxurl}?action=ukpa_proxy_api`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Plugin-Auth': plugin_token
       },
-      credentials: 'include',
-      body: JSON.stringify(payload)
+      body: JSON.stringify({
+        route: backend_route,
+        payload,
+        nonce: nonce || '',
+      }),
+      credentials: 'same-origin',
     });
 
     const text = await response.text();
@@ -109,9 +112,9 @@ export async function sendToBackend(inputs) {
     }
 
     // ✅ Updated condition: trust any 200 OK response for now
-    if (response.ok) {
-      window.ukpaResults = data;
-      renderResultsFrontend(); // Render the updated results
+    if (response.ok && data.success && data.data && data.data.body) {
+      window.ukpaResults = data.data.body;
+      renderResultsFrontend();
 
       // ✅ Reopen editor if one is active
       if (window.currentEditingElementId) {
@@ -123,6 +126,8 @@ export async function sendToBackend(inputs) {
         errorBox.textContent = data.message || 'Something went wrong.';
         errorBox.style.display = 'block';
       }
+      window.ukpaResults = {};
+      renderResultsFrontend();
     }
   } catch (err) {
     console.error("❌ Fetch error:", err);

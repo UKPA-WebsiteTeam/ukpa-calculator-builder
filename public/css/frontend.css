@@ -138,6 +138,7 @@
 	position: relative;
 	overflow: hidden;
 	min-height: 400px;
+	box-sizing: border-box;
 }
 .ukpa-number-input-inside-wrapper {
 	position: relative;
@@ -225,6 +226,8 @@
 	padding: 10px 12px;
     margin-top: 6px;
     font-size: 17px;
+	box-sizing: border-box;
+	border-radius: 0.5em;
 }
 .ukpa-input{
   width: 100%;

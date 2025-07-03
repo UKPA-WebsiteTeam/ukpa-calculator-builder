@@ -43,10 +43,8 @@ export async function handleLeadSubmit(event) {
   const outputs = window.ukpaResults?.calculatedResults || {};
 
   // ✅ Meta Info
-  const pluginToken = window.ukpa_api_data?.plugin_token || '';
-  const baseURL = window.ukpa_api_data?.base_url || '';
+  const { ajaxurl, nonce, plugin_token, website } = window.ukpa_api_data || {};
   const calculatorId = window.ukpaCalculatorId || '';
-  const website = window.ukpa_api_data?.website || 'UKPA';
   const calculatorName =
   window.ukpa_calc_data?.title?.split(/[|–-]/)[0].trim() ||
   document.querySelector('.ukpa-builder-header h1')?.textContent?.replace(/^Edit Calculator:\s*/, '') ||
@@ -68,15 +66,18 @@ export async function handleLeadSubmit(event) {
   console.log("📦 Submitting Lead Payload:", payload);
 
   try {
-    const response = await fetch(`${baseURL}/routes/mainRouter/leadForm`, {
+    const response = await fetch(`${ajaxurl}?action=ukpa_proxy_api`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${pluginToken}`
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({
+        route: 'leadForm',
+        payload,
+        nonce: nonce || '',
+      }),
+      credentials: 'same-origin',
     });
-
 
     const data = await response.json();
     if (!response.ok) throw new Error(data?.message || 'Submission failed');
