@@ -1,10 +1,18 @@
 <?php
 /**
  * Plugin Name: UKPA Calculator Builder
- * Description: Build HTMX-based calculators with predefined input/result/content sections.
- * Version: 1.0
+ * Plugin URI: https://ukpacalculator.com/calculator-builder
+ * Description: Create advanced HTMX-powered calculators for property and accounting scenarios using a flexible drag-and-drop builder. Supports custom inputs, conditional logic, result displays, and easy shortcode integration for any page.
+ * Version: 1.1.4
  * Author: Abishek Patel
+ * Author URI: https://ukpacalculator.com
+ * License: GPLv2 or later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain: ukpa-calculator-builder
+ * Domain Path: /languages
+ * Tags: calculator, builder, drag-and-drop, shortcode, property tax, accounting, conditional logic
  */
+
 
 if (!defined('ABSPATH')) exit;
 
