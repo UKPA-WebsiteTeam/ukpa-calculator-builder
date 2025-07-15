@@ -1,11 +1,11 @@
 <?php
 /**
  * Plugin Name: UKPA Calculator Builder
- * Plugin URI: https://ukpacalculator.com/calculator-builder
+ * Plugin URI: http://localhost/calculator-builder
  * Description: Create advanced HTMX-powered calculators for property and accounting scenarios using a flexible drag-and-drop builder. Supports custom inputs, conditional logic, result displays, and easy shortcode integration for any page.
  * Version: 1.1.4
  * Author: Abishek Patel
- * Author URI: https://ukpacalculator.com
+ * Author URI: http://localhost
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: ukpa-calculator-builder
@@ -31,9 +31,14 @@ require_once UKPA_CALC_PATH . 'includes/menu.php';
 require_once UKPA_CALC_PATH . 'includes/ajax.php';
 require_once UKPA_CALC_PATH . 'admin/init/init.php';
 require_once UKPA_CALC_PATH . 'includes/shortcodes.php';
+require_once UKPA_CALC_PATH . 'includes/idv-form-shortcode.php';
 require_once UKPA_CALC_PATH . 'includes/dashboard-frontend.php';
 require_once UKPA_CALC_PATH . 'includes/unified-save.php';
 require_once UKPA_CALC_PATH . 'includes/custom-assets-injector.php';
+require_once UKPA_CALC_PATH . 'includes/auto-updater.php';
+
+// Initialize the auto updater with the correct plugin file path
+new UKPA_Auto_Updater(__FILE__);
 
 // ✅ Inject custom CSS/JS from builder (if enabled)
 add_action('wp_head', 'ukpa_output_custom_calc_assets');
@@ -66,7 +71,8 @@ add_action('admin_enqueue_scripts', function ($hook) {
     // ✅ Local config for JS
     $plugin_token = get_option('ukpa_plugin_token', '');
     $selected_website = get_option('ukpa_selected_website', 'UKPA');
-    $api_base_url = 'https://ukpacalculator.com/ana/v1';
+    $local_api_base_url = 'http://localhost:3002/ana/v1';
+    $live_api_base_url = 'https://ukpacalculator.com/ana/v1';
 
     $calc_id = isset($_GET['calc_id']) ? sanitize_text_field($_GET['calc_id']) : '';
     $calc_data = get_option('ukpa_calc_' . $calc_id, []);
@@ -75,12 +81,14 @@ add_action('admin_enqueue_scripts', function ($hook) {
     wp_add_inline_script('chart-js', sprintf(
         'window.ukpa_api_data = %s;',
         json_encode([
-            'ajaxurl'       => admin_url('admin-ajax.php'),
-            'plugin_token'  => $plugin_token,
-            'base_url'      => $api_base_url,
-            'backend_route' => $route,
-            'nonce'         => wp_create_nonce('ukpa_api_nonce'),
-            'website'       => $selected_website,
+            'ajaxurl'         => admin_url('admin-ajax.php'),
+            'plugin_token'    => $plugin_token,
+            'local_base_url'  => $local_api_base_url,
+            'live_base_url'   => $live_api_base_url,
+            'base_url'        => $local_api_base_url, // for backward compatibility
+            'backend_route'   => $route,
+            'nonce'           => wp_create_nonce('ukpa_api_nonce'),
+            'website'         => $selected_website,
         ])
     ), 'after');
 
@@ -170,7 +178,7 @@ function ukpa_proxy_api_handler() {
 
     $route = sanitize_text_field($input['route'] ?? '');
     $payload = $input['payload'] ?? [];
-    $base_url = get_option('ukpa_api_base_url', 'https://ukpacalculator.com/ana/v1');
+    $base_url = get_option('ukpa_api_base_url', 'http://localhost/ana/v1');
     $url = trailingslashit($base_url) . 'routes/mainRouter/' . ltrim($route, '/');
 
     $args = [

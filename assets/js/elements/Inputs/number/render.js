@@ -20,7 +20,7 @@ export default function renderNumber(id, config, meta) {
         ${minAttr}
         ${maxAttr}
         ${stepAttr}
-        type="text" inputmode="decimal" pattern="[0-9.,]*"
+        type="number" inputmode="decimal" pattern="[0-9.,]*"
         class="ukpa-input ukpa-number-input${config.prefix ? ' has-prefix' : ''}${config.suffix ? ' has-suffix' : ''}"
         ${typeSpecificAttrs}
         ${widthStyle}

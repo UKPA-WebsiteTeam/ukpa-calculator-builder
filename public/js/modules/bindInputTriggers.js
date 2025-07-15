@@ -71,58 +71,82 @@ export function bindInputTriggers(inputBox, contentSection, resultContainer) {
       }
     }
 
-    // ✅ ✅ ✅ Other inputs
-
     // 👉 Helper: Add commas as thousand separators while preserving decimals
     const formatWithCommas = (val) => {
       if (typeof val !== 'string') val = String(val ?? '');
-      // Remove existing commas first
       const [intPart, decPart] = val.replace(/,/g, '').split('.');
-      // Guard: if nothing to format
       if (!intPart) return '';
-
       const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
       return decPart !== undefined ? `${formattedInt}.${decPart}` : formattedInt;
     };
 
-    // 🖌️ Format default value on load
+    // 🖌️ Format default value on load (for number inputs)
     if (input.classList.contains('ukpa-number-input') && input.value) {
-      input.value = formatWithCommas(String(input.value));
+      const raw = input.value.replace(/,/g, '');
+      if (!isNaN(raw) && raw !== '') {
+        input.value = formatWithCommas(raw);
+      }
     }
 
-    input.addEventListener("input", () => {
-      // 🧮 Auto-format number inputs with commas
-      if (input.classList.contains('ukpa-number-input')) {
-        const cursorStart = input.selectionStart;
-        const rawBeforeFormat = input.value;
-        const formatted = formatWithCommas(rawBeforeFormat);
-        input.value = formatted;
-        // Attempt to preserve caret position (rough approximation)
-        const diff = formatted.length - rawBeforeFormat.length;
-        const newPos = (cursorStart ?? formatted.length) + diff;
-        try {
-          input.setSelectionRange(newPos, newPos);
-        } catch (err) {
-          // Silent: may fail if element not focusable yet
+    // --- Improved number input handling ---
+    if (input.classList.contains('ukpa-number-input')) {
+      // Allow only numbers and a single decimal point
+      input.addEventListener('input', (e) => {
+        let val = input.value.replace(/,/g, '');
+        // Allow only digits and one decimal point
+        val = val.replace(/[^\d.]/g, '');
+        const parts = val.split('.');
+        if (parts.length > 2) {
+          val = parts[0] + '.' + parts.slice(1).join('');
         }
-      }
+        input.value = val;
+        // Do not format with commas on input, only on blur
+        applyAllConditions();
+        if (!allRequiredFieldsFilled()) return;
+        if (!hasSwitched) {
+          if (contentSection) contentSection.style.display = "none";
+          if (resultContainer) resultContainer.style.display = "flex";
+          if (inputBox) inputBox.style.width = "60%";
+          hasSwitched = true;
+        }
+        const collected = {};
+        inputs.forEach(el => {
+          const key = el.name || el.dataset.name || el.id;
+          collected[key] = el.type === 'checkbox' ? el.checked : el.value;
+        });
+        debouncedSendToBackend(collected);
+      });
+      // Format with commas on blur, but only if valid number
+      input.addEventListener('blur', () => {
+        const raw = input.value.replace(/,/g, '');
+        // Only format if raw is a valid number (not empty, not just a dot, not NaN)
+        if (raw !== '' && isFinite(raw) && /^[0-9]+(\.[0-9]*)?$/.test(raw)) {
+          input.value = formatWithCommas(raw);
+        }
+        // else leave as-is (do not reset/clear)
+      });
+      // Remove formatting on focus for easier editing
+      input.addEventListener('focus', () => {
+        input.value = input.value.replace(/,/g, '');
+      });
+      return; // Skip the generic input handler for number fields
+    }
 
+    // --- Generic input handler for other fields ---
+    input.addEventListener("input", () => {
       applyAllConditions();
       if (!allRequiredFieldsFilled()) return;
-
       if (!hasSwitched) {
         if (contentSection) contentSection.style.display = "none";
         if (resultContainer) resultContainer.style.display = "flex";
         if (inputBox) inputBox.style.width = "60%";
         hasSwitched = true;
       }
-
       const collected = {};
       inputs.forEach(el => {
         const key = el.name || el.dataset.name || el.id;
         collected[key] = el.type === 'checkbox' ? el.checked : el.value;
       });
-
       debouncedSendToBackend(collected);
     });
   });

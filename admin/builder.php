@@ -34,6 +34,7 @@ $route = $data['route'] ?? '';
 </script>
 <script>
   window.ukpa_dynamic_result_keys = <?php echo json_encode($data['dynamicResultKeys'] ?? []); ?>;
+  window.ukpaResults = <?php echo isset($data['dynamicResultSample']) ? json_encode($data['dynamicResultSample']) : 'undefined'; ?>;
 </script>
 
 <div class="ukpa-builder-header">

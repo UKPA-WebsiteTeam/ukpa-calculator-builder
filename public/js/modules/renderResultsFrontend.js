@@ -12,8 +12,19 @@ export function renderResultsFrontend() {
       current = current?.[isNaN(part) ? part : parseInt(part)];
     });
 
+    // Get prefix and suffix from config
+    let prefix = '', suffix = '';
+    const configAttr = el.closest('.ukpa-element')?.dataset.config;
+    if (configAttr) {
+      try {
+        const cfg = JSON.parse(configAttr);
+        if (cfg.prefix !== undefined) prefix = cfg.prefix;
+        if (cfg.suffix !== undefined) suffix = cfg.suffix;
+      } catch (e) {}
+    }
+
     el.textContent = (current !== undefined && current !== null)
-      ? (typeof current === 'number' ? `£${current.toLocaleString()}` : current)
+      ? `${prefix}${typeof current === 'number' ? current.toLocaleString() : current}${suffix}`
       : '--';
   });
 
@@ -173,131 +184,110 @@ export function renderResultsFrontend() {
   });
 
   // ✅ Render Other Result Cards
-document.querySelectorAll('.ab-other-result').forEach(wrapper => {
-  let key = wrapper.dataset.key;
+  document.querySelectorAll('.ab-other-result').forEach(wrapper => {
+    let key = wrapper.dataset.key;
 
-  // 🔍 Fallback to dynamicResult if config exists
-  if (!key && wrapper.closest('.ukpa-element')?.dataset.config) {
-    try {
-      const cfg = JSON.parse(wrapper.closest('.ukpa-element').dataset.config);
-      key = cfg.dynamicResult || '';
-    } catch (e) {
-      console.warn('❌ Config parse failed for Other Result:', e);
-    }
-  }
-
-  if (!key) {
-    wrapper.innerHTML = '<div class="ab-other-label">No result key</div><div class="ab-other-value">--</div>';
-    return;
-  }
-
-  const layout = wrapper.dataset.layout || 'column';
-  const wrapSetting = wrapper.dataset.wrap !== 'false'; // default true
-  const data = window.ukpaResults?.[key];
-
-  if (!Array.isArray(data)) {
-    wrapper.innerHTML = `<div class="ab-other-label">${wrapper.dataset.label || 'loading results'}</div><div class="ab-other-value">--</div>`;
-    return;
-  }
-
-  const widths = (() => {
-    try {
-      return JSON.parse(wrapper.dataset.widths || '{}');
-    } catch {
-      return {};
-    }
-  })();
-
-  const container = document.createElement('div');
-  container.className = `ab-other-wrapper ab-other-${layout} ${wrapSetting ? 'wrap-enabled' : 'no-wrap'}`;
-  container.style.flexWrap = wrapSetting ? 'wrap' : 'nowrap';
-
-  const formatCurrency = val =>
-    typeof val === 'number'
-      ? `£${val.toLocaleString()}`
-      : (typeof val === 'string' && val.startsWith('£'))
-        ? val
-        : `£${Number(val).toLocaleString()}`;
-
-  data.forEach(item => {
-    const card = document.createElement('div');
-    card.className = 'ab-other-card';
-
-    if (layout === 'row' && item.id && widths[item.id]) {
-      card.style.width = widths[item.id];
+    // 🔍 Fallback to dynamicResult if config exists
+    let prefix = '', suffix = '';
+    const configAttr = wrapper.closest('.ukpa-element')?.dataset.config;
+    if (!key && configAttr) {
+      try {
+        const cfg = JSON.parse(configAttr);
+        key = cfg.dynamicResult || '';
+        if (cfg.prefix !== undefined) prefix = cfg.prefix;
+        if (cfg.suffix !== undefined) suffix = cfg.suffix;
+      } catch (e) {
+        console.warn('❌ Config parse failed for Other Result:', e);
+      }
+    } else if (configAttr) {
+      try {
+        const cfg = JSON.parse(configAttr);
+        if (cfg.prefix !== undefined) prefix = cfg.prefix;
+        if (cfg.suffix !== undefined) suffix = cfg.suffix;
+      } catch (e) {}
     }
 
-    card.innerHTML = `
-      <div class="ab-other-label">${item.label}</div>
-      <div class="ab-other-value">${formatCurrency(item.value)}</div>
-    `;
-    container.appendChild(card);
+    if (!key) {
+      wrapper.innerHTML = '<div class="ab-other-label">No result key</div><div class="ab-other-value">--</div>';
+      return;
+    }
+
+    const layout = wrapper.dataset.layout || 'column';
+    const wrapSetting = wrapper.dataset.wrap !== 'false'; // default true
+    const data = window.ukpaResults?.[key];
+
+    if (!Array.isArray(data)) {
+      wrapper.innerHTML = `<div class="ab-other-label">${wrapper.dataset.label || 'loading results'}</div><div class="ab-other-value">--</div>`;
+      return;
+    }
+
+    let html = '';
+    data.forEach((row, i) => {
+      html += `<div class="ab-other-label">${row.label || ''}</div><div class="ab-other-value">${prefix}${row.value ?? '--'}${suffix}</div>`;
+    });
+    wrapper.innerHTML = html;
   });
 
-  wrapper.innerHTML = '';
-  wrapper.appendChild(container);
-});
+  // ✅ Collect dynamic results for lead form submission
+  const collectedResults = {};
 
-// ✅ Collect dynamic results for lead form submission
-const collectedResults = {};
+  // 1. Main Result
+  document.querySelectorAll('.ab-main-result-value').forEach(el => {
+    const label = el.closest('.ukpa-element')?.querySelector('.ukpa-label')?.textContent?.trim() || 'Main Result';
+    const key = el.dataset.key;
+    let value = window.ukpaResults;
 
-// 1. Main Result
-document.querySelectorAll('.ab-main-result-value').forEach(el => {
-  const label = el.closest('.ukpa-element')?.querySelector('.ukpa-label')?.textContent?.trim() || 'Main Result';
-  const key = el.dataset.key;
-  let value = window.ukpaResults;
+    key?.split('.').forEach(part => {
+      value = value?.[isNaN(part) ? part : parseInt(part)];
+    });
 
-  key?.split('.').forEach(part => {
-    value = value?.[isNaN(part) ? part : parseInt(part)];
+    collectedResults[label] = value ?? '--';
   });
 
-  collectedResults[label] = value ?? '--';
-});
+  // 2. Other Result Cards
+  document.querySelectorAll('.ab-other-result').forEach(wrapper => {
+    const label = wrapper.dataset.label?.trim() || 'Other Result';
+    let key = wrapper.dataset.key;
 
-// 2. Other Result Cards
-document.querySelectorAll('.ab-other-result').forEach(wrapper => {
-  const label = wrapper.dataset.label?.trim() || 'Other Result';
-  let key = wrapper.dataset.key;
+    if (!key && wrapper.closest('.ukpa-element')?.dataset.config) {
+      try {
+        const cfg = JSON.parse(wrapper.closest('.ukpa-element').dataset.config);
+        key = cfg.dynamicResult || '';
+      } catch {}
+    }
 
-  if (!key && wrapper.closest('.ukpa-element')?.dataset.config) {
-    try {
-      const cfg = JSON.parse(wrapper.closest('.ukpa-element').dataset.config);
-      key = cfg.dynamicResult || '';
-    } catch {}
-  }
+    if (key) {
+      let value = window.ukpaResults;
+      key.split('.').forEach(part => {
+        value = value?.[isNaN(part) ? part : parseInt(part)];
+      });
+      collectedResults[label] = value ?? '--';
+    }
+  });
 
-  if (key) {
-    let value = window.ukpaResults;
-    key.split('.').forEach(part => {
-      value = value?.[isNaN(part) ? part : parseInt(part)];
-    });
-    collectedResults[label] = value ?? '--';
-  }
-});
+  // 3. Bar Charts
+  document.querySelectorAll('.ab-bar-chart').forEach(canvas => {
+    const label = canvas.dataset.label?.trim() || 'Bar Chart';
+    let key = canvas.dataset.resultKey;
 
-// 3. Bar Charts
-document.querySelectorAll('.ab-bar-chart').forEach(canvas => {
-  const label = canvas.dataset.label?.trim() || 'Bar Chart';
-  let key = canvas.dataset.resultKey;
+    if (!key && canvas.closest('.ukpa-element')?.dataset.config) {
+      try {
+        const cfg = JSON.parse(canvas.closest('.ukpa-element')?.dataset.config);
+        key = cfg.dynamicResult || '';
+      } catch {}
+    }
 
-  if (!key && canvas.closest('.ukpa-element')?.dataset.config) {
-    try {
-      const cfg = JSON.parse(canvas.closest('.ukpa-element')?.dataset.config);
-      key = cfg.dynamicResult || '';
-    } catch {}
-  }
+    if (key) {
+      let value = window.ukpaResults;
+      key.split('.').forEach(part => {
+        value = value?.[isNaN(part) ? part : parseInt(part)];
+      });
+      collectedResults[label] = value ?? '--';
+    }
+  });
 
-  if (key) {
-    let value = window.ukpaResults;
-    key.split('.').forEach(part => {
-      value = value?.[isNaN(part) ? part : parseInt(part)];
-    });
-    collectedResults[label] = value ?? '--';
-  }
-});
-
-// ✅ Store to window for lead form submission
-window.ukpa_api_data = window.ukpa_api_data || {};
-window.ukpa_api_data.result = collectedResults;
+  // ✅ Store to window for lead form submission
+  window.ukpa_api_data = window.ukpa_api_data || {};
+  window.ukpa_api_data.result = collectedResults;
 
 }

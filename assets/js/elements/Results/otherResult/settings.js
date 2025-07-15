@@ -33,6 +33,21 @@ export default [
         type: 'code',
         language: 'json',
         tooltip: 'Optional: Set custom widths per item in row layout (e.g. {"nonSavingIncomeTax": "33%", "savingsIncomeTax": "33%"})'
+      },
+
+      {
+        key: 'prefix',
+        label: 'Prefix',
+        type: 'text',
+        default: '',
+        tooltip: 'Text to show before the result (e.g., £, $, Area: )'
+      },
+      {
+        key: 'suffix',
+        label: 'Suffix',
+        type: 'text',
+        default: '',
+        tooltip: 'Text to show after the result (e.g., USD, kg, m²)'
       }
     ]
   }

@@ -1,6 +1,7 @@
 import { flattenKeys, flattenScalarKeys } from './flattenKeys.js';
 import { getArrayKeys } from './getArrayKeys.js';
 import { renderBackendSettings } from './renderBackendSettings.js';
+import { getTopLevelKeysForDropdown } from './getTopLevelKeysForDropdown.js';
 
 import { renderConditionalLogicEditor } from '../conditional-logic-editor.js';
 import { saveElementConfig } from './saveElementConfig.js';
@@ -331,29 +332,6 @@ export function editElementById(id) {
     wrapper.appendChild(layoutModeField);
   }
   
-  if (['barChart', 'otherResult'].includes(type)) {
-  const dynamicKeys = window.dynamicResultKeys || [];
-  const dynamicField = document.createElement('div');
-  dynamicField.className = 'ukpa-editor-field';
-
-  dynamicField.innerHTML = `
-    <label for="resultDropdownKey">Dynamic Result Key</label>
-    <select name="resultDropdownKey" class="ukpa-input">
-      <option value="">-- Select a result key --</option>
-      ${dynamicKeys.map(key => `
-        <option value="${key}" ${config.resultDropdownKey === key ? 'selected' : ''}>${key}</option>
-      `).join('')}
-    </select>
-  `;
-
-  const select = dynamicField.querySelector('select');
-  select.addEventListener('change', () => {
-    config.resultDropdownKey = select.value;
-    saveConfig();
-  });
-
-  wrapper.appendChild(dynamicField);
-}
 
 
   function saveConfig() {

@@ -25,7 +25,10 @@ export function injectTestApiButton(saveBtn) {
       return;
     }
 
-    const fullUrl = `${ukpa_api_data.base_url}/routes/mainRouter/${route}`;
+    const ajaxurl = ukpa_api_data.ajaxurl;
+    const localBaseUrl = ukpa_api_data.local_base_url;
+    const liveBaseUrl = ukpa_api_data.live_base_url;
+
     const inputs = document.querySelectorAll(
       "#inputs-preview .ukpa-element input, #inputs-preview .ukpa-element select, #inputs-preview .ukpa-element textarea"
     );
@@ -39,22 +42,31 @@ export function injectTestApiButton(saveBtn) {
       if (paramName && value !== '') payload[paramName] = value;
     });
 
-    try {
-      const response = await fetch(fullUrl, {
+    async function tryApi(baseUrl) {
+      console.log(`[UKPA] Trying API: ${baseUrl}`);
+      const response = await fetch(`${baseUrl}/routes/mainRouter/${route}`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "X-Plugin-Auth": ukpa_api_data.plugin_token
+          "Content-Type": "application/json"
         },
-        credentials: 'include',
         body: JSON.stringify(payload)
       });
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
+      return await response.json();
+    }
 
-      const result = await response.json();
+    let apiData = null;
+    try {
+      try {
+        apiData = await tryApi(localBaseUrl);
+        console.log('[UKPA] Used local backend:', localBaseUrl);
+      } catch (err) {
+        console.warn('[UKPA] Local backend failed, trying live backend:', err);
+        apiData = await tryApi(liveBaseUrl);
+        console.log('[UKPA] Used live backend:', liveBaseUrl);
+      }
 
-      const apiData = result.result && typeof result.result === 'object' ? result.result : result;
-
-      if (response.ok && apiData && typeof apiData === 'object') {
+      if (apiData && typeof apiData === 'object') {
         const keys = getTopLevelKeysForDropdown(apiData);
         window.ukpaResults = apiData;
         window.ukpaResultKeys = keys;
@@ -64,6 +76,7 @@ export function injectTestApiButton(saveBtn) {
         resultKeysSavePayload.append('calc_id', window.ukpaCalculatorId);
         resultKeysSavePayload.append('keys', JSON.stringify(keys));
         resultKeysSavePayload.append('_wpnonce', ukpa_calc_data?.nonce);
+        resultKeysSavePayload.append('sample', JSON.stringify(apiData));
 
         fetch(ukpa_api_data.ajaxurl, {
           method: 'POST',
@@ -86,7 +99,7 @@ export function injectTestApiButton(saveBtn) {
           window.editElementById(currentId);
         }
       } else {
-        console.warn("🟡 API Error:", result.message || result);
+        console.warn("🟡 API Error:", apiData?.message || apiData);
       }
 
     } catch (err) {

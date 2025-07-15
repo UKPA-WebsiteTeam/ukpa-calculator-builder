@@ -2,6 +2,23 @@ import { flattenScalarKeys, flattenKeys } from './flattenKeys.js';
 import { getArrayKeys } from './getArrayKeys.js';
 import { saveElementConfig } from './saveElementConfig.js';
 
+function getChildObjectKeys(obj) {
+  if (!obj || typeof obj !== 'object') return [];
+  return Object.keys(obj).filter(key => {
+    const val = obj[key];
+    // Array of objects
+    if (Array.isArray(val) && val.length > 0 && typeof val[0] === 'object') return true;
+    // Object with at least one child object/array
+    if (
+      val && typeof val === 'object' &&
+      Object.values(val).some(
+        v => (typeof v === 'object' && v !== null) || Array.isArray(v)
+      )
+    ) return true;
+    return false;
+  });
+}
+
 export function renderBackendSettings(id, config = {}) {
   const box = document.getElementById('ukpa-route-param-box');
   box.innerHTML = '';
@@ -15,9 +32,11 @@ export function renderBackendSettings(id, config = {}) {
 
   let keys = [];
   if (window.ukpaResults && typeof window.ukpaResults === 'object') {
-    keys = type === 'mainResult'
-      ? flattenScalarKeys(window.ukpaResults)
-      : getArrayKeys(window.ukpaResults);
+    if (type === 'mainResult') {
+      keys = flattenScalarKeys(window.ukpaResults);
+    } else {
+      keys = getChildObjectKeys(window.ukpaResults);
+    }
   }
 
   const wrapper = document.createElement('div');
@@ -40,6 +59,15 @@ export function renderBackendSettings(id, config = {}) {
     if (config.dynamicResult === key) opt.selected = true;
     select.appendChild(opt);
   });
+
+  // If saved value is not in keys, add it as an option
+  if (config.dynamicResult && !keys.includes(config.dynamicResult)) {
+    const opt = document.createElement('option');
+    opt.value = config.dynamicResult;
+    opt.textContent = config.dynamicResult + ' (saved)';
+    opt.selected = true;
+    select.appendChild(opt);
+  }
 
   select.addEventListener('change', () => {
     config.dynamicResult = select.value;

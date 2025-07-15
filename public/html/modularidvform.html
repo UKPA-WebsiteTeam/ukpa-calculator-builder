@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dynamic User Form</title>
+  <link rel="stylesheet" href="../css/idvformstyle.css">
+  <script type="module" src="index.js"></script>
+
+</head>
+<body>
+  <!-- First Fold: Setup Step -->
+  <div id="setupStep">
+    <h2>UK Identity Verification Form</h2>
+    <div class="requirement-box" style="padding:1em;margin-bottom:1.5em;background:#e3e3e354;">
+      <b>About UK ID Verification</b>
+      <p>The UK Identity Verification Service helps ensure your identity is securely validated for compliance and access to essential services. Your information is handled with strict confidentiality and in accordance with UK regulations.</p>
+      <b>Document Submission Requirement</b>
+      <p>To complete the verification process, <b>you must provide a total of two identity documents</b>.
+    </div>
+
+    <div class="inputContainer">
+      <label for="filerFullName">Your Full Name:</label>
+      <input type="text" id="filerFullName" name="filerFullName" required />
+    </div>
+    <div class="inputContainer">
+      <label for="filerEmail">Official Email:
+        <info-tooltip>This email will be the official point of contact between the user and UKPA team.</info-tooltip>
+      </label>
+      <input type="email" id="filerEmail" name="filerEmail" required placeholder="Enter your email address" />
+    </div>
+    <div class="inputContainer">
+      <label for="setupNumUsers">Number of users you are filing for:</label>
+      <select id="setupNumUsers">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+      </select>
+    </div>
+    <div id="userNamesContainer"></div>
+    <button id="startFilingBtn" type="button">Start Filing</button>
+  </div>
+
+  <div id="formContainer">
+    <form id="dynamicForm">
+      
+    </form>
+
+    <!-- Pagination Controls -->
+    <div id="pagination">
+      <button id="prevBtn" class="navigationBtn" disabled>Previous</button>
+      <button id="nextBtn" class="navigationBtn" disabled>Next</button>
+      <button id="submitBtn" class="navigationBtn" style="display:none;">Submit</button>
+    </div>
+
+  </div>
+    
+
+</body>
+</html>

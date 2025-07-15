@@ -1,4 +1,5 @@
 import { renderResultsFrontend } from './renderResultsFrontend.js';
+import { sanitizeResultsObject } from './sanitizeResults.js';
 
 // ✅ Debounce helper
 function debounce(func, wait = 600) {
@@ -113,7 +114,8 @@ export async function sendToBackend(inputs) {
 
     // ✅ Updated condition: trust any 200 OK response for now
     if (response.ok && data.success && data.data && data.data.body) {
-      window.ukpaResults = data.data.body;
+      window.ukpaResultsRaw = data;
+      window.ukpaResults = sanitizeResultsObject(data);
       renderResultsFrontend();
 
       // ✅ Reopen editor if one is active

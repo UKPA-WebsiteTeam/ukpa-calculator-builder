@@ -9,25 +9,22 @@ export default [
         default: 'Main Result',
         tooltip: 'This is the label shown above the main result value.'
       },
+
       {
-        key: 'dynamicResult',
-        label: 'Result Key',
+        key: 'prefix',
+        label: 'Prefix',
         type: 'text',
         default: '',
-        tooltip: 'This should match a key returned by your API to display its value here.'
+        tooltip: 'Text to show before the result (e.g., £, $, Area: )'
+      },
+      {
+        key: 'suffix',
+        label: 'Suffix',
+        type: 'text',
+        default: '',
+        tooltip: 'Text to show after the result (e.g., USD, kg, m²)'
       }
     ]
   },
-  {
-    group: 'Advanced Settings',
-    options: [
-      {
-        key: 'resultKey',
-        label: 'Result Key',
-        type: 'text',
-        tooltip: 'This key must match a field in the API response to show the result here.'
-    },
 
-    ]
-  }
 ];
