@@ -1,3 +1,4 @@
+// documentDetails.js
 import { uploadAndExtract, uploadedFilesCache } from "../js/helpers/uploadAndExract.js";
 // Full Group A and Group B document lists from idvform-ocr.html
 const groupADocuments = [
@@ -130,6 +131,7 @@ const groupBDocuments = [
   ] },
 ];
 
+
 // Add this at the top of the file, outside the function
 const documentInputState = {};
 // Cache for file input DOM nodes and previews
@@ -164,7 +166,7 @@ export function createDocumentDetailsSection(userId, displayName) {
   section.classList.add('document-details-section');
 
   section.innerHTML = `
-    <h3>Step 2: Identity Documents</h3>
+    <h3>Identity Documents - ${displayName}</h3>
     <span style="color:#b00;font-weight:500;">Note: You need to submit at least 1 document from Group A.</span>
     <div style="margin:1em 0;"><b>Documents selected: <span id="docCount-${userId}">0</span> of 2</b></div>
     <fieldset style="margin-bottom:2em;width:100%;box-sizing:border-box;padding:1.5em 1.5em 1em 1.5em;border:2px solid #ccc;">
@@ -172,7 +174,7 @@ export function createDocumentDetailsSection(userId, displayName) {
       <div class="dropdown-container" style="width:100%;box-sizing:border-box;">
         <button type="button" id="toggle-groupA-${userId}" class="dropdown-btn" style="margin-bottom:0.5em;width:100%;text-align:left; border:1px solid #ddd; background:#fff;display:flex;align-items:center;justify-content:space-between;">
           <span id="groupA-label-text-${userId}" style="color:#000;">Select (maximum two) documents</span>
-          <span style="color:#2a2a2a;font-size:1.2em;">▼</span>
+          <span style="color:#2a2a2a;font-size:1.2em;">🔻</span>
         </button>
         <div class="dropdown-content" id="groupA-dropdown-${userId}" style="display:none;background:#fff;padding:1em 0;border-radius:6px;width:100%;box-sizing:border-box;">
           <div class="checkbox-grid" id="groupA-checkboxes-${userId}" style="display:grid;grid-template-columns:repeat(3,minmax(140px,1fr));gap:0.3em;">
@@ -184,14 +186,14 @@ export function createDocumentDetailsSection(userId, displayName) {
           </div>
         </div>
       </div>
-      <div id="groupA-details-container-${userId}"></div>
+      <div id="groupA-details-container-${userId}" class="groupA-details-container"></div>
     </fieldset>
     <fieldset style="margin-bottom:2em;width:100%;box-sizing:border-box;padding:1.5em 1.5em 1em 1.5em;border:2px solid #ccc;">
       <legend>Group B Documents</legend>
       <div class="dropdown-container" style="width:100%;box-sizing:border-box;">
         <button type="button" id="toggle-groupB-${userId}" class="dropdown-btn" style="margin-bottom:0.5em;width:100%;text-align:left; border:1px solid #ddd; background:#fff;display:flex;align-items:center;justify-content:space-between;">
           <span id="groupB-label-text-${userId}" style="color:#000;">Select (any one) document</span>
-          <span style="color:#2a2a2a;font-size:1.2em;">▼</span>
+          <span style="color:#2a2a2a;font-size:1.2em;">🔻</span>
         </button>
         <div class="dropdown-content" id="groupB-dropdown-${userId}" style="display:none;background:#fff;padding:1em 0;border-radius:6px;width:100%;box-sizing:border-box;">
           <div class="checkbox-grid" id="groupB-checkboxes-${userId}" style="display:grid;grid-template-columns:repeat(3,minmax(140px,1fr));gap:0.3em;">
@@ -206,9 +208,12 @@ export function createDocumentDetailsSection(userId, displayName) {
       <div id="groupB-details-container-${userId}"></div>
     </fieldset>
     <div style="margin-bottom:1em;">
-      <input type="checkbox" id="confirmDocs-${userId}" /> I confirm that the above information is true and I will provide the documents as requested.
+      <label style="cursor:pointer; font-weight:normal; font-size:14px;">
+        <input type="checkbox" id="confirmDocs-${userId}" />
+        I confirm that all information and documents provided, including those for any additional individuals, are true, complete, and accurate to the best of my knowledge. I understand that providing false or misleading information may have legal consequences and affect this application.
+      </label>
     </div>
-  `;
+      `;
 
   // --- Dropdown toggle logic ---
   const groupABtn = section.querySelector(`#toggle-groupA-${userId}`);
@@ -236,9 +241,10 @@ export function createDocumentDetailsSection(userId, displayName) {
   const groupBLabelText = section.querySelector(`#groupB-label-text-${userId}`);
   const docCountSpan = section.querySelector(`#docCount-${userId}`);
   const groupADetailsContainer = section.querySelector(`#groupA-details-container-${userId}`);
+  groupADetailsContainer.classList.add('groupA-details-container');
   const groupBDetailsContainer = section.querySelector(`#groupB-details-container-${userId}`);
 
-  async function loadCountriesForSelect(selectElement) {
+  async function loadCountriesForSelect(selectElement, selectedValue) {
     try {
       const response = await fetch("https://restcountries.com/v3.1/all?fields=name,cca3");
       const countries = await response.json();
@@ -253,6 +259,11 @@ export function createDocumentDetailsSection(userId, displayName) {
         option.textContent = country.name.common;
         selectElement.appendChild(option);
       });
+
+      // Set the selected value after options are loaded
+      if (selectedValue) {
+        selectElement.value = selectedValue;
+      }
 
     } catch (error) {
       console.error("Failed to load country list:", error);
@@ -271,113 +282,222 @@ export function createDocumentDetailsSection(userId, displayName) {
     const legend = document.createElement('legend');
     legend.textContent = doc.label + ' Details';
     legend.style.fontSize = '1.1em';
-    legend.style.fontWeight = 'bold';
+    legend.style.fontWeight = 'normal';
     legend.style.marginBottom = '0.7em';
     fieldset.appendChild(legend);
     
     doc.details.forEach(field => {
       const label = document.createElement('label');
-      label.style.display = 'block';
-      label.style.marginBottom = '0.5em';
+      label.style.fontWeight = 'normal';
+      label.style.display = 'flex';
+      label.style.flexDirection = 'column';
+      label.style.gap = '10px';
+      label.style.marginBottom = '1.2em';
       label.textContent = field.label + ': ';
+      let input;
       
       if (field.type === 'file') {
-        // Create container for file input and pill
-        const fileContainer = document.createElement('div');
-        fileContainer.style.display = 'flex';
-        fileContainer.style.alignItems = 'center';
-        fileContainer.style.gap = '10px';
-
-        const input = document.createElement('input');
+        // --- Begin file input cache logic ---
+        let cached = fileInputDOMCache.get(`${doc.id}-${userId}`);
+        if (cached && cached.input && cached.label) {
+          // Reuse cached DOM nodes
+          fieldset.appendChild(cached.label);
+          return;
+        }
+        input = document.createElement('input');
         input.type = 'file';
         input.accept = field.accept;
         input.required = field.required;
         input.name = `${field.name}-${userId}`;
         input.id = `${field.name}-${userId}`;
-        input.style.flex = '1';
-
-        // Pill for file name and clear button
-        const pill = document.createElement('span');
-        pill.style.display = 'none';
-        pill.style.alignItems = 'center';
-        pill.style.border = '1px solid #bbb';
-        pill.style.borderRadius = '20px';
-        pill.style.padding = '2px 12px 2px 10px';
-        pill.style.background = '#fff';
-        pill.style.marginLeft = '0.5em';
-        pill.style.fontSize = '1em';
-        pill.style.height = '30px';
-
-        // File name span
-        const fileNameSpan = document.createElement('span');
-        fileNameSpan.style.marginRight = '8px';
-
-        // Cross button
-        const clearBtn = document.createElement('button');
-        clearBtn.type = 'button';
-        clearBtn.innerHTML = '✕';
-        clearBtn.title = 'Clear file selection';
-        clearBtn.style.background = 'none';
-        clearBtn.style.color = '#b00';
-        clearBtn.style.border = 'none';
-        clearBtn.style.fontSize = '1.1em';
+        
+        // Add cross button to clear file input
+        const clearBtn = document.createElement('span');
+        clearBtn.textContent = '✕';
+        clearBtn.title = 'Clear selection';
         clearBtn.style.cursor = 'pointer';
-        clearBtn.style.marginLeft = '2px';
-        clearBtn.style.padding = '0';
-        clearBtn.style.height = '100%';
-        clearBtn.style.display = 'inline-flex';
-        clearBtn.style.alignItems = 'center';
-
-        // Clear file selection functionality
-        clearBtn.addEventListener('click', () => {
-          input.value = '';
-          pill.style.display = 'none';
-        });
-
-        // Show pill with file name when a file is selected
+        clearBtn.style.marginLeft = '8px';
+        clearBtn.style.color = '#b00';
+        clearBtn.style.fontWeight = 'bold';
+        clearBtn.style.fontSize = '1.2em';
+        clearBtn.style.verticalAlign = 'middle';
+        clearBtn.style.display = 'none';
+        
+        // --- Image preview element ---
+        const imagePreview = document.createElement('img');
+        imagePreview.style.display = 'none';
+        imagePreview.style.maxWidth = '250px';
+        imagePreview.style.marginTop = '8px';
+        imagePreview.style.border = '1px solid #ccc';
+        imagePreview.style.borderRadius = '4px';
+        
+        // Show/hide cross and preview depending on file selection
         input.addEventListener('change', () => {
-          if (input.files && input.files.length > 0) {
-            fileNameSpan.textContent = input.files[0].name;
-            pill.style.display = 'inline-flex';
+          clearBtn.style.display = input.files && input.files.length > 0 ? 'inline' : 'none';
+
+          // Image preview logic
+          const file = input.files && input.files[0];
+          if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+              imagePreview.src = e.target.result;
+              imagePreview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
           } else {
-            pill.style.display = 'none';
+            imagePreview.src = '';
+            imagePreview.style.display = 'none';
+          }
+        });
+        // Clear file input on cross click
+        clearBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          input.value = '';
+          clearBtn.style.display = 'none';
+          imagePreview.src = '';
+          imagePreview.style.display = 'none';
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+
+          // Uncheck the corresponding Group A checkbox and trigger its change event
+          if (group === 'A') {
+            const groupACheckbox = section.querySelector(`#${doc.id}-checkbox-${userId}`);
+            if (groupACheckbox && groupACheckbox.checked) {
+              groupACheckbox.checked = false;
+              groupACheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+              // Force updateDocSelection to run immediately
+              updateDocSelection({ target: groupACheckbox });
+            }
           }
         });
 
-        pill.appendChild(fileNameSpan);
-        pill.appendChild(clearBtn);
-
-        fileContainer.appendChild(input);
-        fileContainer.appendChild(pill);
-        label.appendChild(fileContainer);
-      } else {
-        let input;
-        
-        if (field.type === 'select') {
-          input = document.createElement('select');
-          input.required = field.required;
-          input.name = `${field.name}-${userId}`;
-          input.id = `${field.name}-${userId}`;
-          
-          // If it's a country field, populate with countries
-          if (field.isCountry) {
-            loadCountriesForSelect(input);
-          }
-        } else {
-          input = document.createElement('input');
-          input.type = field.type;
-          input.required = field.required;
-          input.name = `${field.name}-${userId}`;
-          input.id = `${field.name}-${userId}`;
+        // --- Passport upload: trigger uploadAndExtract and show loading indicator ---
+        if (field.name === 'passportUpload') {
+          const loadingText = document.createElement('span');
+          loadingText.textContent = 'Please hold on as we extract the details for you';
+          loadingText.className = 'ocr-loading-text';
+          loadingText.style.color = '#0074d9';
+          loadingText.style.fontSize = '0.95em';
+          loadingText.style.display = 'none';
+          label.appendChild(input);
+          label.appendChild(clearBtn);
+          label.appendChild(imagePreview);
+          label.appendChild(loadingText);
+          fieldset.appendChild(label);
+          input.addEventListener('change', async (e) => {
+            if (input.files && input.files[0]) {
+              // Always reset the loading message and style on every upload
+              loadingText.textContent = 'Please hold on as we extract the details for you';
+              loadingText.style.color = '#0074d9';
+              loadingText.style.display = 'inline';
+              // Clear the cache for this user when a new file is selected
+              const cacheKey = `passport-${userId}`;
+              uploadedFilesCache.delete(cacheKey);
+              
+              try {
+                await uploadAndExtract(input.files[0], userId, loadingText);
+              } finally {
+                // If error, keep visible for 5 seconds, then hide; else hide immediately
+                if (loadingText.textContent.startsWith('❌')) {
+                  setTimeout(() => {
+                    loadingText.style.display = 'none';
+                  }, 5000);
+                } else {
+                  loadingText.style.display = 'none';
+                }
+              }
+            } else {
+              // If no file is selected, hide the loadingText
+              loadingText.style.display = 'none';
+            }
+          });
+          // Cache the DOM nodes
+          fileInputDOMCache.set(`${doc.id}-${userId}`, { input, label });
+          return;
         }
-        
+        // --- End passport upload logic ---
+
         label.appendChild(input);
-      }
+        label.appendChild(clearBtn);
+        label.appendChild(imagePreview);
+        fieldset.appendChild(label);
+        // Cache the DOM nodes
+        fileInputDOMCache.set(`${doc.id}-${userId}`, { input, label });
+        return;
+      } else if (field.type === 'select') {
+        input = document.createElement('select');
+        input.required = field.required;
+        input.name = `${field.name}-${userId}`;
+        input.id = `${field.name}-${userId}`;
+        // If it's a country field, populate with countries and restore value if present
+        if (field.isCountry) {
+          let selectedValue = undefined;
+          if (
+            documentInputState[doc.id] &&
+            documentInputState[doc.id][field.name]
+          ) {
+            selectedValue = documentInputState[doc.id][field.name];
+          } else if (doc.label === 'Irish Passport Card') {
+            // Ireland CCA3 code is 'IRL'
+            selectedValue = 'IRL';
+          } else if (doc.label.includes('UK')) {
+            // United Kingdom CCA3 code is 'GBR'
+            selectedValue = 'GBR';
+          }
+          loadCountriesForSelect(input, selectedValue);
+        }
+      } 
       
-      fieldset.appendChild(label);
-    });
-    return fieldset;
-  }
+      else {
+        input = document.createElement('input');
+      // Always use text for flatpickr/date fields
+      input.type = (field.type === 'date') ? 'text' : field.type;
+      input.required = field.required;
+      input.name = `${field.name}-${userId}`;
+      input.id = `${field.name}-${userId}`;
+      // 👇 Set placeholder if available
+      if (field.placeholderText) input.placeholder = field.placeholderText;
+      // Add expiry validation if this is an expiry date field
+      if (field.name.toLowerCase().includes('expiry')) {
+        input.classList.add('expiry-date-input');
+        // Set min attribute to 3 months from today
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const errorContainer = document.createElement('div');
+        errorContainer.className = 'expiry-error';
+        errorContainer.style.color = '#b00';
+        errorContainer.style.fontSize = '0.95em';
+        errorContainer.style.marginTop = '2px';
+        input.addEventListener('change', function() {
+          validateExpiryDate(input, errorContainer);
+        });
+        // Validate on initial render if value is present (e.g. after extraction)
+        setTimeout(() => {
+          if (input.value) validateExpiryDate(input, errorContainer);
+        }, 0);
+        
+        // === FLATPICKR INITIALISATION ===
+        flatpickr(input, {
+          dateFormat: "d M Y",
+          allowInput: true,
+          onClose: function(selectedDates, dateStr, instance) {
+            validateExpiryDate(input, errorContainer);
+          }
+        });
+        // === END FLATPICKR INITIALISATION ===
+
+        label.appendChild(input);
+        label.appendChild(errorContainer);
+        fieldset.appendChild(label);
+        return;
+      }
+      // Otherwise, nothing special for plain text fields etc.
+    }
+    
+    label.appendChild(input);
+    fieldset.appendChild(label);
+  });
+  return fieldset;
+}
 
   function updateDropdownLabel(checkboxes, labelElement, placeholderText) {
     const selectedDocs = Array.from(checkboxes).filter(cb => cb.checked);
@@ -428,15 +548,13 @@ export function createDocumentDetailsSection(userId, displayName) {
       e.target.checked = false;
       return;
     }
-    
+
     // Hide/show Group B fieldset based on Group A selection
-    const groupBFieldset = section.querySelector('fieldset:nth-of-type(2)'); // Group B fieldset
     if (groupBFieldset) {
-      if (aCount >= maxA) {
-        // Hide Group B fieldset when max Group A documents are selected
+      if (aCount < maxA) {
+        groupBFieldset.style.display = '';
+      } else {
         groupBFieldset.style.display = 'none';
-        
-        // Uncheck any Group B checkboxes and clear their details
         groupBCheckboxes.forEach(cb => {
           if (cb.checked) {
             cb.checked = false;
@@ -445,17 +563,37 @@ export function createDocumentDetailsSection(userId, displayName) {
         });
         groupBDetailsContainer.innerHTML = '';
         updateDropdownLabel(groupBCheckboxes, groupBLabelText, 'Select (any one) document');
-      } else {
-        // Show Group B fieldset when fewer than max Group A documents are selected
-        groupBFieldset.style.display = 'block';
       }
     }
-    
+
     // Disable further selection if limit reached
     const disable = total >= maxTotal;
     groupACheckboxes.forEach(cb => cb.disabled = !cb.checked && disable);
     groupBCheckboxes.forEach(cb => cb.disabled = !cb.checked && (disable || bCount >= maxB));
     updateDocCountDisplay();
+
+    // --- Save current input values from DOM before clearing ---
+    groupADocuments.forEach(doc => {
+      const fieldset = groupADetailsContainer.querySelector(`#${doc.id}-details-${userId}`);
+      if (fieldset) {
+        documentInputState[doc.id] = {};
+        doc.details.forEach(field => {
+          const input = fieldset.querySelector(`[name='${field.name}-${userId}']`);
+          if (input) {
+            if (input.type === 'file') {
+              documentInputState[doc.id][field.name] = null;
+              // Remove file input cache if document is being deselected
+              const cb = section.querySelector(`#${doc.id}-checkbox-${userId}`);
+              if (!cb || !cb.checked) {
+                fileInputDOMCache.delete(`${doc.id}-${userId}`);
+              }
+            } else {
+              documentInputState[doc.id][field.name] = input.value;
+            }
+          }
+        });
+      }
+    });
 
     // Show/hide document details fieldsets
     // Group A
@@ -463,9 +601,33 @@ export function createDocumentDetailsSection(userId, displayName) {
     groupADocuments.forEach(doc => {
       const cb = section.querySelector(`#${doc.id}-checkbox-${userId}`);
       if (cb && cb.checked) {
-        groupADetailsContainer.appendChild(renderDocumentDetails(doc, 'A', userId));
+        const fieldset = renderDocumentDetails(doc, 'A', userId);
+        fieldset.id = `${doc.id}-details-${userId}`;
+        groupADetailsContainer.appendChild(fieldset);
+        // Restore values if present
+        if (documentInputState[doc.id]) {
+          doc.details.forEach(field => {
+            const input = fieldset.querySelector(`[name='${field.name}-${userId}']`);
+            if (input && documentInputState[doc.id][field.name] !== undefined) {
+              if (input.type === 'file') {
+                // Cannot restore file input for security reasons
+              } else {
+                input.value = documentInputState[doc.id][field.name];
+              }
+            }
+          });
+        }
       }
     });
+
+    // Add or remove 'two-docs' class for two-column layout
+    const details = groupADetailsContainer.querySelectorAll('.document-details');
+    if (details.length === 2) {
+      groupADetailsContainer.classList.add('two-docs');
+    } else {
+      groupADetailsContainer.classList.remove('two-docs');
+    }
+
     // Group B
     groupBDetailsContainer.innerHTML = '';
     groupBDocuments.forEach(doc => {
@@ -495,7 +657,7 @@ export function createDocumentDetailsSection(userId, displayName) {
   updateDocCountDisplay();
 
   return section;
-}
+} 
 // Returns true if at least TWO Group A or B documents are selected for a given user
 export function hasAtLeastTwoDocumentsSelected(userId) {
   const section = document.querySelector(`#userSection-${userId} .document-details-section`);
@@ -503,4 +665,4 @@ export function hasAtLeastTwoDocumentsSelected(userId) {
   // Count all checked checkboxes (regardless of group)
   const checked = section.querySelectorAll('input[type="checkbox"]:checked');
   return checked.length >= 2;
-} 
+}

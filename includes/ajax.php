@@ -77,6 +77,58 @@ add_action('wp_ajax_ukpa_save_result_keys', function () {
 add_action('wp_ajax_ukpa_proxy_api', 'ukpa_proxy_api_handler');
 add_action('wp_ajax_nopriv_ukpa_proxy_api', 'ukpa_proxy_api_handler');
 
+function ukpa_proxy_api_handler() {
+    // Accept both JSON and multipart/form-data
+    $route = isset($_POST['route']) ? sanitize_text_field($_POST['route']) : '';
+    $nonce = isset($_POST['nonce']) ? $_POST['nonce'] : '';
+    if (!empty($nonce) && !wp_verify_nonce($nonce, 'ukpa_api_nonce')) {
+        wp_send_json_error(['error' => 'Invalid nonce'], 403);
+    }
+
+    $base_url = get_option('ukpa_api_base_url', 'https://ukpacalculator.com/ana/v1');
+    $url = trailingslashit($base_url) . 'routes/mainRouter/' . ltrim($route, '/');
+
+    // Prepare cURL for file upload
+    $post_fields = [];
+    foreach ($_POST as $key => $value) {
+        if (!in_array($key, ['action', 'route', 'nonce'])) {
+            $post_fields[$key] = $value;
+        }
+    }
+    // Attach file if present
+    if (!empty($_FILES['doc']) && is_uploaded_file($_FILES['doc']['tmp_name'])) {
+        $post_fields['doc'] = new CURLFile($_FILES['doc']['tmp_name'], $_FILES['doc']['type'], $_FILES['doc']['name']);
+    }
+
+    $headers = [];
+    if (!empty($_POST['x-plugin-auth'])) {
+        $headers[] = 'x-plugin-auth: ' . sanitize_text_field($_POST['x-plugin-auth']);
+    }
+
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $post_fields);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+    $response = curl_exec($ch);
+    $err = curl_error($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($err) {
+        wp_send_json_error(['error' => $err], 500);
+    }
+
+    $body = json_decode($response, true);
+
+    wp_send_json_success([
+        'code' => $code,
+        'body' => $body,
+    ]);
+}
+
 // --- AJAX handlers for admin functions ---
 add_action('wp_ajax_ukpa_clear_update_cache', 'ukpa_clear_update_cache_handler');
 

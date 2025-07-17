@@ -1,11 +1,11 @@
 // index.js
 
-// Import functions from the other module files
-import { createPersonalDetailsSection } from './personalDetails.js';
-import { createAddressSection } from './addressDetails.js';
-import { createDocumentDetailsSection } from './documentDetails.js';
-import { toggleNameFields } from './samePersonLogic.js'; // Import the toggleNameFields function
+import { createPersonalDetailsSection, bindPersonalDetailsValidation } from './personalDetails.js';
+import { createAddressSection, bindAddressDetailsValidation } from './addressDetails.js';
+import { createDocumentDetailsSection, hasAtLeastTwoDocumentsSelected } from './documentDetails.js';
 import { collectAndSendFormData } from './collectAndSendFormData.js';
+import { createInfoTooltip } from './tooltip.js';
+import { createFaceVerificationSection } from './faceVerificationSection.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   const setupNumUsers = document.getElementById('setupNumUsers');
@@ -40,8 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (formContainer) formContainer.style.display = '';
     if (pagination) {
       pagination.style.display = '';
-      prevBtn.disabled = false;
-      prevBtn.style.display = '';
     }
     setupStep.style.display = 'none';
 
@@ -63,61 +61,87 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     bindEventsToDynamicElements();
+
+    // Re-select pagination buttons after dynamic form generation
+    prevBtn = document.getElementById('prevBtn');
+    nextBtn = document.getElementById('nextBtn');
+    submitBtn = document.getElementById('submitBtn');
+
+    // Debug logging
+    console.log('generateUserForms: nextBtn:', nextBtn, 'parent:', nextBtn && nextBtn.parentNode);
+    console.log('generateUserForms: prevBtn:', prevBtn, 'parent:', prevBtn && prevBtn.parentNode);
+    console.log('generateUserForms: submitBtn:', submitBtn, 'parent:', submitBtn && submitBtn.parentNode);
+
+    // Defensive: if any button or parent is missing, skip
+    if (!nextBtn || !nextBtn.parentNode || !prevBtn || !prevBtn.parentNode || !submitBtn || !submitBtn.parentNode) {
+      console.warn('One or more pagination buttons or their parent nodes are missing in generateUserForms. Skipping updatePaginationButtons and event binding.');
+      return;
+    }
+
     updatePaginationButtons();
 
-    // Remove previous event listeners by replacing the buttons
-    const newNextBtn = nextBtn.cloneNode(true);
-    nextBtn.parentNode.replaceChild(newNextBtn, nextBtn);
-    nextBtn = newNextBtn;
-    const newPrevBtn = prevBtn.cloneNode(true);
-    prevBtn.parentNode.replaceChild(newPrevBtn, prevBtn);
-    prevBtn = newPrevBtn;
+    // Safely replace nextBtn
+    if (nextBtn && nextBtn.parentNode) {
+      const newNextBtn = nextBtn.cloneNode(true);
+      nextBtn.parentNode.replaceChild(newNextBtn, nextBtn);
+      nextBtn = newNextBtn;
+    }
+    // Safely replace prevBtn
+    if (prevBtn && prevBtn.parentNode) {
+      const newPrevBtn = prevBtn.cloneNode(true);
+      prevBtn.parentNode.replaceChild(newPrevBtn, prevBtn);
+      prevBtn = newPrevBtn;
+    }
 
     // Attach new event listeners
-    nextBtn.addEventListener('click', () => {
-      console.log('Next clicked. currentUserIndex:', currentUserIndex, 'userForms:', userForms.map(f=>f.id));
-      const currentFormSection = userForms[currentUserIndex];
-      // Check validity of all inputs in the current section
-      const allInputs = currentFormSection.querySelectorAll('input');
-      let isValid = true;
-      allInputs.forEach((input) => {
-        if (!input.checkValidity()) {
-          input.reportValidity(); // Shows native browser prompt
-          isValid = false;
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        console.log('Next clicked. currentUserIndex:', currentUserIndex, 'userForms:', userForms.map(f=>f.id));
+        const currentFormSection = userForms[currentUserIndex];
+        // Check validity of all inputs in the current section
+        const allInputs = currentFormSection.querySelectorAll('input');
+        let isValid = true;
+        allInputs.forEach((input) => {
+          if (!input.checkValidity()) {
+            input.reportValidity(); // Shows native browser prompt
+            isValid = false;
+          }
+        });
+        if (!isValid) {
+          return; // Stop if any validation fails
+        }
+        //Proceed to next user section
+        if (currentUserIndex < totalUsers - 1) {
+          userForms[currentUserIndex].style.display = 'none';
+          currentUserIndex++;
+          userForms[currentUserIndex].style.display = 'block';
+          updatePaginationButtons();
         }
       });
-      if (!isValid) {
-        return; // Stop if any validation fails
-      }
-      //Proceed to next user section
-      if (currentUserIndex < totalUsers - 1) {
-        userForms[currentUserIndex].style.display = 'none';
-        currentUserIndex++;
-        userForms[currentUserIndex].style.display = 'block';
-        updatePaginationButtons();
-      }
-    });
+    }
 
-    prevBtn.addEventListener('click', () => {
-      console.log('Prev clicked. currentUserIndex:', currentUserIndex, 'userForms:', userForms.map(f=>f.id));
-      if (currentUserIndex === 0) {
-        // On first user form: go back to setup step
-        if (formContainer) formContainer.style.display = 'none';
-        setupStep.style.display = '';
-        if (pagination) pagination.style.display = 'none';
-      } else if (currentUserIndex > 0) {
-        // On other user forms: go to previous user
-        userForms[currentUserIndex].style.display = 'none';
-        currentUserIndex--;
-        userForms[currentUserIndex].style.display = 'block';
-        updatePaginationButtons();
-        if (pagination) {
-          pagination.style.display = '';
-          prevBtn.disabled = false;
-          prevBtn.style.display = '';
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        console.log('Prev clicked. currentUserIndex:', currentUserIndex, 'userForms:', userForms.map(f=>f.id));
+        if (currentUserIndex === 0) {
+          // On first user form: go back to setup step
+          if (formContainer) formContainer.style.display = 'none';
+          setupStep.style.display = '';
+          if (pagination) pagination.style.display = 'none';
+        } else if (currentUserIndex > 0) {
+          // On other user forms: go to previous user
+          userForms[currentUserIndex].style.display = 'none';
+          currentUserIndex--;
+          userForms[currentUserIndex].style.display = 'block';
+          updatePaginationButtons();
+          if (pagination) {
+            pagination.style.display = '';
+            prevBtn.disabled = false;
+            prevBtn.style.display = '';
+          }
         }
-      }
-    });
+      });
+    }
     console.log('User forms created:', userForms.map(f=>f.id));
   }
 
@@ -142,23 +166,52 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updatePaginationButtons() {
-    prevBtn.disabled = false;
-    nextBtn.disabled = false;
-    if (currentUserIndex === totalUsers - 1) {
-      nextBtn.style.display = 'none';
-      submitBtn.style.display = '';
-    } else {
-      nextBtn.style.display = '';
-      submitBtn.style.display = 'none';
+    // Re-select pagination buttons in case they were replaced
+    prevBtn = document.getElementById('prevBtn');
+    nextBtn = document.getElementById('nextBtn');
+    submitBtn = document.getElementById('submitBtn');
+
+    // Debug logging
+    console.log('updatePaginationButtons: nextBtn:', nextBtn, 'parent:', nextBtn && nextBtn.parentNode);
+    console.log('updatePaginationButtons: prevBtn:', prevBtn, 'parent:', prevBtn && prevBtn.parentNode);
+    console.log('updatePaginationButtons: submitBtn:', submitBtn, 'parent:', submitBtn && submitBtn.parentNode);
+
+    // Defensive: if any button or parent is missing, skip
+    if (!nextBtn || !nextBtn.parentNode || !prevBtn || !prevBtn.parentNode || !submitBtn || !submitBtn.parentNode) {
+      console.warn('One or more pagination buttons or their parent nodes are missing in updatePaginationButtons. Skipping replaceChild and event binding.');
+      return;
     }
 
-    // Remove previous event listeners by replacing the buttons
-    const newNextBtn = nextBtn.cloneNode(true);
-    nextBtn.parentNode.replaceChild(newNextBtn, nextBtn);
-    nextBtn = newNextBtn;
-    console.log('Next button replaced. Is it in DOM?', document.body.contains(nextBtn), 'currentUserIndex:', currentUserIndex);
+    if (prevBtn) prevBtn.disabled = false;
+    if (nextBtn) nextBtn.disabled = false;
+    if (currentUserIndex === totalUsers - 1) {
+      if (nextBtn) nextBtn.style.display = 'none';
+      if (submitBtn) submitBtn.style.display = '';
+    } else {
+      if (nextBtn) nextBtn.style.display = '';
+      if (submitBtn) submitBtn.style.display = 'none';
+    }
 
-    if (currentUserIndex < totalUsers - 1) {
+    // Safely replace nextBtn
+    if (nextBtn && nextBtn.parentNode) {
+      const newNextBtn = nextBtn.cloneNode(true);
+      nextBtn.parentNode.replaceChild(newNextBtn, nextBtn);
+      nextBtn = newNextBtn;
+    }
+    // Safely replace prevBtn
+    if (prevBtn && prevBtn.parentNode) {
+      const newPrevBtn = prevBtn.cloneNode(true);
+      prevBtn.parentNode.replaceChild(newPrevBtn, prevBtn);
+      prevBtn = newPrevBtn;
+    }
+    // Safely replace submitBtn
+    if (submitBtn && submitBtn.parentNode) {
+      const newSubmitBtn = submitBtn.cloneNode(true);
+      submitBtn.parentNode.replaceChild(newSubmitBtn, submitBtn);
+      submitBtn = newSubmitBtn;
+    }
+
+    if (currentUserIndex < totalUsers - 1 && nextBtn) {
       nextBtn.addEventListener('click', () => {
         console.log('Next button clicked. currentUserIndex before increment:', currentUserIndex);
         userForms[currentUserIndex].style.display = 'none';
@@ -168,11 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // Remove previous event listeners by replacing the submit button
-    const newSubmitBtn = submitBtn.cloneNode(true);
-    submitBtn.parentNode.replaceChild(newSubmitBtn, submitBtn);
-    submitBtn = newSubmitBtn;
-    if (currentUserIndex === totalUsers - 1) {
+    if (currentUserIndex === totalUsers - 1 && submitBtn) {
       submitBtn.addEventListener('click', () => {
         collectAndSendFormData(totalUsers);
       });
@@ -295,7 +344,9 @@ class InfoTooltip extends HTMLElement {
     `;
   }
 }
-customElements.define('info-tooltip', InfoTooltip);
+if (!customElements.get('info-tooltip')) {
+  customElements.define('info-tooltip', InfoTooltip);
+}
 
 document.addEventListener('click', (e) => {
   if (e.target && e.target.id === 'nextBtn') {

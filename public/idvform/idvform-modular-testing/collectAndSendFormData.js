@@ -1,6 +1,6 @@
 import { setSubmitOverlayMessage } from './index.js';
 import { uploadedFilesCache } from "../js/helpers/uploadAndExract.js";
-
+// Remove dotenv import and config
 // Helper to get API base URL from environment or fallback
 export function getApiBaseUrl() {
   return 'https://ukpacalculator.com/ana';
@@ -43,13 +43,6 @@ async function uploadDocument(file, docType, userIndex) {
 
   if (result.success) {
     // Return the file info object (matches backend response)
-    uploadedFilesCache.set(cacheKey, {
-      filePath: result.filePath,
-      fileName: result.fileName,
-      link: result.link,
-      storageType: result.storageType,
-      local: result.local
-    });
     return {
       filePath: result.filePath,
       fileName: result.fileName,
@@ -81,6 +74,8 @@ const GROUP_A_INPUT_NAME_MAP = {
   firearms: 'firearmsUpload',
   prado: 'pradoUpload'
 };
+
+
 
 // ✅ Group B map: snake_case → camelCase input name
 const GROUP_B_INPUT_NAME_MAP = {
@@ -213,26 +208,33 @@ export async function collectAndSendFormData(totalUsers) {
       users.push({ personal, address, documents });
     }
 
-    // ✅ Save to backend (WordPress AJAX, not direct API)
-    const formData = { contact, users };
-    const formDataObj = new FormData();
-    formDataObj.append('action', 'ukpa_idv_form_submit');
-    formDataObj.append('nonce', ukpa_idv_form_data.nonce);
-    formDataObj.append('form_data', JSON.stringify(formData));
-
-    const response = await fetch(ukpa_idv_form_data.ajaxurl, {
+    // ✅ Save to backend
+    const saveRes = await fetch(`${getApiBaseUrl()}/v1/routes/mainRouter/ocrUpload/dataSubmit`, {
       method: 'POST',
-      body: formDataObj
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contact, users })
     });
 
-    const result = await response.json();
-    if (result.success) {
-      alert('Form submitted successfully! Submission ID: ' + result.data.submission_id);
-      // Optionally redirect to a thank you page or show success message
-      // window.location.href = '/thank-you';
-    } else {
-      alert('Submission failed: ' + (result.data?.message || 'Unknown error'));
-    }
+    if (!saveRes.ok) throw new Error('Saving form data failed');
+    const saveData = await saveRes.json();
+    const token = saveData.token;
+    if (!token) throw new Error('Missing token from backend');
+
+    // ✅ Create Stripe session
+    const stripeRes = await fetch(`${getApiBaseUrl()}/v1/routes/mainRouter/ocrUpload/create-checkout-session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ users, token })
+    });
+
+    const stripeData = await stripeRes.json();
+    if (!stripeRes.ok || !stripeData.url) throw new Error(stripeData.message || 'Stripe session failed');
+
+    // Update overlay message and remove beforeunload handler before redirect
+    setSubmitOverlayMessage('You will be redirected to the payment method. Please hold on...');
+    window.removeEventListener('beforeunload', window.__submissionBeforeUnloadHandler);
+    window.location.href = stripeData.url;
+
   } catch (err) {
     console.error(err);
     alert(`❌ Error: ${err.message}`);
@@ -248,4 +250,4 @@ function getValue(id) {
 function getRadioValue(name) {
   const checked = document.querySelector(`input[name='${name}']:checked`);
   return checked ? checked.value : '';
-} 
+}

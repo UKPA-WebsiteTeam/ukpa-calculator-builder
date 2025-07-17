@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Face Verification</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2em; }
+    .container { max-width: 400px; margin: auto; padding: 2em; border: 1px solid #ccc; border-radius: 8px; }
+    .info { margin-bottom: 1em; }
+    #cameraPreview { width: 100%; border-radius: 8px; }
+    #stepIndicator { font-weight: bold; margin-bottom: 0.5em; }
+    #instruction { margin-bottom: 1em; color: #012169; font-size: 1.1em; }
+    #captureBtn, #submitBtn, #nextStepBtn { margin-top: 1em; width: 100%; padding: 0.7em; font-size: 1em; }
+    #message { margin-top: 1em; color: green; }
+    #error { margin-top: 1em; color: red; }
+    #faceBox { position: absolute; border: 2px solid #4caf50; pointer-events: none; }
+    .video-container { position: relative; width: 100%; aspect-ratio: 4/3; }
+    #cameraPreview, #faceBox {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      border-radius: 8px;
+      display: block;
+      transform: scaleX(-1); /* Mirror for selfie view */
+    }
+  </style>
+  <!-- Use face-api.js for face detection and landmarks -->
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h2>Face Verification for <span id="userName">...</span></h2>
+    <div class="info">
+      <div>Requested by: <span id="submitterName">...</span></div>
+      <div>Email: <span id="submitterEmail">...</span></div>
+    </div>
+    <div id="stepIndicator">Step 1 of 4</div>
+    <div id="instruction">Please face forward and center your face in the frame.</div>
+    <button id="startVerificationBtn">Start Verification</button>
+    <div class="video-container" style="display:none;">
+      <video id="cameraPreview" autoplay playsinline></video>
+      <canvas id="faceBox" style="display:none;"></canvas>
+    </div>
+    <button id="captureBtn" style="display:none; margin-top:1em; width:100%; padding:0.7em; font-size:1em;">Capture</button>
+    <canvas id="snapshotCanvas" style="display:none;"></canvas>
+    <div id="yawDebug" style="margin: 0.5em 0; color: #888; font-size: 0.95em;"></div>
+    <div id="earDebug" style="margin: 0.5em 0; color: #888; font-size: 0.95em;"></div>
+    <button id="submitBtn" style="display:none;">Submit All</button>
+    <div id="message"></div>
+    <div id="error"></div>
+  </div>
+  <script src="faceVerify.js"></script>
+</body>
+</html> 
