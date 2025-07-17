@@ -95,82 +95,95 @@ function ukpa_clear_update_cache_handler() {
     wp_send_json_success(['message' => 'Update cache cleared successfully']);
 }
 
-// --- AJAX handler for ID verification form submission ---
-add_action('wp_ajax_ukpa_idv_form_submit', 'ukpa_idv_form_submit_handler');
-add_action('wp_ajax_nopriv_ukpa_idv_form_submit', 'ukpa_idv_form_submit_handler');
+// --- Universal AJAX proxy for modular IDV form ---
+add_action('wp_ajax_ukpa_idv_proxy', 'ukpa_idv_proxy_handler');
+add_action('wp_ajax_nopriv_ukpa_idv_proxy', 'ukpa_idv_proxy_handler');
 
-function ukpa_idv_form_submit_handler() {
-    // Verify nonce for security
-    if (!wp_verify_nonce($_POST['nonce'], 'ukpa_idv_form_nonce')) {
+function ukpa_idv_proxy_handler() {
+    // Security: check nonce if provided
+    $nonce = $_POST['nonce'] ?? '';
+    if ($nonce && !wp_verify_nonce($nonce, 'ukpa_idv_form_nonce')) {
         wp_send_json_error(['message' => 'Security check failed']);
     }
-    
-    // Get form data
-    $form_data = json_decode(stripslashes($_POST['form_data']), true);
-    
-    if (!$form_data || !is_array($form_data)) {
-        wp_send_json_error(['message' => 'Invalid form data']);
-    }
-    
-    // Sanitize and validate the data
-    $sanitized_data = [];
-    
-    // Filer information
-    $sanitized_data['filer'] = [
-        'full_name' => sanitize_text_field($form_data['filer']['fullName'] ?? ''),
-        'email' => sanitize_email($form_data['filer']['email'] ?? ''),
+    // Only allow specific endpoints for security
+    $allowed_endpoints = [
+        'ocrExtract',
+        'dataSubmit',
+        'create-checkout-session',
+        'face-verify-info',
+        'face-verify-upload',
+        // add more as needed
     ];
-    
-    // User information
-    $sanitized_data['users'] = [];
-    if (isset($form_data['users']) && is_array($form_data['users'])) {
-        foreach ($form_data['users'] as $user) {
-            $sanitized_user = [
-                'personal_details' => [
-                    'first_name' => sanitize_text_field($user['personalDetails']['firstName'] ?? ''),
-                    'last_name' => sanitize_text_field($user['personalDetails']['lastName'] ?? ''),
-                    'date_of_birth' => sanitize_text_field($user['personalDetails']['dateOfBirth'] ?? ''),
-                    'nationality' => sanitize_text_field($user['personalDetails']['nationality'] ?? ''),
-                    'passport_number' => sanitize_text_field($user['personalDetails']['passportNumber'] ?? ''),
-                ],
-                'address' => [
-                    'street_address' => sanitize_text_field($user['address']['streetAddress'] ?? ''),
-                    'city' => sanitize_text_field($user['address']['city'] ?? ''),
-                    'postal_code' => sanitize_text_field($user['address']['postalCode'] ?? ''),
-                    'country' => sanitize_text_field($user['address']['country'] ?? ''),
-                ],
-                'documents' => [
-                    'document_type_1' => sanitize_text_field($user['documents']['documentType1'] ?? ''),
-                    'document_type_2' => sanitize_text_field($user['documents']['documentType2'] ?? ''),
-                    'document_1_uploaded' => !empty($user['documents']['document1Uploaded']),
-                    'document_2_uploaded' => !empty($user['documents']['document2Uploaded']),
-                ]
-            ];
-            $sanitized_data['users'][] = $sanitized_user;
-        }
+    $endpoint = sanitize_text_field($_POST['endpoint'] ?? '');
+    if (!in_array($endpoint, $allowed_endpoints, true)) {
+        wp_send_json_error(['message' => 'Invalid or disallowed endpoint']);
     }
-    
-    // Store the form submission (you can modify this to send to your backend API)
-    $submission_id = 'idv_' . time() . '_' . wp_generate_password(8, false);
-    $success = update_option('ukpa_idv_submission_' . $submission_id, $sanitized_data);
-    
-    if ($success) {
-        // You can add email notification here
-        $admin_email = get_option('admin_email');
-        $subject = 'New ID Verification Form Submission';
-        $message = "A new ID verification form has been submitted.\n\n";
-        $message .= "Submission ID: " . $submission_id . "\n";
-        $message .= "Filer: " . $sanitized_data['filer']['full_name'] . " (" . $sanitized_data['filer']['email'] . ")\n";
-        $message .= "Number of users: " . count($sanitized_data['users']) . "\n\n";
-        $message .= "View submission details in WordPress admin.";
-        
-        wp_mail($admin_email, $subject, $message);
-        
+    $base_url = 'https://ukpacalculator.com/ana/v1/routes/mainRouter/ocrUpload/';
+    $target_url = $base_url . $endpoint;
+
+    // Special handling for file upload endpoints
+    if ($endpoint === 'ocrExtract') {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $target_url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        // Build multipart data from $_FILES and $_POST
+        $postFields = [];
+        foreach ($_POST as $key => $value) {
+            if (!in_array($key, ['action', 'endpoint', 'nonce', 'method'])) {
+                $postFields[$key] = $value;
+            }
+        }
+        if (isset($_FILES['doc'])) {
+            $postFields['doc'] = new CURLFile($_FILES['doc']['tmp_name'], $_FILES['doc']['type'], $_FILES['doc']['name']);
+        }
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postFields);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $response = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        if (curl_errno($ch)) {
+            error_log('OCR Proxy cURL error: ' . curl_error($ch));
+            wp_send_json_error(['message' => curl_error($ch)]);
+        }
+        error_log('OCR Proxy cURL response: ' . print_r($response, true));
+        if (!$response) {
+            error_log('OCR Proxy: Empty response from Node backend');
+        }
+        curl_close($ch);
         wp_send_json_success([
-            'message' => 'Form submitted successfully',
-            'submission_id' => $submission_id
+            'status' => $http_code,
+            'body' => $response,
         ]);
+        return;
+    }
+
+    // Default: JSON endpoints (e.g., dataSubmit, create-checkout-session, etc.)
+    $payload = isset($_POST['payload']) ? wp_unslash($_POST['payload']) : '';
+    $method = isset($_POST['method']) ? strtoupper(sanitize_text_field($_POST['method'])) : 'POST';
+    $args = [
+        'method' => $method,
+        'headers' => [
+            'Content-Type' => 'application/json',
+        ],
+        'body' => $payload, // This is already a JSON string from the frontend
+        'timeout' => 30,
+    ];
+    $response = wp_remote_request($target_url, $args);
+    if (is_wp_error($response)) {
+        error_log('Proxy error for endpoint ' . $endpoint . ': ' . $response->get_error_message());
+        wp_send_json_error(['message' => $response->get_error_message()]);
+    }
+    $body = wp_remote_retrieve_body($response);
+    $code = wp_remote_retrieve_response_code($response);
+    error_log('Proxy response for endpoint ' . $endpoint . ': ' . print_r($body, true));
+    // Try to decode as JSON and return cleanly
+    $decoded = json_decode($body, true);
+    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+        wp_send_json($decoded);
     } else {
-        wp_send_json_error(['message' => 'Failed to save form submission']);
+        // Fallback: send raw
+        wp_send_json_success([
+            'status' => $code,
+            'body' => $body,
+        ]);
     }
 }

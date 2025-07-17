@@ -31,11 +31,11 @@ require_once UKPA_CALC_PATH . 'includes/menu.php';
 require_once UKPA_CALC_PATH . 'includes/ajax.php';
 require_once UKPA_CALC_PATH . 'admin/init/init.php';
 require_once UKPA_CALC_PATH . 'includes/shortcodes.php';
-require_once UKPA_CALC_PATH . 'includes/idv-form-shortcode.php';
 require_once UKPA_CALC_PATH . 'includes/dashboard-frontend.php';
 require_once UKPA_CALC_PATH . 'includes/unified-save.php';
 require_once UKPA_CALC_PATH . 'includes/custom-assets-injector.php';
 require_once UKPA_CALC_PATH . 'includes/auto-updater.php';
+require_once UKPA_CALC_PATH . 'includes/idv-form-shortcode.php';
 
 // Initialize the auto updater with the correct plugin file path
 new UKPA_Auto_Updater(__FILE__);
