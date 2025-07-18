@@ -3,7 +3,7 @@
  * Plugin Name: UKPA Calculator Builder
  * Plugin URI: http://localhost/calculator-builder
  * Description: Create advanced HTMX-powered calculators for property and accounting scenarios using a flexible drag-and-drop builder. Supports custom inputs, conditional logic, result displays, and easy shortcode integration for any page.
- * Version: 1.1.4
+ * Version: 1.1.5
  * Author: Abishek Patel
  * Author URI: http://localhost
  * License: GPLv2 or later
