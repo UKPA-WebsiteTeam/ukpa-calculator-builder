@@ -118,7 +118,8 @@ function ukpa_idv_proxy_handler() {
     if (!in_array($endpoint, $allowed_endpoints, true)) {
         wp_send_json_error(['message' => 'Invalid or disallowed endpoint']);
     }
-    $base_url = 'https://ukpacalculator.com/ana/v1/routes/mainRouter/ocrUpload/';
+    // the server url which is used to proxy the api calls
+    $base_url = 'http://localhost:3002/ana/v1/routes/mainRouter/ocrUpload/';
     $target_url = $base_url . $endpoint;
 
     // Special handling for file upload endpoints

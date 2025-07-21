@@ -137,6 +137,28 @@ const GROUP_B_INPUT_NAME_MAP = {
   tax_statement: 'councilTaxUpload',
 };
 
+// --- Persist uploadedFilesCache in localStorage ---
+function saveCacheToLocalStorage() {
+  const obj = {};
+  for (const [key, value] of uploadedFilesCache.entries()) {
+    obj[key] = value;
+  }
+  localStorage.setItem('ukpa_uploadedFilesCache', JSON.stringify(obj));
+}
+function loadCacheFromLocalStorage() {
+  const str = localStorage.getItem('ukpa_uploadedFilesCache');
+  if (str) {
+    try {
+      const obj = JSON.parse(str);
+      for (const key in obj) {
+        uploadedFilesCache.set(key, obj[key]);
+      }
+    } catch (e) { /* ignore */ }
+  }
+}
+// Restore cache on page load
+loadCacheFromLocalStorage();
+
 export async function collectAndSendFormData(totalUsers) {
   try {
     const contact = {
@@ -145,6 +167,7 @@ export async function collectAndSendFormData(totalUsers) {
     };
 
     const users = [];
+    const filesToUpload = [];
 
     for (let i = 1; i <= totalUsers; i++) {
       const personal = {
@@ -174,95 +197,87 @@ export async function collectAndSendFormData(totalUsers) {
         postcode: getValue(`postcode-${i}`)
       };
       const proofInput = document.getElementById(`proofOfAddress-${i}`);
-        let proofOfAddressDriveFile = null;
-        if (proofInput && proofInput.files && proofInput.files[0]) {
-          proofOfAddressDriveFile = await uploadDocument(proofInput.files[0], 'proofOfAddress', i);
-          if (!proofOfAddressDriveFile) throw new Error('Upload failed for proof of address');
-        }
-        address.proofOfAddress = proofOfAddressDriveFile;
-      
-      const uploadedFiles = {}; // One upload per unique input
+      let proofOfAddressDriveFile = null;
+      if (proofInput && proofInput.files && proofInput.files[0]) {
+        filesToUpload.push({
+          field: `proofOfAddress-${i}`,
+          file: proofInput.files[0]
+        });
+        proofOfAddressDriveFile = { name: proofInput.files[0].name };
+      }
+      address.proofOfAddress = proofOfAddressDriveFile;
 
       const groupAUploads = [];
       const groupBUploads = [];
 
-      // ✅ GROUP A with map
+      // GROUP A
       for (const cb of document.querySelectorAll(`.groupA-checkbox[id$='-${i}']:checked`)) {
         const inputName = GROUP_A_INPUT_NAME_MAP[cb.value];
         if (!inputName) {
           throw new Error(`No mapping for Group A doc: ${cb.value}`);
         }
-
         const inputId = `${inputName}-${i}`;
         const fileInput = document.getElementById(inputId);
-
         if (!fileInput || !fileInput.files[0]) {
           throw new Error(`Missing file for ${cb.value}`);
         }
-
-        if (!uploadedFiles[inputName]) {
-          const driveFile = await uploadDocument(fileInput.files[0], cb.value, i);
-          if (!driveFile) throw new Error(`Upload failed for ${cb.value}`);
-          uploadedFiles[inputName] = driveFile;
-        }
-
+        filesToUpload.push({
+          field: `${inputName}-${i}`,
+          file: fileInput.files[0]
+        });
         groupAUploads.push({
           type: cb.value,
-          driveFile: uploadedFiles[inputName]
+          driveFile: { name: fileInput.files[0].name }
         });
       }
-
-      // ✅ GROUP B with map
+      // GROUP B
       for (const cb of document.querySelectorAll(`.groupB-checkbox[id$='-${i}']:checked`)) {
         const inputName = GROUP_B_INPUT_NAME_MAP[cb.value];
         if (!inputName) {
           throw new Error(`No mapping for Group B doc: ${cb.value}`);
         }
-
         const inputId = `${inputName}-${i}`;
         const fileInput = document.getElementById(inputId);
-
         if (!fileInput || !fileInput.files[0]) {
           throw new Error(`Missing file for ${cb.value}`);
         }
-
-        if (!uploadedFiles[inputName]) {
-          const driveFile = await uploadDocument(fileInput.files[0], cb.value, i);
-          if (!driveFile) throw new Error(`Upload failed for ${cb.value}`);
-          uploadedFiles[inputName] = driveFile;
-        }
-
+        filesToUpload.push({
+          field: `${inputName}-${i}`,
+          file: fileInput.files[0]
+        });
         groupBUploads.push({
           type: cb.value,
-          driveFile: uploadedFiles[inputName]
+          driveFile: { name: fileInput.files[0].name }
         });
       }
-
       const documents = {
         groupA: groupAUploads,
         groupB: groupBUploads,
         confirmDocs: document.getElementById(`confirmDocs-${i}`)?.checked || false
       };
-
-      // Require confirmDocs checkbox to be checked
       const confirmCheckbox = document.getElementById(`confirmDocs-${i}`);
       if (!confirmCheckbox || !confirmCheckbox.checked) {
         alert('You must confirm that the above information is true and you will provide the documents as requested.');
         confirmCheckbox && confirmCheckbox.scrollIntoView({ behavior: 'smooth', block: 'center' });
         throw new Error('Confirmation checkbox not checked for user ' + i);
       }
-
       users.push({ personal, address, documents });
     }
 
-    // --- Submit to backend via proxy ---
-    const formPayload = { contact, users };
-    console.log('[collectAndSendFormData] Submitting formPayload:', formPayload);
-    const saveRes = await proxyToBackend(
-      'dataSubmit',
-      formPayload,
-      'POST'
-    );
+    // --- Submit to backend via FormData ---
+    const formData = new FormData();
+    formData.append('contact', JSON.stringify(contact));
+    formData.append('users', JSON.stringify(users));
+    for (const fileObj of filesToUpload) {
+      formData.append(fileObj.field, fileObj.file);
+    }
+    // Directly POST to Node.js backend for file upload
+    const response = await fetch('http://localhost:3002/ana/v1/routes/mainRouter/ocrUpload/dataSubmit', {
+      method: 'POST',
+      body: formData,
+      credentials: 'include'
+    });
+    const saveRes = await response.json();
     console.log('[collectAndSendFormData] dataSubmit response:', saveRes);
     // Robustly parse the response to extract token
     let saveResParsed = saveRes;
