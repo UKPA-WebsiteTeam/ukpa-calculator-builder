@@ -15,7 +15,6 @@ function render_ukpa_modular_idv_form_shortcode($atts = []) {
     // Correct plugin URL
     $plugin_url = plugin_dir_url(__DIR__);
 
-    // Enqueue modular CSS
     wp_enqueue_style(
         'ukpa-idvformstyle',
         $plugin_url . 'public/css/idvformstyle.css',
@@ -49,7 +48,7 @@ function render_ukpa_modular_idv_form_shortcode($atts = []) {
 
     ob_start();
     ?>
-    <div id="ukpa-idv-form-container" data-form-id="<?php echo esc_attr($form_id); ?>"></div>
+    <div id="ukpa-idv-form-container" class="custom_forms" data-form-id="<?php echo esc_attr($form_id); ?>"></div>
     <?php
     return ob_get_clean();
 } 

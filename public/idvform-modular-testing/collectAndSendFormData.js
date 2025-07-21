@@ -3,7 +3,7 @@ import { uploadedFilesCache } from "../js/helpers/uploadAndExract.js";
 // Remove dotenv import and config
 // Helper to get API base URL from environment or fallback
 export function getApiBaseUrl() {
-  return 'http://localhost:3002/ana';
+  return 'https://ukpacalculator.com/ana';
 }
 
 // --- Helper to send requests via WP proxy ---
@@ -272,7 +272,7 @@ export async function collectAndSendFormData(totalUsers) {
       formData.append(fileObj.field, fileObj.file);
     }
     // Directly POST to Node.js backend for file upload
-    const response = await fetch('http://localhost:3002/ana/v1/routes/mainRouter/ocrUpload/dataSubmit', {
+    const response = await fetch('https://ukpacalculator.com/ana/v1/routes/mainRouter/ocrUpload/dataSubmit', {
       method: 'POST',
       body: formData,
       credentials: 'include'
