@@ -119,72 +119,73 @@ function ukpa_idv_proxy_handler() {
         wp_send_json_error(['message' => 'Invalid or disallowed endpoint']);
     }
     // the server url which is used to proxy the api calls
-    $base_url = 'https://ukpacalculator.com/ana/v1/routes/mainRouter/ocrUpload/';
+    if ( function_exists('ukpa_get_api_url') ) {
+        $base_url = rtrim(ukpa_get_api_url(), '/') . '/v1/routes/mainRouter/ocrUpload/';
+    } else {
+        wp_send_json_error(['message' => 'API base URL function not found. Please ensure ukpa_get_api_url() is defined.']);
+    }
     $target_url = $base_url . $endpoint;
+    // Debug: Log the target URL and payload
+    error_log('UKPA Proxy: Target URL: ' . $target_url);
+    if (isset($_POST['payload'])) {
+        error_log('UKPA Proxy: Payload: ' . print_r($_POST['payload'], true));
+    }
 
-    // Special handling for file upload endpoints
-    if ($endpoint === 'ocrExtract') {
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $target_url);
-        curl_setopt($ch, CURLOPT_POST, true);
-        // Build multipart data from $_FILES and $_POST
-        $postFields = [];
-        foreach ($_POST as $key => $value) {
-            if (!in_array($key, ['action', 'endpoint', 'nonce', 'method'])) {
-                $postFields[$key] = $value;
-            }
+    // Special handling: For create-checkout-session, forward as JSON
+    if ($endpoint === 'create-checkout-session') {
+        $payload = isset($_POST['payload']) ? wp_unslash($_POST['payload']) : '';
+        $args = [
+            'method' => 'POST',
+            'headers' => [
+                'Content-Type' => 'application/json',
+            ],
+            'body' => $payload,
+            'timeout' => 30,
+        ];
+        $response = wp_remote_request($target_url, $args);
+        if (is_wp_error($response)) {
+            error_log('Proxy error for endpoint ' . $endpoint . ': ' . $response->get_error_message());
+            wp_send_json_error(['message' => $response->get_error_message()]);
         }
-        if (isset($_FILES['doc'])) {
-            $postFields['doc'] = new CURLFile($_FILES['doc']['tmp_name'], $_FILES['doc']['type'], $_FILES['doc']['name']);
+        $body = wp_remote_retrieve_body($response);
+        $code = wp_remote_retrieve_response_code($response);
+        error_log('Proxy response for endpoint ' . $endpoint . ': ' . print_r($body, true));
+        $decoded = json_decode($body, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            wp_send_json($decoded);
+        } else {
+            wp_send_json_success([
+                'status' => $code,
+                'body' => $body,
+            ]);
         }
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $postFields);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        $response = curl_exec($ch);
-        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        if (curl_errno($ch)) {
-            error_log('OCR Proxy cURL error: ' . curl_error($ch));
-            wp_send_json_error(['message' => curl_error($ch)]);
-        }
-        error_log('OCR Proxy cURL response: ' . print_r($response, true));
-        if (!$response) {
-            error_log('OCR Proxy: Empty response from Node backend');
-        }
-        curl_close($ch);
-        wp_send_json_success([
-            'status' => $http_code,
-            'body' => $response,
-        ]);
         return;
     }
-
-    // Default: JSON endpoints (e.g., dataSubmit, create-checkout-session, etc.)
-    $payload = isset($_POST['payload']) ? wp_unslash($_POST['payload']) : '';
-    $method = isset($_POST['method']) ? strtoupper(sanitize_text_field($_POST['method'])) : 'POST';
-    $args = [
-        'method' => $method,
-        'headers' => [
-            'Content-Type' => 'application/json',
-        ],
-        'body' => $payload, // This is already a JSON string from the frontend
-        'timeout' => 30,
-    ];
-    $response = wp_remote_request($target_url, $args);
-    if (is_wp_error($response)) {
-        error_log('Proxy error for endpoint ' . $endpoint . ': ' . $response->get_error_message());
-        wp_send_json_error(['message' => $response->get_error_message()]);
+    // For all other endpoints, use multipart/form-data via cURL
+    $postFields = [];
+    foreach ($_POST as $key => $value) {
+        if (!in_array($key, ['action', 'endpoint', 'nonce', 'method'])) {
+            $postFields[$key] = $value;
+        }
     }
-    $body = wp_remote_retrieve_body($response);
-    $code = wp_remote_retrieve_response_code($response);
-    error_log('Proxy response for endpoint ' . $endpoint . ': ' . print_r($body, true));
-    // Try to decode as JSON and return cleanly
-    $decoded = json_decode($body, true);
-    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-        wp_send_json($decoded);
-    } else {
-        // Fallback: send raw
-        wp_send_json_success([
-            'status' => $code,
-            'body' => $body,
-        ]);
+    foreach ($_FILES as $key => $file) {
+        $postFields[$key] = new CURLFile($file['tmp_name'], $file['type'], $file['name']);
     }
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $target_url);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $postFields);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    if (curl_errno($ch)) {
+        error_log('Proxy cURL error: ' . curl_error($ch));
+        wp_send_json_error(['message' => curl_error($ch)]);
+    }
+    curl_close($ch);
+    wp_send_json_success([
+        'status' => $http_code,
+        'body' => $response,
+    ]);
+    return;
 }

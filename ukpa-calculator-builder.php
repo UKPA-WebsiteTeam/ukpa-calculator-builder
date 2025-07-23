@@ -202,3 +202,22 @@ function ukpa_proxy_api_handler() {
         'body' => json_decode($body, true),
     ]);
 }
+
+// Global API URL constants
+if ( ! defined( 'UKPA_CALC_LOCAL_API_URL' ) ) {
+    define( 'UKPA_CALC_LOCAL_API_URL', 'http://localhost:3002/ana' );
+}
+if ( ! defined( 'UKPA_CALC_LIVE_API_URL' ) ) {
+    define( 'UKPA_CALC_LIVE_API_URL', 'https://ukpacalculator.com/ana' );
+}
+
+// Helper function to get the correct API URL
+if ( ! function_exists( 'ukpa_get_api_url' ) ) {
+    function ukpa_get_api_url() {
+        // Use local if WP_DEBUG is true, otherwise use live
+        if ( defined('WP_DEBUG') && WP_DEBUG ) {
+            return UKPA_CALC_LOCAL_API_URL;
+        }
+        return UKPA_CALC_LIVE_API_URL;
+    }
+}

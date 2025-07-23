@@ -1,11 +1,6 @@
 import { setSubmitOverlayMessage } from './index.js';
 import { uploadedFilesCache } from "../js/helpers/uploadAndExract.js";
 // Remove dotenv import and config
-// Helper to get API base URL from environment or fallback
-export function getApiBaseUrl() {
-  return 'https://ukpacalculator.com/ana';
-}
-
 // --- Helper to send requests via WP proxy ---
 export async function proxyToBackend(endpoint, payload, method = 'POST') {
   const response = await fetch(window.ukpa_idv_form_data.ajaxurl, {
@@ -169,6 +164,18 @@ export async function collectAndSendFormData(totalUsers) {
     const users = [];
     const filesToUpload = [];
 
+    // Debug logging
+    console.log('DEBUG: Contact before submit:', contact);
+    console.log('DEBUG: totalUsers at submit:', totalUsers);
+    if (!contact.filerFullName || !contact.filerEmail) {
+      alert('❌ Please fill in your full name and email before submitting.');
+      throw new Error('Missing filerFullName or filerEmail');
+    }
+    if (!totalUsers || isNaN(totalUsers) || totalUsers < 1) {
+      alert('❌ Number of users is not set or invalid.');
+      throw new Error('Invalid totalUsers');
+    }
+
     for (let i = 1; i <= totalUsers; i++) {
       const personal = {
         firstName: getValue(`firstName-${i}`),
@@ -225,9 +232,16 @@ export async function collectAndSendFormData(totalUsers) {
           field: `${inputName}-${i}`,
           file: fileInput.files[0]
         });
+        // Collect all document details, not just file name
         groupAUploads.push({
           type: cb.value,
-          driveFile: { name: fileInput.files[0].name }
+          driveFile: { name: fileInput.files[0].name },
+          // Add all other fields for this document
+          docNumber: getValue(`docNumber-${cb.value}-${i}`),
+          expiry: getValue(`expiry-${cb.value}-${i}`),
+          issueDate: getValue(`issueDate-${cb.value}-${i}`),
+          issuingCountry: getValue(`issuingCountry-${cb.value}-${i}`),
+          // Add more fields as needed
         });
       }
       // GROUP B
@@ -245,9 +259,15 @@ export async function collectAndSendFormData(totalUsers) {
           field: `${inputName}-${i}`,
           file: fileInput.files[0]
         });
+        // Collect all document details, not just file name
         groupBUploads.push({
           type: cb.value,
-          driveFile: { name: fileInput.files[0].name }
+          driveFile: { name: fileInput.files[0].name },
+          docNumber: getValue(`docNumber-${cb.value}-${i}`),
+          expiry: getValue(`expiry-${cb.value}-${i}`),
+          issueDate: getValue(`issueDate-${cb.value}-${i}`),
+          issuingCountry: getValue(`issuingCountry-${cb.value}-${i}`),
+          // Add more fields as needed
         });
       }
       const documents = {
@@ -262,20 +282,28 @@ export async function collectAndSendFormData(totalUsers) {
         throw new Error('Confirmation checkbox not checked for user ' + i);
       }
       users.push({ personal, address, documents });
+      console.log(`DEBUG: User ${i} personal:`, personal);
+      console.log(`DEBUG: User ${i} address:`, address);
+      console.log(`DEBUG: User ${i} documents:`, documents);
     }
+    // After loop, log the final users array
+    console.log('DEBUG: Final users array before submit:', users);
 
-    // --- Submit to backend via FormData ---
+    // --- Submit to backend via WP AJAX proxy ---
     const formData = new FormData();
+    formData.append('action', 'ukpa_idv_proxy');
+    formData.append('nonce', window.ukpa_idv_form_data.nonce);
+    formData.append('endpoint', 'dataSubmit');
+    formData.append('method', 'POST');
     formData.append('contact', JSON.stringify(contact));
     formData.append('users', JSON.stringify(users));
     for (const fileObj of filesToUpload) {
       formData.append(fileObj.field, fileObj.file);
     }
-    // Directly POST to Node.js backend for file upload
-    const response = await fetch('https://ukpacalculator.com/ana/v1/routes/mainRouter/ocrUpload/dataSubmit', {
+    const response = await fetch(window.ukpa_idv_form_data.ajaxurl, {
       method: 'POST',
       body: formData,
-      credentials: 'include'
+      credentials: 'same-origin'
     });
     const saveRes = await response.json();
     console.log('[collectAndSendFormData] dataSubmit response:', saveRes);
