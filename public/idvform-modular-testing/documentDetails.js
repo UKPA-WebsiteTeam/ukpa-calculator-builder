@@ -3,7 +3,7 @@ import { uploadAndExtract, uploadedFilesCache } from "../js/helpers/uploadAndExr
 import { proxyToBackend } from './collectAndSendFormData.js';
 import { loadCountries } from '../js/helpers/loadCountries.js';
 // Full Group A and Group B document lists from idvform-ocr.html
-const groupADocuments = [
+export const groupADocuments = [
   { id: 'passport', label: 'Passport', details: [
     { type: 'file', name: 'passportUpload', label: 'Upload Document', required: true, accept: '.jpg,.jpeg,.png,.pdf' },
     { type: 'text', name: 'passportNumber', label: 'Passport Number', required: true },

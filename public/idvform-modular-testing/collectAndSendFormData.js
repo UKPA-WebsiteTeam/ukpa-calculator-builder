@@ -1,5 +1,6 @@
 import { setSubmitOverlayMessage } from './index.js';
 import { uploadedFilesCache } from "../js/helpers/uploadAndExract.js";
+import { groupADocuments } from './documentDetails.js'; // <-- Import groupADocuments for field mapping
 // Remove dotenv import and config
 // --- Helper to send requests via WP proxy ---
 export async function proxyToBackend(endpoint, payload, method = 'POST') {
@@ -232,17 +233,21 @@ export async function collectAndSendFormData(totalUsers) {
           field: `${inputName}-${i}`,
           file: fileInput.files[0]
         });
-        // Collect all document details, not just file name
-        groupAUploads.push({
-          type: cb.value,
-          driveFile: { name: fileInput.files[0].name },
-          // Add all other fields for this document
-          docNumber: getValue(`docNumber-${cb.value}-${i}`),
-          expiry: getValue(`expiry-${cb.value}-${i}`),
-          issueDate: getValue(`issueDate-${cb.value}-${i}`),
-          issuingCountry: getValue(`issuingCountry-${cb.value}-${i}`),
-          // Add more fields as needed
-        });
+        // Find the doc definition in groupADocuments
+        const docDef = groupADocuments.find(d => d.id === cb.value);
+        const detailsObj = { type: cb.value, driveFile: { name: fileInput.files[0].name } };
+        if (docDef && Array.isArray(docDef.details)) {
+          docDef.details.forEach(field => {
+            // Compose the input name as in the DOM
+            const fieldInputName = `${field.name}-${i}`;
+            // For file, skip (already handled)
+            if (field.type === 'file') return;
+            detailsObj[field.name] = getValue(fieldInputName);
+          });
+        }
+        // Debug log: print all collected values for this document
+        console.log(`[DEBUG] GroupA Doc Collected for user ${i}, type ${cb.value}:`, detailsObj);
+        groupAUploads.push(detailsObj);
       }
       // GROUP B
       for (const cb of document.querySelectorAll(`.groupB-checkbox[id$='-${i}']:checked`)) {
