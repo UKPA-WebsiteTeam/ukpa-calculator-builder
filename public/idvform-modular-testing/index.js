@@ -5,7 +5,7 @@ import { createAddressSection, bindAddressDetailsValidation } from './addressDet
 import { createDocumentDetailsSection, hasAtLeastTwoDocumentsSelected } from './documentDetails.js';
 import { collectAndSendFormData } from './collectAndSendFormData.js';
 import { createInfoTooltip } from './tooltip.js';
-import { createFaceVerificationSection } from './faceVerificationSection.js';
+// import { createFaceVerificationSection } from './faceVerificationSection.js';
 
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -283,9 +283,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const displayName = userNames[i-1] || `User ${i}`;
       userSection.appendChild(createPersonalDetailsSection(i, displayName));
-      userSection.appendChild(createFaceVerificationSection(i, displayName));
       userSection.appendChild(createAddressSection(i, displayName));
       userSection.appendChild(createDocumentDetailsSection(i, displayName));
+      // Add hidden remoteFaceVerification checkbox
+      const hiddenRemoteCheckbox = document.createElement('input');
+      hiddenRemoteCheckbox.type = 'checkbox';
+      hiddenRemoteCheckbox.id = `remoteFaceVerification-${i}`;
+      hiddenRemoteCheckbox.name = `remoteFaceVerification-${i}`;
+      hiddenRemoteCheckbox.checked = true;
+      hiddenRemoteCheckbox.style.display = 'none';
+      userSection.appendChild(hiddenRemoteCheckbox);
 
       if (i !== 1) {
         userSection.style.display = 'none';

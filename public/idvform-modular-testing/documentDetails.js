@@ -139,23 +139,59 @@ const documentInputState = {};
 // Cache for file input DOM nodes and previews
 const fileInputDOMCache = new Map(); // Will now use `${doc.id}-${userId}` as key
 
-// Helper for expiry date validation
+// Helper for expiry date validation (modular)
+function getExpiryValidationRule(fieldName) {
+  if (fieldName.startsWith('passportExpiry') || fieldName.startsWith('driving_licenseExpiry')) {
+    return function(selectedDate, today) {
+      const sixMonthsAgo = new Date(today);
+      sixMonthsAgo.setMonth(today.getMonth() - 6);
+      if (selectedDate < sixMonthsAgo) {
+        return {
+          valid: false,
+          message: 'Expiry date cannot be more than 6 months in the past.'
+        };
+      }
+      return { valid: true };
+    };
+  }
+  return function() { return { valid: true }; };
+}
+
+// Robust date parser for OCR/user input
+function parseDateFlexible(value) {
+  if (!value) return new Date('invalid');
+  // Try ISO (yyyy-mm-dd)
+  let d = new Date(value);
+  if (!isNaN(d)) return d;
+  // Try dd/mm/yyyy or dd-mm-yyyy
+  const dmY = /^([0-3]?\d)[\/\-]([0-1]?\d)[\/\-](\d{4})$/;
+  let m = value.match(dmY);
+  if (m) return new Date(`${m[3]}-${m[2]}-${m[1]}`);
+  // Try yyyymmdd
+  const ymd = /^(\d{4})(\d{2})(\d{2})$/;
+  m = value.match(ymd);
+  if (m) return new Date(`${m[1]}-${m[2]}-${m[3]}`);
+  // Try d M Y (flatpickr)
+  const dMY = /^([0-3]?\d) (\w{3}) (\d{4})$/;
+  m = value.match(dMY);
+  if (m) return new Date(`${m[3]}-${m[2]}-${m[1]}`);
+  // Fallback: invalid
+  return new Date('invalid');
+}
+
 function validateExpiryDate(input, errorContainer) {
   const value = input.value;
   errorContainer.textContent = '';
   input.classList.remove('invalid-expiry');
   if (!value) return true;
-  const selectedDate = new Date(value);
+  const selectedDate = parseDateFlexible(value);
   const today = new Date();
   today.setHours(0,0,0,0);
-
-  // Calculate 6 months ago
-  const sixMonthsAgo = new Date(today);
-  sixMonthsAgo.setMonth(today.getMonth() - 6);
-
-  // If date is older than 6 months ago, show error
-  if (selectedDate < sixMonthsAgo) {
-    errorContainer.textContent = 'The date of expiry can not be more than 6 months old.';
+  // Get the rule for this field
+  const rule = getExpiryValidationRule(input.name);
+  const result = rule(selectedDate, today);
+  if (!result.valid) {
+    errorContainer.textContent = result.message || 'Invalid expiry date.';
     input.classList.add('invalid-expiry');
     return false;
   }
@@ -173,6 +209,7 @@ export function createDocumentDetailsSection(userId, displayName) {
     <div style="margin:1em 0;"><b>Documents selected: <span id="docCount-${userId}">0</span> of 2</b></div>
     <fieldset style="margin-bottom:2em;width:100%;box-sizing:border-box;padding:1.5em 1.5em 1em 1.5em;border:2px solid #ccc;">
       <legend>Group A Documents</legend>
+      <div style="margin-bottom:1em; color:#012169; font-weight:500; background:#f5f7fa; border-radius:6px; padding:0.7em 1em;">A face verification link will be sent via email in order to verify the identity of the individual.</div>
       <div class="dropdown-container" style="width:100%;box-sizing:border-box;">
         <button type="button" id="toggle-groupA-${userId}" class="dropdown-btn" style="margin-bottom:0.5em;width:100%;text-align:left; border:1px solid #ddd; background:#fff;display:flex;align-items:center;justify-content:space-between;">
           <span id="groupA-label-text-${userId}" style="color:#000;">Select (maximum two) documents</span>
@@ -454,7 +491,6 @@ export function createDocumentDetailsSection(userId, displayName) {
       // Add expiry validation if this is an expiry date field
       if (field.name.toLowerCase().includes('expiry')) {
         input.classList.add('expiry-date-input');
-        // Set min attribute to 3 months from today
         const today = new Date();
         today.setHours(0,0,0,0);
         const errorContainer = document.createElement('div');
@@ -462,24 +498,27 @@ export function createDocumentDetailsSection(userId, displayName) {
         errorContainer.style.color = '#b00';
         errorContainer.style.fontSize = '0.95em';
         errorContainer.style.marginTop = '2px';
-        input.addEventListener('change', function() {
-          validateExpiryDate(input, errorContainer);
-        });
-        // Validate on initial render if value is present (e.g. after extraction)
+        function validateAndShowExpiry() {
+          const valid = validateExpiryDate(input, errorContainer);
+          if (!valid) {
+            input.setCustomValidity(errorContainer.textContent || 'Invalid expiry date.');
+            input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          } else {
+            input.setCustomValidity('');
+          }
+        }
+        input.addEventListener('input', validateAndShowExpiry);
+        input.addEventListener('change', validateAndShowExpiry);
         setTimeout(() => {
-          if (input.value) validateExpiryDate(input, errorContainer);
+          if (input.value) validateAndShowExpiry();
         }, 0);
-        
-        // === FLATPICKR INITIALISATION ===
         flatpickr(input, {
           dateFormat: "d M Y",
           allowInput: true,
           onClose: function(selectedDates, dateStr, instance) {
-            validateExpiryDate(input, errorContainer);
+            validateAndShowExpiry();
           }
         });
-        // === END FLATPICKR INITIALISATION ===
-
         label.appendChild(input);
         label.appendChild(errorContainer);
         fieldset.appendChild(label);

@@ -134,6 +134,54 @@ export function bindPersonalDetailsValidation(userId) {
       }
     });
   }
+
+  // Date of Birth validation: must not be today or in the future
+  const dobInput = document.getElementById(`dob-${userId}`);
+  if (dobInput) {
+    // Create error message element
+    let dobError = document.createElement('div');
+    dobError.id = `dob-error-${userId}`;
+    dobError.style.color = '#b00';
+    dobError.style.fontSize = '0.95em';
+    dobError.style.marginTop = '0.2em';
+    dobError.style.display = 'none';
+    dobInput.parentNode.appendChild(dobError);
+
+    function validateDob() {
+      dobInput.setCustomValidity('');
+      dobInput.classList.remove('invalid', 'valid');
+      dobError.style.display = 'none';
+      dobError.textContent = '';
+      if (dobInput.value) {
+        // Parse the date in format 'd M Y'
+        const parts = dobInput.value.split(' ');
+        if (parts.length === 3) {
+          const [day, monthStr, year] = parts;
+          const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+          const month = months.indexOf(monthStr);
+          const dateObj = new Date(Number(year), month, Number(day));
+          const today = new Date();
+          today.setHours(0,0,0,0);
+          if (dateObj >= today) {
+            dobInput.setCustomValidity('Date of birth cannot be today or a future date.');
+            dobInput.classList.add('invalid');
+            dobInput.classList.remove('valid');
+            dobError.textContent = 'Date of birth cannot be today or a future date.';
+            dobError.style.display = 'block';
+            dobInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          } else {
+            dobInput.setCustomValidity('');
+            dobInput.classList.remove('invalid');
+            dobInput.classList.add('valid');
+            dobError.textContent = '';
+            dobError.style.display = 'none';
+          }
+        }
+      }
+    }
+    dobInput.addEventListener('input', validateDob);
+    dobInput.addEventListener('change', validateDob);
+  }
 }
 
 
