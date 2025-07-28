@@ -1,0 +1,307 @@
+/* UKPA Chatbot Admin Styles */
+
+.ukpa-chatbot-list {
+    margin-top: 20px;
+}
+
+.ukpa-chatbot-empty {
+    text-align: center;
+    padding: 40px;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.ukpa-status {
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.ukpa-status-active {
+    background: #d4edda;
+    color: #155724;
+}
+
+.ukpa-status-inactive {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.ukpa-copy-shortcode {
+    margin-left: 10px;
+    font-size: 11px;
+    padding: 2px 6px;
+}
+
+/* Chatbot Form Styles */
+.ukpa-chatbot-form-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 30px;
+    margin-top: 20px;
+}
+
+.ukpa-chatbot-form-main {
+    background: #fff;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.ukpa-chatbot-form-sidebar {
+    background: #fff;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    height: fit-content;
+}
+
+.ukpa-chatbot-section {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.ukpa-chatbot-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.ukpa-chatbot-section h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #23282d;
+    font-size: 18px;
+}
+
+/* Response Items */
+.ukpa-response-item,
+.ukpa-intent-item {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    padding: 15px;
+}
+
+.ukpa-response-header,
+.ukpa-intent-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.ukpa-response-header h4,
+.ukpa-intent-header h4 {
+    margin: 0;
+    color: #23282d;
+}
+
+.ukpa-remove-response,
+.ukpa-remove-intent {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.ukpa-remove-response:hover,
+.ukpa-remove-intent:hover {
+    background: #c82333;
+}
+
+/* Preview Styles */
+.ukpa-chatbot-preview {
+    margin-bottom: 30px;
+}
+
+.ukpa-chatbot-preview h3 {
+    margin-top: 0;
+    color: #23282d;
+}
+
+#ukpa-chatbot-preview-container {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 15px;
+    background: #f9f9f9;
+    min-height: 200px;
+}
+
+/* Help Section */
+.ukpa-chatbot-help {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 15px;
+}
+
+.ukpa-chatbot-help h3 {
+    margin-top: 0;
+    color: #495057;
+    font-size: 16px;
+}
+
+.ukpa-chatbot-help ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.ukpa-chatbot-help li {
+    margin-bottom: 8px;
+    color: #6c757d;
+    font-size: 14px;
+}
+
+/* Form Elements */
+.ukpa-chatbot-form-main .form-table th {
+    width: 150px;
+    padding: 15px 10px 15px 0;
+}
+
+.ukpa-chatbot-form-main .form-table td {
+    padding: 15px 10px;
+}
+
+.ukpa-chatbot-form-main input[type="text"],
+.ukpa-chatbot-form-main input[type="textarea"],
+.ukpa-chatbot-form-main textarea,
+.ukpa-chatbot-form-main select {
+    width: 100%;
+    max-width: 500px;
+}
+
+.ukpa-chatbot-form-main .description {
+    margin-top: 5px;
+    color: #666;
+    font-style: italic;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .ukpa-chatbot-form-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .ukpa-chatbot-form-sidebar {
+        order: -1;
+    }
+}
+
+/* Button Styles */
+#ukpa-add-response,
+#ukpa-add-intent {
+    background: #0073aa;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#ukpa-add-response:hover,
+#ukpa-add-intent:hover {
+    background: #005a87;
+}
+
+/* Loading States */
+.ukpa-loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.ukpa-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #0073aa;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Success/Error Messages */
+.ukpa-notice {
+    padding: 10px 15px;
+    margin: 10px 0;
+    border-radius: 4px;
+    border-left: 4px solid;
+}
+
+.ukpa-notice-success {
+    background: #d4edda;
+    border-color: #28a745;
+    color: #155724;
+}
+
+.ukpa-notice-error {
+    background: #f8d7da;
+    border-color: #dc3545;
+    color: #721c24;
+}
+
+/* Settings Page Styles */
+.ukpa-chatbot-settings-help {
+    margin-top: 30px;
+    padding: 20px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+.ukpa-chatbot-settings-help h3 {
+    margin-top: 0;
+    color: #495057;
+    font-size: 16px;
+}
+
+.ukpa-chatbot-settings-help ol,
+.ukpa-chatbot-settings-help ul {
+    margin: 15px 0;
+    padding-left: 20px;
+}
+
+.ukpa-chatbot-settings-help li {
+    margin-bottom: 8px;
+    color: #6c757d;
+}
+
+.ukpa-chatbot-settings-help strong {
+    color: #495057;
+}
+
+/* Settings Form Styles */
+.form-table th {
+    width: 200px;
+}
+
+.form-table td {
+    padding: 15px 10px;
+}
+
+.form-table textarea {
+    width: 100%;
+    max-width: 500px;
+}
+
+.form-table select {
+    min-width: 200px;
+} 

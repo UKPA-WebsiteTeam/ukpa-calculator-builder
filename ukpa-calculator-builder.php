@@ -18,6 +18,7 @@ if (!defined('ABSPATH')) exit;
 
 define('UKPA_CALC_PATH', plugin_dir_path(__FILE__));
 define('UKPA_CALC_URL', plugin_dir_url(__FILE__));
+define('UKPA_CALC_VERSION', '1.1.5');
 
 // Optional: Load .env (if using vlucas/phpdotenv)
 if (file_exists(__DIR__ . '/vendor/autoload.php')) {
@@ -36,6 +37,20 @@ require_once UKPA_CALC_PATH . 'includes/unified-save.php';
 require_once UKPA_CALC_PATH . 'includes/custom-assets-injector.php';
 require_once UKPA_CALC_PATH . 'includes/auto-updater.php';
 require_once UKPA_CALC_PATH . 'includes/idv-form-shortcode.php';
+
+// ✅ Chatbot system - DISABLED
+// require_once UKPA_CALC_PATH . 'includes/chatbot-nlp.php';
+// require_once UKPA_CALC_PATH . 'includes/chatbot-gpt.php';
+// require_once UKPA_CALC_PATH . 'includes/chatbot.php';
+// require_once UKPA_CALC_PATH . 'admin/chatbot-menu.php';
+// require_once UKPA_CALC_PATH . 'admin/chatbot-manager.php';
+// require_once UKPA_CALC_PATH . 'admin/chatbot-settings.php';
+// require_once UKPA_CALC_PATH . 'admin/chatbot-nlp-settings.php';
+// require_once UKPA_CALC_PATH . 'admin/chatbot-gpt-settings.php';
+
+// Chat Box System
+require_once UKPA_CALC_PATH . 'includes/chatbox.php';
+require_once UKPA_CALC_PATH . 'admin/chatbox-settings.php';
 
 // Initialize the auto updater with the correct plugin file path
 new UKPA_Auto_Updater(__FILE__);
@@ -71,8 +86,8 @@ add_action('admin_enqueue_scripts', function ($hook) {
     // ✅ Local config for JS
     $plugin_token = get_option('ukpa_plugin_token', '');
     $selected_website = get_option('ukpa_selected_website', 'UKPA');
-    $local_api_base_url = 'http://localhost:3002/ana/v1';
-    $live_api_base_url = 'https://ukpacalculator.com/ana/v1';
+    $local_api_base_url = 'http://192.168.18.54:3002/ana/v1';
+    $live_api_base_url = 'http://192.168.18.54:3002/ana/v1';
 
     $calc_id = isset($_GET['calc_id']) ? sanitize_text_field($_GET['calc_id']) : '';
     $calc_data = get_option('ukpa_calc_' . $calc_id, []);
@@ -178,7 +193,7 @@ function ukpa_proxy_api_handler() {
 
     $route = sanitize_text_field($input['route'] ?? '');
     $payload = $input['payload'] ?? [];
-    $base_url = get_option('ukpa_api_base_url', 'https://ukpacalculator.com/ana/v1');
+    $base_url = get_option('ukpa_api_base_url', 'http://192.168.18.54:3002/ana/v1');
     $url = trailingslashit($base_url) . 'routes/mainRouter/' . ltrim($route, '/');
 
     $args = [
@@ -205,10 +220,10 @@ function ukpa_proxy_api_handler() {
 
 // Global API URL constants
 if ( ! defined( 'UKPA_CALC_LOCAL_API_URL' ) ) {
-    define( 'UKPA_CALC_LOCAL_API_URL', 'http://localhost:3002/ana' );
+    define( 'UKPA_CALC_LOCAL_API_URL', 'http://192.168.18.54:3002/ana' );
 }
 if ( ! defined( 'UKPA_CALC_LIVE_API_URL' ) ) {
-    define( 'UKPA_CALC_LIVE_API_URL', 'https://ukpacalculator.com/ana' );
+    define( 'UKPA_CALC_LIVE_API_URL', 'http://192.168.18.54:3002/ana' );
 }
 
 // Helper function to get the correct API URL
