@@ -18,6 +18,18 @@ class UKPA_Chatbox_System {
         return self::$instance;
     }
     
+    /**
+     * Prevent cloning
+     */
+    private function __clone() {}
+    
+    /**
+     * Prevent unserializing
+     */
+    public function __wakeup() {
+        throw new Exception("Cannot unserialize singleton");
+    }
+    
     private function __construct() {
         add_action('init', array($this, 'init_chatbox'));
         add_action('wp_ajax_ukpa_chatbox_message', array($this, 'handle_chatbox_message'));
@@ -70,7 +82,7 @@ class UKPA_Chatbox_System {
             'ukpa-chatbox-frontend',
             UKPA_CALC_URL . 'assets/js/chatbox-frontend.js',
             array('jquery'),
-            defined('UKPA_CALC_VERSION') ? UKPA_CALC_VERSION : '1.0.0',
+            '1.1.6', // Force cache refresh
             true
         );
         
@@ -109,6 +121,10 @@ class UKPA_Chatbox_System {
         $button_text_color = get_option('ukpa_chatbox_button_text_color', '#ffffff');
         $button_hover_bg_color = get_option('ukpa_chatbox_button_hover_bg_color', '#005a87');
         $button_hover_text_color = get_option('ukpa_chatbox_button_hover_text_color', '#ffffff');
+        $toggle_bg_color = get_option('ukpa_chatbox_toggle_bg_color', '#007cba');
+        $toggle_text_color = get_option('ukpa_chatbox_toggle_text_color', '#ffffff');
+        $toggle_hover_bg_color = get_option('ukpa_chatbox_toggle_hover_bg_color', '#005a87');
+        $toggle_hover_text_color = get_option('ukpa_chatbox_toggle_hover_text_color', '#ffffff');
         $width = get_option('ukpa_chatbox_width', '350px');
         $height = get_option('ukpa_chatbox_height', '500px');
         $max_width = get_option('ukpa_chatbox_max_width', '400px');
@@ -168,6 +184,16 @@ class UKPA_Chatbox_System {
         .ukpa-chatbox-toggle-btn:hover {
             background-color: {$button_hover_bg_color} !important;
             color: {$button_hover_text_color} !important;
+        }
+        
+        .ukpa-chatbox-toggle-btn {
+            background-color: {$toggle_bg_color} !important;
+            color: {$toggle_text_color} !important;
+        }
+        
+        .ukpa-chatbox-toggle-btn:hover {
+            background-color: {$toggle_hover_bg_color} !important;
+            color: {$toggle_hover_text_color} !important;
         }
         ";
         
@@ -342,6 +368,13 @@ class UKPA_Chatbox_System {
         if ($this->should_exclude_current_page($exclude_pages)) {
             return;
         }
+        
+        // Prevent duplicate chat boxes
+        static $rendered = false;
+        if ($rendered) {
+            return;
+        }
+        $rendered = true;
         
         $this->render_chatbox_html();
     }

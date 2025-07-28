@@ -67,6 +67,10 @@ class UKPA_Chatbox_Settings {
         register_setting('ukpa_chatbox_settings', 'ukpa_chatbox_button_text_color');
         register_setting('ukpa_chatbox_settings', 'ukpa_chatbox_button_hover_bg_color');
         register_setting('ukpa_chatbox_settings', 'ukpa_chatbox_button_hover_text_color');
+        register_setting('ukpa_chatbox_settings', 'ukpa_chatbox_toggle_bg_color');
+        register_setting('ukpa_chatbox_settings', 'ukpa_chatbox_toggle_text_color');
+        register_setting('ukpa_chatbox_settings', 'ukpa_chatbox_toggle_hover_bg_color');
+        register_setting('ukpa_chatbox_settings', 'ukpa_chatbox_toggle_hover_text_color');
         register_setting('ukpa_chatbox_settings', 'ukpa_chatbox_width');
         register_setting('ukpa_chatbox_settings', 'ukpa_chatbox_height');
         register_setting('ukpa_chatbox_settings', 'ukpa_chatbox_max_width');
@@ -362,6 +366,38 @@ class UKPA_Chatbox_Settings {
         );
         
         add_settings_field(
+            'ukpa_chatbox_toggle_bg_color',
+            'Toggle Button Background',
+            array($this, 'render_toggle_bg_color_field'),
+            'ukpa_chatbox_settings',
+            'ukpa_chatbox_css'
+        );
+        
+        add_settings_field(
+            'ukpa_chatbox_toggle_text_color',
+            'Toggle Button Text Color',
+            array($this, 'render_toggle_text_color_field'),
+            'ukpa_chatbox_settings',
+            'ukpa_chatbox_css'
+        );
+        
+        add_settings_field(
+            'ukpa_chatbox_toggle_hover_bg_color',
+            'Toggle Button Hover Background',
+            array($this, 'render_toggle_hover_bg_color_field'),
+            'ukpa_chatbox_settings',
+            'ukpa_chatbox_css'
+        );
+        
+        add_settings_field(
+            'ukpa_chatbox_toggle_hover_text_color',
+            'Toggle Button Hover Text Color',
+            array($this, 'render_toggle_hover_text_color_field'),
+            'ukpa_chatbox_settings',
+            'ukpa_chatbox_css'
+        );
+        
+        add_settings_field(
             'ukpa_chatbox_width',
             'Chat Box Width',
             array($this, 'render_width_field'),
@@ -567,6 +603,22 @@ class UKPA_Chatbox_Settings {
                                                     <div class="ukpa-styling-item">
                                                         <label>Button Background</label>
                                                         <?php $this->render_button_bg_color_field(); ?>
+                                                    </div>
+                                                    <div class="ukpa-styling-item">
+                                                        <label>Toggle Button BG</label>
+                                                        <?php $this->render_toggle_bg_color_field(); ?>
+                                                    </div>
+                                                    <div class="ukpa-styling-item">
+                                                        <label>Toggle Button Text</label>
+                                                        <?php $this->render_toggle_text_color_field(); ?>
+                                                    </div>
+                                                    <div class="ukpa-styling-item">
+                                                        <label>Toggle Hover BG</label>
+                                                        <?php $this->render_toggle_hover_bg_color_field(); ?>
+                                                    </div>
+                                                    <div class="ukpa-styling-item">
+                                                        <label>Toggle Hover Text</label>
+                                                        <?php $this->render_toggle_hover_text_color_field(); ?>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1042,6 +1094,10 @@ class UKPA_Chatbox_Settings {
                 var buttonTextColor = $('input[name="ukpa_chatbox_button_text_color"]').val() || '#ffffff';
                 var buttonHoverBgColor = $('input[name="ukpa_chatbox_button_hover_bg_color"]').val() || '#005a87';
                 var buttonHoverTextColor = $('input[name="ukpa_chatbox_button_hover_text_color"]').val() || '#ffffff';
+                var toggleBgColor = $('input[name="ukpa_chatbox_toggle_bg_color"]').val() || '#007cba';
+                var toggleTextColor = $('input[name="ukpa_chatbox_toggle_text_color"]').val() || '#ffffff';
+                var toggleHoverBgColor = $('input[name="ukpa_chatbox_toggle_hover_bg_color"]').val() || '#005a87';
+                var toggleHoverTextColor = $('input[name="ukpa_chatbox_toggle_hover_text_color"]').val() || '#ffffff';
                 var width = $('input[name="ukpa_chatbox_width"]').val() || '350px';
                 var height = $('input[name="ukpa_chatbox_height"]').val() || '500px';
                 var maxWidth = $('input[name="ukpa_chatbox_max_width"]').val() || '400px';
@@ -1624,6 +1680,50 @@ class UKPA_Chatbox_Settings {
         ?>
         <input type="color" name="ukpa_chatbox_button_hover_text_color" value="<?php echo esc_attr($button_hover_text_color); ?>">
         <p class="description">Choose the text color for buttons on hover.</p>
+        <?php
+    }
+    
+    /**
+     * Render toggle button background color field
+     */
+    public function render_toggle_bg_color_field() {
+        $toggle_bg_color = get_option('ukpa_chatbox_toggle_bg_color', '#007cba');
+        ?>
+        <input type="color" name="ukpa_chatbox_toggle_bg_color" value="<?php echo esc_attr($toggle_bg_color); ?>">
+        <p class="description">Choose the background color for the toggle button.</p>
+        <?php
+    }
+    
+    /**
+     * Render toggle button text color field
+     */
+    public function render_toggle_text_color_field() {
+        $toggle_text_color = get_option('ukpa_chatbox_toggle_text_color', '#ffffff');
+        ?>
+        <input type="color" name="ukpa_chatbox_toggle_text_color" value="<?php echo esc_attr($toggle_text_color); ?>">
+        <p class="description">Choose the text color for the toggle button.</p>
+        <?php
+    }
+    
+    /**
+     * Render toggle button hover background color field
+     */
+    public function render_toggle_hover_bg_color_field() {
+        $toggle_hover_bg_color = get_option('ukpa_chatbox_toggle_hover_bg_color', '#005a87');
+        ?>
+        <input type="color" name="ukpa_chatbox_toggle_hover_bg_color" value="<?php echo esc_attr($toggle_hover_bg_color); ?>">
+        <p class="description">Choose the background color for the toggle button on hover.</p>
+        <?php
+    }
+    
+    /**
+     * Render toggle button hover text color field
+     */
+    public function render_toggle_hover_text_color_field() {
+        $toggle_hover_text_color = get_option('ukpa_chatbox_toggle_hover_text_color', '#ffffff');
+        ?>
+        <input type="color" name="ukpa_chatbox_toggle_hover_text_color" value="<?php echo esc_attr($toggle_hover_text_color); ?>">
+        <p class="description">Choose the text color for the toggle button on hover.</p>
         <?php
     }
     

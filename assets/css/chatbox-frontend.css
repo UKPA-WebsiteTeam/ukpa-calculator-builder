@@ -372,15 +372,15 @@
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background: #007bff;
-    color: white;
+    background: #bbdcff;
+    color: rgb(73, 0, 0);
     border: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 24px;
-    box-shadow: 0 4px 16px rgba(0, 123, 255, 0.3);
+    /* box-shadow: 0 4px 16px rgba(0, 123, 255, 0.3); */
     transition: all 0.3s ease;
 }
 
@@ -435,6 +435,180 @@
 }
 
 /* Reduced motion support */
+/* Dynamic Form Styles */
+.ukpa-dynamic-form {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 16px;
+    margin: 8px 0;
+    border: 1px solid #e1e5e9;
+}
+
+.ukpa-chatbox-dark .ukpa-dynamic-form {
+    background: #34495e;
+    border-color: #2c3e50;
+}
+
+.ukpa-form-header h4 {
+    margin: 0 0 16px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.ukpa-chatbox-dark .ukpa-form-header h4 {
+    color: #ecf0f1;
+}
+
+.ukpa-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ukpa-form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ukpa-form-field label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #666;
+    margin-bottom: 2px;
+}
+
+.ukpa-chatbox-dark .ukpa-form-field label {
+    color: #bdc3c7;
+}
+
+.ukpa-form-field input,
+.ukpa-form-field select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    background: #fff;
+    color: #333;
+    transition: border-color 0.2s ease;
+}
+
+.ukpa-chatbox-dark .ukpa-form-field input,
+.ukpa-chatbox-dark .ukpa-form-field select {
+    background: #2c3e50;
+    border-color: #34495e;
+    color: #ecf0f1;
+}
+
+.ukpa-form-field input:focus,
+.ukpa-form-field select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+.ukpa-chatbox-dark .ukpa-form-field input:focus,
+.ukpa-chatbox-dark .ukpa-form-field select:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+}
+
+.ukpa-form-field input::placeholder {
+    color: #999;
+}
+
+.ukpa-chatbox-dark .ukpa-form-field input::placeholder {
+    color: #95a5a6;
+}
+
+.ukpa-form-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.ukpa-form-submit,
+.ukpa-form-cancel {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex: 1;
+}
+
+.ukpa-form-submit {
+    background: #007bff;
+    color: white;
+}
+
+.ukpa-form-submit:hover {
+    background: #0056b3;
+}
+
+.ukpa-form-cancel {
+    background: #6c757d;
+    color: white;
+}
+
+.ukpa-form-cancel:hover {
+    background: #545b62;
+}
+
+.ukpa-chatbox-dark .ukpa-form-submit {
+    background: #3498db;
+}
+
+.ukpa-chatbox-dark .ukpa-form-submit:hover {
+    background: #2980b9;
+}
+
+.ukpa-chatbox-dark .ukpa-form-cancel {
+    background: #7f8c8d;
+}
+
+.ukpa-chatbox-dark .ukpa-form-cancel:hover {
+    background: #6c7b7d;
+}
+
+/* Radio Button Styles */
+.ukpa-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ukpa-radio-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ukpa-radio-option input[type="radio"] {
+    margin: 0;
+    width: 16px;
+    height: 16px;
+    accent-color: #007bff;
+}
+
+.ukpa-chatbox-dark .ukpa-radio-option input[type="radio"] {
+    accent-color: #3498db;
+}
+
+.ukpa-radio-option label {
+    font-size: 14px;
+    color: #333;
+    margin: 0;
+    cursor: pointer;
+}
+
+.ukpa-chatbox-dark .ukpa-radio-option label {
+    color: #ecf0f1;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .ukpa-chatbox,
     .ukpa-chatbox-toggle,
