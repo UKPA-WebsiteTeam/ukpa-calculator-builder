@@ -59,7 +59,35 @@ export async function uploadAndExtract(file, userId, loadingText) {
       // Expiry
       if (fields.expiry) {
         const el = document.querySelector(`input[name="passportExpiry-${userId}"]`);
-        if (el) { el.value = fields.expiry; console.log('Filled expiry:', fields.expiry); }
+        if (el) { 
+          // Format the date for flatpickr if needed
+          let formattedDate = fields.expiry;
+          // If the date is in ISO format (YYYY-MM-DD), convert to flatpickr format (d M Y)
+          if (/^\d{4}-\d{2}-\d{2}$/.test(fields.expiry)) {
+            const date = new Date(fields.expiry);
+            if (!isNaN(date)) {
+              const day = date.getDate();
+              const month = date.toLocaleDateString('en-US', { month: 'short' });
+              const year = date.getFullYear();
+              formattedDate = `${day} ${month} ${year}`;
+            }
+          }
+          el.value = formattedDate; 
+          console.log('Filled expiry:', formattedDate);
+          
+          // Update flatpickr instance if it exists
+          if (el._flatpickr) {
+            el._flatpickr.setDate(formattedDate, false);
+          }
+          
+          // Trigger validation after setting the value
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+          
+          // Additional validation trigger with a small delay to ensure flatpickr is ready
+          setTimeout(() => {
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+          }, 50);
+        }
       }
       // Date of Birth
       if (fields.dob) {
@@ -115,7 +143,7 @@ export async function uploadAndExtract(file, userId, loadingText) {
         }
       }
       console.log("All OCR values:", fields);
-    }, 90);
+    }, 150);
   } catch (err) {
     // Show user-friendly error in the provided loadingText element if present
     if (loadingText) {

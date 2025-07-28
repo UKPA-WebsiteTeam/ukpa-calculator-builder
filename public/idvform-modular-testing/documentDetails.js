@@ -160,21 +160,36 @@ function getExpiryValidationRule(fieldName) {
 // Robust date parser for OCR/user input
 function parseDateFlexible(value) {
   if (!value) return new Date('invalid');
+  
   // Try ISO (yyyy-mm-dd)
   let d = new Date(value);
   if (!isNaN(d)) return d;
+  
   // Try dd/mm/yyyy or dd-mm-yyyy
   const dmY = /^([0-3]?\d)[\/\-]([0-1]?\d)[\/\-](\d{4})$/;
   let m = value.match(dmY);
   if (m) return new Date(`${m[3]}-${m[2]}-${m[1]}`);
+  
   // Try yyyymmdd
   const ymd = /^(\d{4})(\d{2})(\d{2})$/;
   m = value.match(ymd);
   if (m) return new Date(`${m[1]}-${m[2]}-${m[3]}`);
-  // Try d M Y (flatpickr)
-  const dMY = /^([0-3]?\d) (\w{3}) (\d{4})$/;
+  
+  // Try d M Y (flatpickr format) - improved regex
+  const dMY = /^(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})$/;
   m = value.match(dMY);
-  if (m) return new Date(`${m[3]}-${m[2]}-${m[1]}`);
+  if (m) {
+    const monthMap = {
+      'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
+      'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
+      'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
+    };
+    const month = monthMap[m[2]];
+    const day = m[1].padStart(2, '0');
+    const year = m[3];
+    return new Date(`${year}-${month}-${day}`);
+  }
+  
   // Fallback: invalid
   return new Date('invalid');
 }
@@ -512,13 +527,19 @@ export function createDocumentDetailsSection(userId, displayName) {
         setTimeout(() => {
           if (input.value) validateAndShowExpiry();
         }, 0);
-        flatpickr(input, {
+        const fp = flatpickr(input, {
           dateFormat: "d M Y",
           allowInput: true,
           onClose: function(selectedDates, dateStr, instance) {
             validateAndShowExpiry();
+          },
+          onChange: function(selectedDates, dateStr, instance) {
+            validateAndShowExpiry();
           }
         });
+        
+        // Store flatpickr instance on the input for external access
+        input._flatpickr = fp;
         label.appendChild(input);
         label.appendChild(errorContainer);
         fieldset.appendChild(label);
