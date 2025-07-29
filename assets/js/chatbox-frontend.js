@@ -241,30 +241,8 @@
                     // Show form if backend requests it
                     self.addMessage('', 'bot', $chatbox, data);
                 } else if (data.success && data.totalTax !== undefined) {
-                    // Handle calculator calculation results
-                    var message = '📊 **Income Tax Calculation Results:**\n\n';
-                    message += '💰 **Total Tax Due: £' + data.totalTax.toLocaleString() + '**\n\n';
-                    
-                    if (data.breakdown) {
-                        message += '📋 **Tax Breakdown:**\n';
-                        if (data.breakdown.nonSavingIncomeTax > 0) {
-                            message += '• Non-Savings Income Tax: £' + data.breakdown.nonSavingIncomeTax.toLocaleString() + '\n';
-                        }
-                        if (data.breakdown.savingsIncomeTax > 0) {
-                            message += '• Savings Income Tax: £' + data.breakdown.savingsIncomeTax.toLocaleString() + '\n';
-                        }
-                        if (data.breakdown.dividendIncomeTax > 0) {
-                            message += '• Dividend Income Tax: £' + data.breakdown.dividendIncomeTax.toLocaleString() + '\n';
-                        }
-                    }
-                    
-                    if (data.allowanceBreakdown) {
-                        message += '\n📈 **Personal Allowance:**\n';
-                        message += '• Personal Allowance: £' + data.allowanceBreakdown.personalAllowance.toLocaleString() + '\n';
-                        message += '• Adjusted Allowance: £' + data.allowanceBreakdown.adjustedAllowance.toLocaleString() + '\n';
-                    }
-                    
-                    self.addMessage(message, 'bot', $chatbox, data);
+                    // Use the professional calculation card
+                    self.addMessage(self.renderCalculationCard(data), 'bot', $chatbox, data, true);
                 } else {
                     // Always pass data as formData for bot messages
                     self.addMessage(data.answer || data.response || 'No response received', 'bot', $chatbox, data);
@@ -303,7 +281,7 @@
         /**
          * Add message to chat
          */
-        addMessage: function(content, type, $chatbox, formData) {
+        addMessage: function(content, type, $chatbox, formData, isHtml) {
             var $messages = $chatbox.find('.ukpa-chatbox-messages');
             var time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             
@@ -312,22 +290,30 @@
             // Check if this is a form message
             if (formData && formData.type === 'form') {
                 messageContent = this.renderDynamicForm(formData, $chatbox);
+            } else if (isHtml) {
+                messageContent = content; // Trusted HTML
             } else {
                 messageContent = this.escapeHtml(content);
             }
             
             var messageHtml = `
                 <div class="ukpa-chatbox-message ukpa-chatbox-message-${type}">
-                    <div class="ukpa-chatbox-message-content">
-                        ${messageContent}
-                    </div>
+                    <div class="ukpa-chatbox-message-content"></div>
                     <div class="ukpa-chatbox-message-time">
                         ${time}
                     </div>
                 </div>
             `;
             
-            $messages.append(messageHtml);
+            var $msg = $(messageHtml);
+            if (formData && formData.type === 'form') {
+                $msg.find('.ukpa-chatbox-message-content').html(messageContent);
+            } else if (isHtml) {
+                $msg.find('.ukpa-chatbox-message-content').html(messageContent);
+            } else {
+                $msg.find('.ukpa-chatbox-message-content').text(messageContent);
+            }
+            $messages.append($msg);
             // Render suggested actions inline beside the message time
             if (formData && formData.suggestedActions && Array.isArray(formData.suggestedActions) && formData.suggestedActions.length > 0) {
                 var $lastMsg = $messages.children('.ukpa-chatbox-message-bot').last();
@@ -369,13 +355,9 @@
          * Render dynamic form
          */
         renderDynamicForm: function(formData, $chatbox) {
-            console.log('=== RENDERING DYNAMIC FORM ===');
-            console.log('Form data received:', formData);
             var fields = formData.fields || (formData.calculator && formData.calculator.fields) || [];
-            console.log('Form fields:', fields);
             var self = this;
             var formId = 'ukpa-form-' + Date.now();
-            console.log('Generated form ID:', formId);
             var formHtml = `
                 <div class="ukpa-dynamic-form" data-form-id="${formId}">
                     <div class="ukpa-form-header">
@@ -390,7 +372,6 @@
                     </form>
                 </div>
             `;
-            console.log('Generated form HTML:', formHtml);
             setTimeout(function() {
                 self.bindFormEvents(formId, $chatbox);
             }, 100);
@@ -401,72 +382,52 @@
          * Render form fields
          */
         renderFormFields: function(fields) {
-            console.log('=== RENDERING FORM FIELDS ===');
-            console.log('Fields array:', fields);
-            
             var self = this;
             var fieldsHtml = '';
-            
-            fields.forEach(function(field, index) {
-                console.log(`Processing field ${index + 1}:`, field);
-                
-                var fieldHtml = '';
+            fields.forEach(function(field) {
                 var required = field.required ? 'required' : '';
                 var fieldClass = 'ukpa-form-field';
-                
+                var placeholder = self.escapeHtml(field.label);
+                var fieldHtml = '';
                 switch (field.type) {
                     case 'select':
-                        console.log('Creating select field:', field.key, 'with options:', field.options);
                         fieldHtml = `
                             <div class="${fieldClass}">
-                                <label for="${field.key}">${self.escapeHtml(field.label)}</label>
                                 <select name="${field.key}" id="${field.key}" ${required}>
-                                    <option value="">Select ${self.escapeHtml(field.label)}</option>
+                                    <option value="">${placeholder}</option>
                                     ${self.renderSelectOptions(field.options || [])}
                                 </select>
                             </div>
                         `;
                         break;
-                        
                     case 'number':
-                        console.log('Creating number field:', field.key);
+                    case 'text':
                         fieldHtml = `
                             <div class="${fieldClass}">
-                                <label for="${field.key}">${self.escapeHtml(field.label)}</label>
-                                <input type="number" name="${field.key}" id="${field.key}" 
-                                       placeholder="Enter ${self.escapeHtml(field.label)}" ${required}>
+                                <input type="${field.type}" name="${field.key}" id="${field.key}" 
+                                       placeholder="${placeholder}" ${required}>
                             </div>
                         `;
                         break;
-                        
                     case 'radio':
-                        console.log('Creating radio field:', field.key, 'with options:', field.options);
                         fieldHtml = `
                             <div class="${fieldClass}">
-                                <label>${self.escapeHtml(field.label)}</label>
                                 <div class="ukpa-radio-group">
                                     ${self.renderRadioOptions(field.key, field.options || [])}
                                 </div>
                             </div>
                         `;
                         break;
-                        
                     default:
-                        console.log('Creating text field:', field.key);
                         fieldHtml = `
                             <div class="${fieldClass}">
-                                <label for="${field.key}">${self.escapeHtml(field.label)}</label>
                                 <input type="text" name="${field.key}" id="${field.key}" 
-                                       placeholder="Enter ${self.escapeHtml(field.label)}" ${required}>
+                                       placeholder="${placeholder}" ${required}>
                             </div>
                         `;
                 }
-                
                 fieldsHtml += fieldHtml;
-                console.log(`Field ${index + 1} HTML generated:`, fieldHtml);
             });
-            
-            console.log('Final fields HTML:', fieldsHtml);
             return fieldsHtml;
         },
         
@@ -698,31 +659,8 @@
                     // Show form if backend requests it
                     self.addMessage('', 'bot', $chatbox, data);
                 } else if (data.success && data.totalTax !== undefined) {
-                    // Handle calculator calculation results
-                    var calculationMessage = '📊 **Income Tax Calculation Results**\n\n';
-                    calculationMessage += '💰 **Total Tax Due**: £' + data.totalTax.toLocaleString() + '\n\n';
-                    
-                    if (data.breakdown) {
-                        calculationMessage += '📋 **Tax Breakdown**:\n';
-                        if (data.breakdown.nonSavingIncomeTax > 0) {
-                            calculationMessage += '• Non-Savings Income Tax: £' + data.breakdown.nonSavingIncomeTax.toLocaleString() + '\n';
-                        }
-                        if (data.breakdown.savingsIncomeTax > 0) {
-                            calculationMessage += '• Savings Income Tax: £' + data.breakdown.savingsIncomeTax.toLocaleString() + '\n';
-                        }
-                        if (data.breakdown.dividendIncomeTax > 0) {
-                            calculationMessage += '• Dividend Income Tax: £' + data.breakdown.dividendIncomeTax.toLocaleString() + '\n';
-                        }
-                    }
-                    
-                    if (data.allowanceBreakdown) {
-                        calculationMessage += '\n🎯 **Personal Allowance**: £' + data.allowanceBreakdown.personalAllowance.toLocaleString();
-                        if (data.allowanceBreakdown.adjustedAllowance !== data.allowanceBreakdown.personalAllowance) {
-                            calculationMessage += ' (adjusted to £' + data.allowanceBreakdown.adjustedAllowance.toLocaleString() + ' for high income)';
-                        }
-                    }
-                    
-                    self.addMessage(calculationMessage, 'bot', $chatbox, data);
+                    // Use the professional calculation card
+                    self.addMessage(self.renderCalculationCard(data), 'bot', $chatbox, data, true);
                 } else {
                     // Show normal chat response
                     self.addMessage(data.answer || data.response || 'No response received', 'bot', $chatbox, data);
@@ -800,6 +738,45 @@
             if (typeof fbq !== 'undefined') {
                 fbq('track', eventName, data);
             }
+        },
+
+        renderCalculationCard: function(data) {
+            // Build a professional calculation card
+            var html = '';
+            html += '<div class="ukpa-calculation-card">';
+            html +=   '<div class="ukpa-calc-header">'
+                    +   '<span class="ukpa-calc-icon">💷</span>'
+                    +   '<span class="ukpa-calc-title">Income Tax Calculation</span>'
+                    + '</div>';
+            html +=   '<div class="ukpa-calc-total">'
+                    +   '<span class="ukpa-calc-total-label">Total Tax Due:</span>'
+                    +   '<span class="ukpa-calc-total-value">£' + Number(data.totalTax).toLocaleString() + '</span>'
+                    + '</div>';
+            html +=   '<div class="ukpa-calc-breakdown">'
+                    +   '<div class="ukpa-calc-section-title">Breakdown</div>'
+                    +   '<ul>';
+            if (data.breakdown && data.breakdown.nonSavingIncomeTax !== undefined) {
+                html += '<li><span class="ukpa-calc-section-label">Non-Savings Income Tax:</span> £' + Number(data.breakdown.nonSavingIncomeTax).toLocaleString() + '</li>';
+            }
+            if (data.breakdown && data.breakdown.savingsIncomeTax > 0) {
+                html += '<li><span class="ukpa-calc-section-label">Savings Income Tax:</span> £' + Number(data.breakdown.savingsIncomeTax).toLocaleString() + '</li>';
+            }
+            if (data.breakdown && data.breakdown.dividendIncomeTax > 0) {
+                html += '<li><span class="ukpa-calc-section-label">Dividend Income Tax:</span> £' + Number(data.breakdown.dividendIncomeTax).toLocaleString() + '</li>';
+            }
+            html +=   '</ul>';
+            html +=   '</div>';
+            if (data.allowanceBreakdown) {
+                html += '<div class="ukpa-calc-allowance">'
+                    +   '<span class="ukpa-calc-section-label">Personal Allowance:</span> '
+                    +   '£' + Number(data.allowanceBreakdown.personalAllowance).toLocaleString();
+                if (data.allowanceBreakdown.adjustedAllowance !== undefined && data.allowanceBreakdown.adjustedAllowance !== data.allowanceBreakdown.personalAllowance) {
+                    html += ' <span class="ukpa-calc-allowance-note">(adjusted to £' + Number(data.allowanceBreakdown.adjustedAllowance).toLocaleString() + ' for high income)</span>';
+                }
+                html += '</div>';
+            }
+            html += '</div>';
+            return html;
         }
     };
     
