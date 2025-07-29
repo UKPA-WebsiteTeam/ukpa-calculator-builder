@@ -1,793 +1,374 @@
 /**
- * UKPA Chat Box Frontend JavaScript
- * 
- * Handles chat box interactions and communication with backend
+ * UKPA Chat Box Frontend JavaScript - Fixed Toggle Issue
  */
-
-(function($) {
-    'use strict';
-    
+;(($) => {
     // Chat box namespace
     window.UKPAChatbox = {
-        sessionId: null,
-        isTyping: false,
-        init: function() {
-            this.generateSessionId();
-            this.bindEvents();
-            this.initChatboxWidgets();
-        },
-        
-        /**
-         * Generate unique session ID
-         */
-        generateSessionId: function() {
-            this.sessionId = 'ukpa_chatbox_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        },
-        
-        /**
-         * Bind event listeners
-         */
-        bindEvents: function() {
-            $(document).on('click', '.ukpa-chatbox-toggle-btn', this.handleToggle.bind(this));
-            $(document).on('click', '.ukpa-chatbox-close', this.handleClose.bind(this));
-            $(document).on('click', '.ukpa-chatbox-minimize', this.handleMinimize.bind(this));
-            $(document).on('submit', '.ukpa-chatbox-form', this.handleSubmit.bind(this));
-            $(document).on('keydown', '.ukpa-chatbox-input', this.handleKeydown.bind(this));
-            $(document).on('input', '.ukpa-chatbox-input', this.handleInput.bind(this));
-            
-            // Close on escape key
-            $(document).on('keydown', function(e) {
-                if (e.key === 'Escape') {
-                    $('.ukpa-chatbox.active').removeClass('active');
-                }
-            });
-        },
-        
-        /**
-         * Initialize chat box widgets
-         */
-        initChatboxWidgets: function() {
-            $('.ukpa-chatbox').each(function() {
-                var $chatbox = $(this);
-                var $input = $chatbox.find('.ukpa-chatbox-input');
-                
-                // Auto-resize textarea
-                $input.on('input', function() {
-                    this.style.height = 'auto';
-                    this.style.height = Math.min(this.scrollHeight, 100) + 'px';
-                });
-                
-                // Focus input when chat opens
-                $chatbox.on('shown', function() {
-                    $input.focus();
-                });
-                // Demo form removed
-            });
-        },
-        
-        /**
-         * Add demo form for testing
-         */
-        addDemoForm: function($chatbox) {
-            var demoFormData = {
-                type: 'form',
-                calculator: 'demo',
-                message: 'Please fill in the demo form to see how it works:',
-                fields: [
-                    {
-                        key: 'fullName',
-                        label: 'Full Name',
-                        type: 'text',
-                        required: true
-                    },
-                    {
-                        key: 'email',
-                        label: 'Email Address',
-                        type: 'text',
-                        required: true
-                    },
-                    {
-                        key: 'age',
-                        label: 'Age',
-                        type: 'number',
-                        required: true
-                    },
-                    {
-                        key: 'country',
-                        label: 'Country',
-                        type: 'select',
-                        required: true,
-                        options: ['United States', 'United Kingdom', 'Canada', 'Australia', 'Germany', 'France', 'Japan', 'Other']
-                    },
-                    {
-                        key: 'newsletter',
-                        label: 'Subscribe to Newsletter',
-                        type: 'radio',
-                        required: false,
-                        options: ['Yes', 'No']
-                    }
-                ]
-            };
-            
-            this.addMessage('', 'bot', $chatbox, demoFormData);
-        },
-        
-        /**
-         * Handle toggle button click
-         */
-        handleToggle: function(e) {
-            e.preventDefault();
-            var $toggle = $(e.currentTarget);
-            var $chatbox = $toggle.closest('.ukpa-chatbox-toggle').siblings('.ukpa-chatbox');
-            
-            if ($chatbox.hasClass('active')) {
-                this.handleClose(e);
-            } else {
-                $chatbox.addClass('active');
-                $chatbox.trigger('shown');
-            }
-        },
-        
-        /**
-         * Handle close button click
-         */
-        handleClose: function(e) {
-            e.preventDefault();
-            var $chatbox = $(e.currentTarget).closest('.ukpa-chatbox');
-            $chatbox.removeClass('active');
-        },
-        
-        /**
-         * Handle minimize button click
-         */
-        handleMinimize: function(e) {
-            e.preventDefault();
-            var $chatbox = $(e.currentTarget).closest('.ukpa-chatbox');
-            $chatbox.removeClass('active');
-        },
-        
-        /**
-         * Handle form submission
-         */
-        handleSubmit: function(e) {
-            e.preventDefault();
-            var $form = $(e.currentTarget);
-            var $input = $form.find('.ukpa-chatbox-input');
-            var message = $input.val().trim();
-            
-            if (!message) {
-                return;
-            }
-            
-            this.sendMessage(message, $form.closest('.ukpa-chatbox'));
-            $input.val('').trigger('input');
-        },
-        
-        /**
-         * Handle keydown events
-         */
-        handleKeydown: function(e) {
-            // Send on Enter (without Shift)
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                $(e.currentTarget).closest('form').submit();
-            }
-        },
-        
-        /**
-         * Handle input events
-         */
-        handleInput: function(e) {
-            var $input = $(e.currentTarget);
-            var $sendBtn = $input.closest('.ukpa-chatbox-form').find('.ukpa-chatbox-send');
-            
-            // Enable/disable send button based on input
-            if ($input.val().trim()) {
-                $sendBtn.prop('disabled', false);
-            } else {
-                $sendBtn.prop('disabled', true);
-            }
-        },
-        
-        /**
-         * Send message to backend
-         */
-        sendMessage: function(message, $chatbox) {
-            var self = this;
-            
-            // Add user message to chat
-            this.addMessage(message, 'user', $chatbox);
-            
-            // Show typing indicator
-            this.showTypingIndicator($chatbox);
-            
-            // Disable input during request
-            var $input = $chatbox.find('.ukpa-chatbox-input');
-            var $sendBtn = $chatbox.find('.ukpa-chatbox-send');
-            $input.prop('disabled', true);
-            $sendBtn.prop('disabled', true);
-            
-            // Log the request data for debugging
-            console.log('Sending message:', message);
-            
-            // Send fetch request directly to backend
-            fetch('http://localhost:3002/ana/api/v1/chatbot/ask', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    question: message
-                })
-            })
-            .then(response => {
-                console.log('Response status:', response.status);
-                console.log('Response headers:', response.headers);
-                
-                if (!response.ok) {
-                    // Get error details
-                    return response.text().then(errorText => {
-                        console.error('Error response body:', errorText);
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}. Response: ${errorText}`);
-                    });
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('Response data:', data);
-                
-                // Handle the response from backend
-                if (data.type === 'form') {
-                    // Show form if backend requests it
-                    self.addMessage('', 'bot', $chatbox, data);
-                } else if (data.success && data.totalTax !== undefined) {
-                    // Use the professional calculation card
-                    self.addMessage(self.renderCalculationCard(data), 'bot', $chatbox, data, true);
-                } else {
-                    // Always pass data as formData for bot messages
-                    self.addMessage(data.answer || data.response || 'No response received', 'bot', $chatbox, data);
-                }
-            })
-            .catch(error => {
-                console.error('Fetch error details:', error);
-                console.error('Error message:', error.message);
-                
-                var errorMessage = 'Sorry, I encountered an error: ' + error.message;
-                
-                // Provide more specific error messages
-                if (error.message.includes('Failed to fetch')) {
-                    errorMessage = 'Network error: Unable to connect to the server. Please check your internet connection.';
-                } else if (error.message.includes('HTTP 400')) {
-                    errorMessage = 'Bad request: The data sent was invalid. Please check your input.';
-                } else if (error.message.includes('HTTP 500')) {
-                    errorMessage = 'Server error: The backend encountered an internal error. Please try again later.';
-                } else if (error.message.includes('HTTP 404')) {
-                    errorMessage = 'Not found: The API endpoint was not found.';
-                }
-                
-                self.addMessage(errorMessage, 'bot', $chatbox);
-            })
-            .finally(() => {
-                // Hide typing indicator
-                self.hideTypingIndicator($chatbox);
-                
-                // Re-enable input
-                $input.prop('disabled', false);
-                $sendBtn.prop('disabled', false);
-                $input.focus();
-            });
-        },
-        
-        /**
-         * Add message to chat
-         */
-        addMessage: function(content, type, $chatbox, formData, isHtml) {
-            var $messages = $chatbox.find('.ukpa-chatbox-messages');
-            var time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            
-            var messageContent = '';
-            
-            // Check if this is a form message
-            if (formData && formData.type === 'form') {
-                messageContent = this.renderDynamicForm(formData, $chatbox);
-            } else if (isHtml) {
-                messageContent = content; // Trusted HTML
-            } else {
-                messageContent = this.escapeHtml(content);
-            }
-            
-            var messageHtml = `
-                <div class="ukpa-chatbox-message ukpa-chatbox-message-${type}">
-                    <div class="ukpa-chatbox-message-content"></div>
-                    <div class="ukpa-chatbox-message-time">
-                        ${time}
-                    </div>
-                </div>
-            `;
-            
-            var $msg = $(messageHtml);
-            if (formData && formData.type === 'form') {
-                $msg.find('.ukpa-chatbox-message-content').html(messageContent);
-            } else if (isHtml) {
-                $msg.find('.ukpa-chatbox-message-content').html(messageContent);
-            } else {
-                $msg.find('.ukpa-chatbox-message-content').text(messageContent);
-            }
-            $messages.append($msg);
-            // Render suggested actions inline beside the message time
-            if (formData && formData.suggestedActions && Array.isArray(formData.suggestedActions) && formData.suggestedActions.length > 0) {
-                var $lastMsg = $messages.children('.ukpa-chatbox-message-bot').last();
-                var $time = $lastMsg.find('.ukpa-chatbox-message-time');
-                var $actionsDiv = $('<div class="ukpa-chatbox-suggested-actions-inline"></div>');
-                console.log('[UKPA Chatbox] Showing suggested actions (inline beside time):', formData.suggestedActions);
-                formData.suggestedActions.forEach(function(action) {
-                    var $btn = $('<button type="button" class="ukpa-suggested-action-btn"></button>')
-                        .text(action.label)
-                        .on('click', function() {
-                            $('.ukpa-chatbox-input', $chatbox).val(action.value);
-                            $('.ukpa-chatbox-form', $chatbox).submit();
-                        });
-                    $actionsDiv.append($btn);
-                });
-                // Wrap time and actions in a flex container
-                var $timeAndActions = $lastMsg.find('.ukpa-chatbox-message-time-and-actions');
-                if ($timeAndActions.length === 0) {
-                    $timeAndActions = $('<div class="ukpa-chatbox-message-time-and-actions"></div>');
-                    $time.after($timeAndActions);
-                    $timeAndActions.append($time);
-                }
-                $timeAndActions.append($actionsDiv);
-            } else {
-                // Remove any old inline suggestions
-                $messages.find('.ukpa-chatbox-suggested-actions-inline').remove();
-                $messages.find('.ukpa-chatbox-message-time-and-actions').each(function() {
-                    // If only time remains, unwrap
-                    if ($(this).children().length === 1 && $(this).children('.ukpa-chatbox-message-time').length === 1) {
-                        $(this).replaceWith($(this).children('.ukpa-chatbox-message-time'));
-                    }
-                });
-                console.log('[UKPA Chatbox] No suggested actions to show. Cleared inline actions.');
-            }
-            this.scrollToBottom($messages);
-        },
-        
-        /**
-         * Render dynamic form
-         */
-        renderDynamicForm: function(formData, $chatbox) {
-            var fields = formData.fields || (formData.calculator && formData.calculator.fields) || [];
-            var self = this;
-            var formId = 'ukpa-form-' + Date.now();
-            var formHtml = `
-                <div class="ukpa-dynamic-form" data-form-id="${formId}">
-                    <div class="ukpa-form-header">
-                        <h4>${this.escapeHtml(formData.message || 'Please fill in the details:')}</h4>
-                    </div>
-                    <form class="ukpa-form" data-calculator="${formData.calculator ? (formData.calculator.name || '') : ''}">
-                        ${this.renderFormFields(fields)}
-                        <div class="ukpa-form-actions">
-                            <button type="submit" class="ukpa-form-submit">Submit</button>
-                            <button type="button" class="ukpa-form-cancel">Cancel</button>
-                        </div>
-                    </form>
-                </div>
-            `;
-            setTimeout(function() {
-                self.bindFormEvents(formId, $chatbox);
-            }, 100);
-            return formHtml;
-        },
-        
-        /**
-         * Render form fields
-         */
-        renderFormFields: function(fields) {
-            var self = this;
-            var fieldsHtml = '';
-            fields.forEach(function(field) {
-                var required = field.required ? 'required' : '';
-                var fieldClass = 'ukpa-form-field';
-                var placeholder = self.escapeHtml(field.label);
-                var fieldHtml = '';
-                switch (field.type) {
-                    case 'select':
-                        fieldHtml = `
-                            <div class="${fieldClass}">
-                                <select name="${field.key}" id="${field.key}" ${required}>
-                                    <option value="">${placeholder}</option>
-                                    ${self.renderSelectOptions(field.options || [])}
-                                </select>
-                            </div>
-                        `;
-                        break;
-                    case 'number':
-                    case 'text':
-                        fieldHtml = `
-                            <div class="${fieldClass}">
-                                <input type="${field.type}" name="${field.key}" id="${field.key}" 
-                                       placeholder="${placeholder}" ${required}>
-                            </div>
-                        `;
-                        break;
-                    case 'radio':
-                        fieldHtml = `
-                            <div class="${fieldClass}">
-                                <div class="ukpa-radio-group">
-                                    ${self.renderRadioOptions(field.key, field.options || [])}
-                                </div>
-                            </div>
-                        `;
-                        break;
-                    default:
-                        fieldHtml = `
-                            <div class="${fieldClass}">
-                                <input type="text" name="${field.key}" id="${field.key}" 
-                                       placeholder="${placeholder}" ${required}>
-                            </div>
-                        `;
-                }
-                fieldsHtml += fieldHtml;
-            });
-            return fieldsHtml;
-        },
-        
-        /**
-         * Escape HTML to prevent XSS
-         */
-        escapeHtml: function(text) {
-            if (typeof text !== 'string') {
-                return '';
-            }
-            var div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        },
-        
-        /**
-         * Render select options
-         */
-        renderSelectOptions: function(options) {
-            var optionsHtml = '';
-            options.forEach(function(option) {
-                optionsHtml += `<option value="${this.escapeHtml(option.value || option)}">${this.escapeHtml(option.label || option)}</option>`;
-            }.bind(this));
-            return optionsHtml;
-        },
-        
-        /**
-         * Render radio options
-         */
-        renderRadioOptions: function(name, options) {
-            var optionsHtml = '';
-            options.forEach(function(option) {
-                optionsHtml += `
-                    <label class="ukpa-radio-option">
-                        <input type="radio" name="${name}" value="${this.escapeHtml(option.value || option)}">
-                        <span>${this.escapeHtml(option.label || option)}</span>
-                    </label>
-                `;
-            }.bind(this));
-            return optionsHtml;
-        },
-        
-        /**
-         * Bind form events
-         */
-        bindFormEvents: function(formId, $chatbox) {
-            var self = this;
-            var $form = $chatbox.find('[data-form-id="' + formId + '"] .ukpa-form');
-            var $submitBtn = $form.find('.ukpa-form-submit');
-            var $cancelBtn = $form.find('.ukpa-form-cancel');
-            
-            // Submit form
-            $submitBtn.on('click', function(e) {
-                e.preventDefault();
-                self.handleFormSubmit(e, $chatbox);
-            });
-            
-            // Cancel form
-            $cancelBtn.on('click', function(e) {
-                e.preventDefault();
-                self.removeForm(formId, $chatbox);
-            });
-            
-            // Enter key to submit
-            $form.on('keydown', function(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    self.handleFormSubmit(e, $chatbox);
-                }
-            });
-        },
-        
-        /**
-         * Handle form submission
-         */
-        handleFormSubmit: function(e, $chatbox) {
-            e.preventDefault();
-            
-            var $form = $(e.target).closest('form');
-            var formData = {};
-            
-            console.log('=== FORM SUBMISSION STARTED ===');
-            console.log('Event target:', e.target);
-            console.log('Form element:', $form);
-            console.log('Form length:', $form.length);
-            console.log('Form HTML:', $form.html());
-            
-            // Get calculator type from form data attribute
-            var calculator = $form.data('calculator');
-            console.log('Calculator type:', calculator);
-            
-            // Debug: Check all form elements
-            console.log('=== CHECKING FORM ELEMENTS ===');
-            var allInputs = $form.find('input, select, textarea');
-            console.log('Total form elements found:', allInputs.length);
-            
-            allInputs.each(function(index) {
-                var $field = $(this);
-                console.log(`Element ${index + 1}:`, {
-                    tagName: this.tagName,
-                    name: $field.attr('name'),
-                    id: $field.attr('id'),
-                    type: $field.attr('type'),
-                    value: $field.val(),
-                    element: this
-                });
-            });
-            
-            // Collect form data
-            $form.find('input, select, textarea').each(function() {
-                var $field = $(this);
-                var name = $field.attr('name');
-                var value = $field.val();
-                var type = $field.attr('type');
-                
-                console.log('Field found:', {
-                    name: name,
-                    value: value,
-                    type: type,
-                    element: this,
-                    elementHTML: this.outerHTML
-                });
-                
-                if (name && value !== undefined && value !== '') {
-                    // Convert numeric values
-                    if (type === 'number' || !isNaN(value)) {
-                        formData[name] = parseFloat(value) || value;
-                        console.log('Converted to number:', name, '=', formData[name]);
-                    } else {
-                        formData[name] = value;
-                        console.log('Kept as string:', name, '=', formData[name]);
-                    }
-                } else {
-                    console.log('Skipping field:', {
-                        name: name,
-                        hasName: !!name,
-                        value: value,
-                        hasValue: value !== undefined && value !== '',
-                        reason: !name ? 'no name' : 'no value'
-                    });
-                }
-            });
-            
-            // Add calculator type to form data
-            if (calculator) {
-                formData.calculator = calculator;
-                console.log('Added calculator type:', calculator);
-            }
-            
-            console.log('=== FINAL FORM DATA OBJECT ===');
-            console.log('Raw formData object:', formData);
-            console.log('JSON.stringify(formData):', JSON.stringify(formData, null, 2));
-            
-            // Show user's form data as a message
-            var userMessage = this.formatFormDataForDisplay(formData);
-            this.addMessage(userMessage, 'user', $chatbox);
-            
-            // Remove the form
-            $form.closest('.ukpa-dynamic-form').remove();
-            
-            // Send form data to backend
-            this.sendFormData(formData, $chatbox);
-        },
-        
-        /**
-         * Format form data for display
-         */
-        formatFormDataForDisplay: function(formData) {
-            var displayText = 'Form submitted with:\n';
-            Object.keys(formData).forEach(function(key) {
-                if (key !== 'calculator') {
-                    displayText += `• ${key}: ${formData[key]}\n`;
-                }
-            });
-            return displayText.trim();
-        },
-        
-        /**
-         * Send form data to backend
-         */
-        sendFormData: function(formData, $chatbox) {
-            console.log('=== UPDATED sendFormData FUNCTION LOADED ===');
-            var self = this;
-            var url = 'http://192.168.18.54:3002/ana/api/v1/chatbot/ask';
-            // If this is a calculator form, ensure all required fields are present and numbers
-            if (formData.calculator && formData.calculator.toLowerCase() === 'income tax') {
-                // Ensure all fields are present and numbers
-                formData.taxYear = String(formData.taxYear || '');
-                formData.propertyIncome = Number(formData.propertyIncome || 0);
-                formData.tradingIncome = Number(formData.tradingIncome || 0);
-                formData.employmentIncome = Number(formData.employmentIncome || 0);
-                formData.savingIncome = Number(formData.savingIncome || 0);
-                formData.dividendIncome = Number(formData.dividendIncome || 0);
-                // Keep calculator property for backend detection
-            }
-            // Show typing indicator
-            this.showTypingIndicator($chatbox);
-            // Disable input during request
-            var $input = $chatbox.find('.ukpa-chatbox-input');
-            var $sendBtn = $chatbox.find('.ukpa-chatbox-send');
-            $input.prop('disabled', true);
-            $sendBtn.prop('disabled', true);
-            // Log the request data for debugging
-            console.log('Sending form data:', formData);
-            // Send fetch request with form data
-            fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
-            })
-            .then(response => {
-                console.log('Response status:', response.status);
-                console.log('Response headers:', response.headers);
-                
-                if (!response.ok) {
-                    // Get error details
-                    return response.text().then(errorText => {
-                        console.error('Error response body:', errorText);
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}. Response: ${errorText}`);
-                    });
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('Response data:', data);
-                
-                // Handle the response from backend
-                if (data.type === 'form') {
-                    // Show form if backend requests it
-                    self.addMessage('', 'bot', $chatbox, data);
-                } else if (data.success && data.totalTax !== undefined) {
-                    // Use the professional calculation card
-                    self.addMessage(self.renderCalculationCard(data), 'bot', $chatbox, data, true);
-                } else {
-                    // Show normal chat response
-                    self.addMessage(data.answer || data.response || 'No response received', 'bot', $chatbox, data);
-                }
-            })
-            .catch(error => {
-                console.error('Fetch error details:', error);
-                console.error('Error message:', error.message);
-                
-                var errorMessage = 'Sorry, I encountered an error: ' + error.message;
-                
-                // Provide more specific error messages
-                if (error.message.includes('Failed to fetch')) {
-                    errorMessage = 'Network error: Unable to connect to the server. Please check your internet connection.';
-                } else if (error.message.includes('HTTP 400')) {
-                    errorMessage = 'Bad request: The data sent was invalid. Please check your input.';
-                } else if (error.message.includes('HTTP 500')) {
-                    errorMessage = 'Server error: The backend encountered an internal error. Please try again later.';
-                } else if (error.message.includes('HTTP 404')) {
-                    errorMessage = 'Not found: The API endpoint was not found.';
-                }
-                
-                self.addMessage(errorMessage, 'bot', $chatbox);
-            })
-            .finally(() => {
-                // Hide typing indicator
-                self.hideTypingIndicator($chatbox);
-                
-                // Re-enable input
-                $input.prop('disabled', false);
-                $sendBtn.prop('disabled', false);
-                $input.focus();
-            });
-        },
-        
-        /**
-         * Remove form
-         */
-        removeForm: function(formId, $chatbox) {
-            $chatbox.find('[data-form-id="' + formId + '"]').remove();
-        },
-        
-        /**
-         * Show typing indicator
-         */
-        showTypingIndicator: function($chatbox) {
-            var $typing = $chatbox.find('.ukpa-chatbox-typing');
-            $typing.show();
-            this.scrollToBottom($chatbox.find('.ukpa-chatbox-messages'));
-        },
-        
-        /**
-         * Hide typing indicator
-         */
-        hideTypingIndicator: function($chatbox) {
-            var $typing = $chatbox.find('.ukpa-chatbox-typing');
-            $typing.hide();
-        },
-        
-        /**
-         * Scroll to bottom of messages
-         */
-        scrollToBottom: function($messages) {
-            $messages.scrollTop($messages[0].scrollHeight);
-        },
-        
-        /**
-         * Track analytics (optional)
-         */
-        trackEvent: function(eventName, data) {
-            if (typeof gtag !== 'undefined') {
-                gtag('event', eventName, data);
-            }
-            
-            if (typeof fbq !== 'undefined') {
-                fbq('track', eventName, data);
-            }
-        },
+      sessionId: null,
+      currentTab: "home",
+      isOpen: false,
+      chatHistory: [],
+  
+      init: function () {
+        console.log("🚀 [FRONTEND] Initializing UKPA Chatbox...")
+        this.generateSessionId()
+        this.bindEvents()
+        this.initTabSystem()
+        this.loadInitialMessages()
+        console.log("✅ [FRONTEND] Chatbox initialization complete")
+      },
+  
+      generateSessionId: function () {
+        this.sessionId = "ukpa_chatbox_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9)
+        console.log("🔄 [FRONTEND] Generated session ID:", this.sessionId)
+      },
+  
+      initTabSystem: function () {
+        console.log("🔄 [FRONTEND] Initializing tab system...")
+        this.showTab("home")
+        console.log("✅ [FRONTEND] Tab system initialized")
+      },
+  
+            bindEvents: function () {
+        var self = this
+        console.log("🔄 [FRONTEND] Binding events...")
 
-        renderCalculationCard: function(data) {
-            // Build a professional calculation card
-            var html = '';
-            html += '<div class="ukpa-calculation-card">';
-            html +=   '<div class="ukpa-calc-header">'
-                    +   '<span class="ukpa-calc-icon">💷</span>'
-                    +   '<span class="ukpa-calc-title">Income Tax Calculation</span>'
-                    + '</div>';
-            html +=   '<div class="ukpa-calc-total">'
-                    +   '<span class="ukpa-calc-total-label">Total Tax Due:</span>'
-                    +   '<span class="ukpa-calc-total-value">£' + Number(data.totalTax).toLocaleString() + '</span>'
-                    + '</div>';
-            html +=   '<div class="ukpa-calc-breakdown">'
-                    +   '<div class="ukpa-calc-section-title">Breakdown</div>'
-                    +   '<ul>';
-            if (data.breakdown && data.breakdown.nonSavingIncomeTax !== undefined) {
-                html += '<li><span class="ukpa-calc-section-label">Non-Savings Income Tax:</span> £' + Number(data.breakdown.nonSavingIncomeTax).toLocaleString() + '</li>';
-            }
-            if (data.breakdown && data.breakdown.savingsIncomeTax > 0) {
-                html += '<li><span class="ukpa-calc-section-label">Savings Income Tax:</span> £' + Number(data.breakdown.savingsIncomeTax).toLocaleString() + '</li>';
-            }
-            if (data.breakdown && data.breakdown.dividendIncomeTax > 0) {
-                html += '<li><span class="ukpa-calc-section-label">Dividend Income Tax:</span> £' + Number(data.breakdown.dividendIncomeTax).toLocaleString() + '</li>';
-            }
-            html +=   '</ul>';
-            html +=   '</div>';
-            if (data.allowanceBreakdown) {
-                html += '<div class="ukpa-calc-allowance">'
-                    +   '<span class="ukpa-calc-section-label">Personal Allowance:</span> '
-                    +   '£' + Number(data.allowanceBreakdown.personalAllowance).toLocaleString();
-                if (data.allowanceBreakdown.adjustedAllowance !== undefined && data.allowanceBreakdown.adjustedAllowance !== data.allowanceBreakdown.personalAllowance) {
-                    html += ' <span class="ukpa-calc-allowance-note">(adjusted to £' + Number(data.allowanceBreakdown.adjustedAllowance).toLocaleString() + ' for high income)</span>';
-                }
-                html += '</div>';
-            }
-            html += '</div>';
-            return html;
+        // Toggle button click
+        $(document).on("click", "#ukpa-chatbox-toggle", (e) => {
+          e.preventDefault()
+          console.log("🔄 [FRONTEND] Toggle button clicked")
+          self.toggleChatbox()
+        })
+
+        // Close button click
+        $(document).on("click", "#ukpa-close-btn", (e) => {
+          e.preventDefault()
+          console.log("🔄 [FRONTEND] Close button clicked")
+          self.toggleChatbox()
+        })
+
+        // Tab navigation
+        $(document).on("click", ".ukpa-nav-item", function (e) {
+          e.preventDefault()
+          var tabName = $(this).data("tab")
+          console.log("🔄 [FRONTEND] Tab clicked:", tabName)
+          self.showTab(tabName)
+        })
+
+        // Ask question buttons
+        $(document).on("click", "#ukpa-ask-question-home", (e) => {
+          e.preventDefault()
+          console.log("🔄 [FRONTEND] Ask question home clicked")
+          self.showTab("messages")
+        })
+
+        $(document).on("click", "#ukpa-ask-question-messages", (e) => {
+          e.preventDefault()
+          console.log("🔄 [FRONTEND] Ask question messages clicked")
+          self.showInputField()
+        })
+
+        // Help items
+        $(document).on("click", ".ukpa-help-item[data-action]", function (e) {
+          e.preventDefault()
+          console.log("🔄 [FRONTEND] Help item clicked:", $(this).data("action"))
+          self.handleQuickAction($(this))
+        })
+
+        // Send message
+        $(document).on("click", "#ukpa-send-btn", (e) => {
+          e.preventDefault()
+          console.log("🔄 [FRONTEND] Send button clicked")
+          self.sendMessage()
+        })
+
+        // Enter key in input
+        $(document).on("keypress", "#ukpa-message-input", (e) => {
+          if (e.which === 13) {
+            console.log("🔄 [FRONTEND] Enter key pressed in input")
+            self.sendMessage()
+          }
+        })
+
+        // Escape key to close
+        $(document).on("keydown", (e) => {
+          if (e.key === "Escape" && self.isOpen) {
+            console.log("🔄 [FRONTEND] Escape key pressed")
+            self.toggleChatbox()
+          }
+        })
+
+        console.log("✅ [FRONTEND] Events bound successfully")
+      },
+  
+      toggleChatbox: function () {
+        var $chatbox = $("#ukpa-chatbox")
+        var $toggle = $("#ukpa-chatbox-toggle")
+  
+        console.log("Toggling chatbox. Current state:", this.isOpen)
+  
+        if (this.isOpen) {
+          $chatbox.removeClass("ukpa-active")
+          $toggle.show()
+          this.isOpen = false
+          console.log("Chatbox closed")
+        } else {
+          $chatbox.addClass("ukpa-active")
+          $toggle.hide()
+          this.isOpen = true
+          console.log("Chatbox opened")
         }
-    };
-    
+      },
+  
+      showTab: function (tabName) {
+        console.log("Switching to tab:", tabName)
+  
+        // Remove active class from all nav items and views
+        $(".ukpa-nav-item").removeClass("ukpa-active")
+        $(".ukpa-view").removeClass("ukpa-active")
+  
+        // Add active class to selected nav item and view
+        $('.ukpa-nav-item[data-tab="' + tabName + '"]').addClass("ukpa-active")
+        $("#ukpa-" + tabName + "-view").addClass("ukpa-active")
+  
+        this.currentTab = tabName
+        console.log("Tab switched to:", tabName)
+      },
+  
+      handleQuickAction: function ($element) {
+        var action = $element.data("action")
+        console.log("Quick action:", action)
+  
+        switch (action) {
+          case "calculate":
+            this.showTab("messages")
+            setTimeout(() => {
+              this.sendChatMessage("I need help with calculations")
+            }, 300)
+            break
+          case "help":
+            this.showTab("help")
+            break
+          case "tasks":
+            this.showTab("tasks")
+            break
+          case "troubleshoot":
+            this.showTab("messages")
+            setTimeout(() => {
+              this.sendChatMessage("I'm having trouble with my calculator")
+            }, 300)
+            break
+        }
+      },
+  
+      showInputField: () => {
+        $("#ukpa-ask-question-messages").hide()
+        $("#ukpa-input-group").show()
+        $("#ukpa-message-input").focus()
+      },
+  
+            sendMessage: function () {
+        var $input = $("#ukpa-message-input")
+        var message = $input.val().trim()
+
+        if (!message) return
+
+        console.log("🔄 [FRONTEND] Sending message:", message)
+
+        // Add user message
+        this.addMessage(message, "user")
+
+        // Clear input
+        $input.val("")
+
+        // Show typing indicator
+        this.showTypingIndicator()
+
+        // Send to backend
+        console.log("🔄 [FRONTEND] Calling sendToBackend...")
+        this.sendToBackend(message)
+          .then((response) => {
+            console.log("✅ [FRONTEND] Backend response received:", response)
+            this.removeTypingIndicator()
+
+            if (response.success && response.data && response.data.response) {
+              console.log("✅ [FRONTEND] Using response.data.response:", response.data.response)
+              this.addMessage(response.data.response, "bot")
+            } else if (response.answer) {
+              console.log("✅ [FRONTEND] Using response.answer:", response.answer)
+              this.addMessage(response.answer, "bot")
+            } else if (response.response) {
+              console.log("✅ [FRONTEND] Using response.response:", response.response)
+              this.addMessage(response.response, "bot")
+            } else {
+              console.log("❌ [FRONTEND] No valid response found in:", response)
+              this.addMessage("Sorry, I encountered an error. Please try again.", "bot")
+            }
+          })
+          .catch((error) => {
+            console.error("❌ [FRONTEND] Error:", error)
+            this.removeTypingIndicator()
+            this.addMessage("Sorry, I'm having trouble connecting. Please try again later.", "bot")
+          })
+          .always(() => {
+            console.log("🔄 [FRONTEND] Request completed, hiding input...")
+            // Hide input and show ask button
+            setTimeout(() => {
+              $("#ukpa-input-group").hide()
+              $("#ukpa-ask-question-messages").show()
+            }, 500)
+          })
+      },
+  
+      sendChatMessage: function (message) {
+        $("#ukpa-message-input").val(message)
+        this.showInputField()
+        this.sendMessage()
+      },
+  
+      sendToBackend: function (message) {
+        var ukpa_chatbox_ajax = window.ukpa_chatbox_ajax // Declare the variable
+        console.log("🔄 [FRONTEND] sendToBackend called with message:", message)
+        console.log("🔄 [FRONTEND] ukpa_chatbox_ajax config:", ukpa_chatbox_ajax)
+        
+        if (typeof ukpa_chatbox_ajax !== "undefined" && ukpa_chatbox_ajax.ajax_url.includes("admin-ajax.php")) {
+          // Use WordPress AJAX
+          console.log("🔄 [FRONTEND] Using WordPress AJAX")
+          console.log("🔄 [FRONTEND] AJAX URL:", ukpa_chatbox_ajax.ajax_url)
+          console.log("🔄 [FRONTEND] Session ID:", this.sessionId)
+          console.log("🔄 [FRONTEND] Nonce:", ukpa_chatbox_ajax.nonce)
+          
+          return $.ajax({
+            url: ukpa_chatbox_ajax.ajax_url,
+            type: "POST",
+            data: {
+              action: "ukpa_chatbox_message",
+              message: message,
+              session_id: this.sessionId,
+              nonce: ukpa_chatbox_ajax.nonce,
+            },
+          }).then(function(response) {
+            console.log("✅ [FRONTEND] WordPress AJAX response:", response)
+            return response;
+          }).catch(function(error) {
+            console.error("❌ [FRONTEND] WordPress AJAX error:", error)
+            throw error;
+          });
+        } else {
+          // Use direct backend connection
+          console.log("🔄 [FRONTEND] Using direct backend connection")
+          console.log("🔄 [FRONTEND] Backend URL:", ukpa_chatbox_ajax.backend_url || "http://localhost:3002/ana/api/v1/chatbot/ask")
+          
+          return fetch(ukpa_chatbox_ajax.backend_url || "http://localhost:3002/ana/api/v1/chatbot/ask", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              question: message,
+            }),
+          }).then((response) => {
+            console.log("✅ [FRONTEND] Fetch response status:", response.status)
+            if (!response.ok) {
+              throw new Error("HTTP " + response.status + ": " + response.statusText)
+            }
+            return response.json()
+          }).then((data) => {
+            console.log("✅ [FRONTEND] Fetch response data:", data)
+            return data;
+          })
+        }
+      },
+  
+      addMessage: function (text, sender) {
+        var $chatMessages = $("#ukpa-chat-messages")
+        var currentTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  
+        var messageHtml = `
+              <div class="ukpa-message ukpa-${sender}-message">
+                  <div class="ukpa-message-avatar">
+                      <i class="fas fa-${sender === "user" ? "user" : "robot"}"></i>
+                  </div>
+                  <div class="ukpa-message-content">
+                      <div class="ukpa-message-text">${this.escapeHtml(text)}</div>
+                      <div class="ukpa-message-time">${currentTime}</div>
+                  </div>
+              </div>
+          `
+  
+        $chatMessages.append(messageHtml)
+        $chatMessages.scrollTop($chatMessages[0].scrollHeight)
+      },
+  
+      showTypingIndicator: () => {
+        var $chatMessages = $("#ukpa-chat-messages")
+        var typingHtml = `
+              <div class="ukpa-message ukpa-bot-message ukpa-typing-indicator" id="ukpa-typing-indicator">
+                  <div class="ukpa-message-avatar">
+                      <i class="fas fa-robot"></i>
+                  </div>
+                  <div class="ukpa-message-content">
+                      <div class="ukpa-message-text">
+                          <span class="ukpa-typing-dots">
+                              <span></span><span></span><span></span>
+                          </span>
+                          Calculating...
+                      </div>
+                  </div>
+              </div>
+          `
+  
+        $chatMessages.append(typingHtml)
+        $chatMessages.scrollTop($chatMessages[0].scrollHeight)
+      },
+  
+      removeTypingIndicator: () => {
+        $("#ukpa-typing-indicator").remove()
+      },
+  
+      loadInitialMessages: function () {
+        var ukpa_chatbox_ajax = window.ukpa_chatbox_ajax
+        var welcomeMessage =
+          ukpa_chatbox_ajax.welcome_message ||
+          "Hello! I'm your calculator assistant. How can I help you with calculations today?"
+  
+        var $chatMessages = $("#ukpa-chat-messages")
+        var currentTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  
+        var messageHtml = `
+          <div class="ukpa-message ukpa-bot-message">
+              <div class="ukpa-message-avatar">
+                  <i class="fas fa-robot"></i>
+              </div>
+              <div class="ukpa-message-content">
+                  <div class="ukpa-message-text">${this.escapeHtml(welcomeMessage)}</div>
+                  <div class="ukpa-message-time">${currentTime}</div>
+              </div>
+          </div>
+      `
+  
+        $chatMessages.append(messageHtml)
+      },
+  
+      escapeHtml: (text) => {
+        if (typeof text !== "string") {
+          return ""
+        }
+        var div = document.createElement("div")
+        div.textContent = text
+        return div.innerHTML
+      },
+    }
+  
     // Initialize when DOM is ready
-    $(document).ready(function() {
-        // Prevent multiple initializations
-        if (window.UKPAChatboxInitialized) {
-            return;
-        }
-        window.UKPAChatboxInitialized = true;
-        UKPAChatbox.init();
-    });
-    
-})(jQuery); 
+    $(document).ready(() => {
+      if (window.UKPAChatboxInitialized) {
+        return
+      }
+      window.UKPAChatboxInitialized = true
+  
+      console.log("DOM ready, initializing chatbox...")
+      window.UKPAChatbox.init()
+    })
+  })(window.jQuery) // Use window.jQuery to declare the variable
+  
