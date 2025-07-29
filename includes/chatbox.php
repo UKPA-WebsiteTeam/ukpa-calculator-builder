@@ -410,7 +410,7 @@ class UKPA_Chatbox_System {
             <div class="ukpa-chatbox-header">
                 <div class="ukpa-chatbox-title">
                     <span class="ukpa-chatbox-icon">💬</span>
-                    <span class="ukpa-chatbox-title-text">AI Assistant</span>
+                    <span class="ukpa-chatbox-title-text">Chitte UKPA Bot</span>
                 </div>
                 <div class="ukpa-chatbox-controls">
                     <button class="ukpa-chatbox-minimize" aria-label="Minimize chat">−</button>
