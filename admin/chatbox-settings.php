@@ -1320,17 +1320,17 @@ class UKPA_Chatbox_Settings {
      * Render backend URL field
      */
     public function render_backend_url_field() {
-        $backend_url = get_option('ukpa_chatbox_backend_url', 'http://192.168.18.54:3002/ana/api/v1/chatbot/ask');
+        $backend_url = get_option('ukpa_chatbox_backend_url', 'http://localhost:3002/ana/api/v1/chatbot/ask');
         
         // Ensure the URL is always set to the correct endpoint
-        $correct_url = 'http://192.168.18.54:3002/ana/api/v1/chatbot/ask';
+        $correct_url = 'http://localhost:3002/ana/api/v1/chatbot/ask';
         if ($backend_url !== $correct_url) {
             $backend_url = $correct_url;
             update_option('ukpa_chatbox_backend_url', $correct_url);
         }
         ?>
         <input type="url" name="ukpa_chatbox_backend_url" value="<?php echo esc_attr($backend_url); ?>" 
-               class="regular-text" placeholder="http://192.168.18.54:3002/ana/api/v1/chatbot/ask" readonly>
+               class="regular-text" placeholder="http://localhost:3002/ana/api/v1/chatbot/ask" readonly>
         <p class="description">The URL of your Node.js backend API endpoint that handles chat messages. (Fixed to correct endpoint)</p>
         <?php
     }

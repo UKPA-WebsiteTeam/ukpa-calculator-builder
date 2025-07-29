@@ -211,7 +211,7 @@
             console.log('Sending message:', message);
             
             // Send fetch request directly to backend
-            fetch('http://192.168.18.54:3002/ana/api/v1/chatbot/ask', {
+            fetch('http://localhost:3002/ana/api/v1/chatbot/ask', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -240,9 +240,34 @@
                 if (data.type === 'form') {
                     // Show form if backend requests it
                     self.addMessage('', 'bot', $chatbox, data);
+                } else if (data.success && data.totalTax !== undefined) {
+                    // Handle calculator calculation results
+                    var message = '📊 **Income Tax Calculation Results:**\n\n';
+                    message += '💰 **Total Tax Due: £' + data.totalTax.toLocaleString() + '**\n\n';
+                    
+                    if (data.breakdown) {
+                        message += '📋 **Tax Breakdown:**\n';
+                        if (data.breakdown.nonSavingIncomeTax > 0) {
+                            message += '• Non-Savings Income Tax: £' + data.breakdown.nonSavingIncomeTax.toLocaleString() + '\n';
+                        }
+                        if (data.breakdown.savingsIncomeTax > 0) {
+                            message += '• Savings Income Tax: £' + data.breakdown.savingsIncomeTax.toLocaleString() + '\n';
+                        }
+                        if (data.breakdown.dividendIncomeTax > 0) {
+                            message += '• Dividend Income Tax: £' + data.breakdown.dividendIncomeTax.toLocaleString() + '\n';
+                        }
+                    }
+                    
+                    if (data.allowanceBreakdown) {
+                        message += '\n📈 **Personal Allowance:**\n';
+                        message += '• Personal Allowance: £' + data.allowanceBreakdown.personalAllowance.toLocaleString() + '\n';
+                        message += '• Adjusted Allowance: £' + data.allowanceBreakdown.adjustedAllowance.toLocaleString() + '\n';
+                    }
+                    
+                    self.addMessage(message, 'bot', $chatbox, data);
                 } else {
-                    // Show normal chat response
-                    self.addMessage(data.answer || data.response || 'No response received', 'bot', $chatbox);
+                    // Always pass data as formData for bot messages
+                    self.addMessage(data.answer || data.response || 'No response received', 'bot', $chatbox, data);
                 }
             })
             .catch(error => {
@@ -303,6 +328,40 @@
             `;
             
             $messages.append(messageHtml);
+            // Render suggested actions inline beside the message time
+            if (formData && formData.suggestedActions && Array.isArray(formData.suggestedActions) && formData.suggestedActions.length > 0) {
+                var $lastMsg = $messages.children('.ukpa-chatbox-message-bot').last();
+                var $time = $lastMsg.find('.ukpa-chatbox-message-time');
+                var $actionsDiv = $('<div class="ukpa-chatbox-suggested-actions-inline"></div>');
+                console.log('[UKPA Chatbox] Showing suggested actions (inline beside time):', formData.suggestedActions);
+                formData.suggestedActions.forEach(function(action) {
+                    var $btn = $('<button type="button" class="ukpa-suggested-action-btn"></button>')
+                        .text(action.label)
+                        .on('click', function() {
+                            $('.ukpa-chatbox-input', $chatbox).val(action.value);
+                            $('.ukpa-chatbox-form', $chatbox).submit();
+                        });
+                    $actionsDiv.append($btn);
+                });
+                // Wrap time and actions in a flex container
+                var $timeAndActions = $lastMsg.find('.ukpa-chatbox-message-time-and-actions');
+                if ($timeAndActions.length === 0) {
+                    $timeAndActions = $('<div class="ukpa-chatbox-message-time-and-actions"></div>');
+                    $time.after($timeAndActions);
+                    $timeAndActions.append($time);
+                }
+                $timeAndActions.append($actionsDiv);
+            } else {
+                // Remove any old inline suggestions
+                $messages.find('.ukpa-chatbox-suggested-actions-inline').remove();
+                $messages.find('.ukpa-chatbox-message-time-and-actions').each(function() {
+                    // If only time remains, unwrap
+                    if ($(this).children().length === 1 && $(this).children('.ukpa-chatbox-message-time').length === 1) {
+                        $(this).replaceWith($(this).children('.ukpa-chatbox-message-time'));
+                    }
+                });
+                console.log('[UKPA Chatbox] No suggested actions to show. Cleared inline actions.');
+            }
             this.scrollToBottom($messages);
         },
         
@@ -312,20 +371,18 @@
         renderDynamicForm: function(formData, $chatbox) {
             console.log('=== RENDERING DYNAMIC FORM ===');
             console.log('Form data received:', formData);
-            console.log('Form fields:', formData.fields);
-            
+            var fields = formData.fields || (formData.calculator && formData.calculator.fields) || [];
+            console.log('Form fields:', fields);
             var self = this;
             var formId = 'ukpa-form-' + Date.now();
-            
             console.log('Generated form ID:', formId);
-            
             var formHtml = `
                 <div class="ukpa-dynamic-form" data-form-id="${formId}">
                     <div class="ukpa-form-header">
                         <h4>${this.escapeHtml(formData.message || 'Please fill in the details:')}</h4>
                     </div>
-                    <form class="ukpa-form" data-calculator="${formData.calculator || ''}">
-                        ${this.renderFormFields(formData.fields || [])}
+                    <form class="ukpa-form" data-calculator="${formData.calculator ? (formData.calculator.name || '') : ''}">
+                        ${this.renderFormFields(fields)}
                         <div class="ukpa-form-actions">
                             <button type="submit" class="ukpa-form-submit">Submit</button>
                             <button type="button" class="ukpa-form-cancel">Cancel</button>
@@ -333,14 +390,10 @@
                     </form>
                 </div>
             `;
-            
             console.log('Generated form HTML:', formHtml);
-            
-            // Bind form events after rendering
             setTimeout(function() {
                 self.bindFormEvents(formId, $chatbox);
             }, 100);
-            
             return formHtml;
         },
         
@@ -597,25 +650,31 @@
         sendFormData: function(formData, $chatbox) {
             console.log('=== UPDATED sendFormData FUNCTION LOADED ===');
             var self = this;
-            
+            var url = 'http://192.168.18.54:3002/ana/api/v1/chatbot/ask';
+            // If this is a calculator form, ensure all required fields are present and numbers
+            if (formData.calculator && formData.calculator.toLowerCase() === 'income tax') {
+                // Ensure all fields are present and numbers
+                formData.taxYear = String(formData.taxYear || '');
+                formData.propertyIncome = Number(formData.propertyIncome || 0);
+                formData.tradingIncome = Number(formData.tradingIncome || 0);
+                formData.employmentIncome = Number(formData.employmentIncome || 0);
+                formData.savingIncome = Number(formData.savingIncome || 0);
+                formData.dividendIncome = Number(formData.dividendIncome || 0);
+                // Keep calculator property for backend detection
+            }
             // Show typing indicator
             this.showTypingIndicator($chatbox);
-            
             // Disable input during request
             var $input = $chatbox.find('.ukpa-chatbox-input');
             var $sendBtn = $chatbox.find('.ukpa-chatbox-send');
             $input.prop('disabled', true);
             $sendBtn.prop('disabled', true);
-            
             // Log the request data for debugging
             console.log('Sending form data:', formData);
-            
             // Send fetch request with form data
-            fetch('http://192.168.18.54:3002/ana/api/v1/chatbot/ask', {
+            fetch(url, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             })
             .then(response => {
@@ -638,9 +697,35 @@
                 if (data.type === 'form') {
                     // Show form if backend requests it
                     self.addMessage('', 'bot', $chatbox, data);
+                } else if (data.success && data.totalTax !== undefined) {
+                    // Handle calculator calculation results
+                    var calculationMessage = '📊 **Income Tax Calculation Results**\n\n';
+                    calculationMessage += '💰 **Total Tax Due**: £' + data.totalTax.toLocaleString() + '\n\n';
+                    
+                    if (data.breakdown) {
+                        calculationMessage += '📋 **Tax Breakdown**:\n';
+                        if (data.breakdown.nonSavingIncomeTax > 0) {
+                            calculationMessage += '• Non-Savings Income Tax: £' + data.breakdown.nonSavingIncomeTax.toLocaleString() + '\n';
+                        }
+                        if (data.breakdown.savingsIncomeTax > 0) {
+                            calculationMessage += '• Savings Income Tax: £' + data.breakdown.savingsIncomeTax.toLocaleString() + '\n';
+                        }
+                        if (data.breakdown.dividendIncomeTax > 0) {
+                            calculationMessage += '• Dividend Income Tax: £' + data.breakdown.dividendIncomeTax.toLocaleString() + '\n';
+                        }
+                    }
+                    
+                    if (data.allowanceBreakdown) {
+                        calculationMessage += '\n🎯 **Personal Allowance**: £' + data.allowanceBreakdown.personalAllowance.toLocaleString();
+                        if (data.allowanceBreakdown.adjustedAllowance !== data.allowanceBreakdown.personalAllowance) {
+                            calculationMessage += ' (adjusted to £' + data.allowanceBreakdown.adjustedAllowance.toLocaleString() + ' for high income)';
+                        }
+                    }
+                    
+                    self.addMessage(calculationMessage, 'bot', $chatbox, data);
                 } else {
                     // Show normal chat response
-                    self.addMessage(data.answer || data.response || 'No response received', 'bot', $chatbox);
+                    self.addMessage(data.answer || data.response || 'No response received', 'bot', $chatbox, data);
                 }
             })
             .catch(error => {

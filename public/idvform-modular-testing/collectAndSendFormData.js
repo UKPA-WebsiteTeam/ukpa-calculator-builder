@@ -205,15 +205,52 @@ export async function collectAndSendFormData(totalUsers) {
         postcode: getValue(`postcode-${i}`)
       };
       const proofInput = document.getElementById(`proofOfAddress-${i}`);
+      console.log(`[DEBUG] Looking for proof of address input for user ${i}:`, proofInput);
       let proofOfAddressDriveFile = null;
       if (proofInput && proofInput.files && proofInput.files[0]) {
+        console.log(`[DEBUG] Proof of address file found for user ${i}:`, proofInput.files[0]);
         filesToUpload.push({
           field: `proofOfAddress-${i}`,
           file: proofInput.files[0]
         });
+        // Also add with a more specific field name that backend might expect
+        filesToUpload.push({
+          field: `proof_of_address_${i}`,
+          file: proofInput.files[0]
+        });
         proofOfAddressDriveFile = { name: proofInput.files[0].name };
+        console.log(`[DEBUG] Added proof of address to filesToUpload for user ${i}:`, proofOfAddressDriveFile);
+      } else {
+        console.log(`[DEBUG] No proof of address file found for user ${i}`);
+        if (!proofInput) {
+          console.log(`[DEBUG] Proof of address input element not found for user ${i}`);
+          // Try to find it by name attribute as fallback
+          const fallbackInput = document.querySelector(`input[name="proofOfAddress-${i}"]`);
+          if (fallbackInput) {
+            console.log(`[DEBUG] Found proof of address input by name for user ${i}:`, fallbackInput);
+            if (fallbackInput.files && fallbackInput.files[0]) {
+              console.log(`[DEBUG] Proof of address file found via fallback for user ${i}:`, fallbackInput.files[0]);
+              filesToUpload.push({
+                field: `proofOfAddress-${i}`,
+                file: fallbackInput.files[0]
+              });
+              // Also add with a more specific field name that backend might expect
+              filesToUpload.push({
+                field: `proof_of_address_${i}`,
+                file: fallbackInput.files[0]
+              });
+              proofOfAddressDriveFile = { name: fallbackInput.files[0].name };
+              console.log(`[DEBUG] Added proof of address to filesToUpload via fallback for user ${i}:`, proofOfAddressDriveFile);
+            }
+          }
+        } else if (!proofInput.files) {
+          console.log(`[DEBUG] Proof of address input has no files property for user ${i}`);
+        } else if (!proofInput.files[0]) {
+          console.log(`[DEBUG] Proof of address input has no files[0] for user ${i}`);
+        }
       }
       address.proofOfAddress = proofOfAddressDriveFile;
+      console.log(`[DEBUG] Final address object for user ${i}:`, address);
 
       const groupAUploads = [];
       const groupBUploads = [];
@@ -278,6 +315,7 @@ export async function collectAndSendFormData(totalUsers) {
       const documents = {
         groupA: groupAUploads,
         groupB: groupBUploads,
+        proofOfAddress: proofOfAddressDriveFile, // Add proof of address to documents structure
         confirmDocs: document.getElementById(`confirmDocs-${i}`)?.checked || false
       };
       const confirmCheckbox = document.getElementById(`confirmDocs-${i}`);
@@ -291,8 +329,9 @@ export async function collectAndSendFormData(totalUsers) {
       console.log(`DEBUG: User ${i} address:`, address);
       console.log(`DEBUG: User ${i} documents:`, documents);
     }
-    // After loop, log the final users array
+    // After loop, log the final users array before submit
     console.log('DEBUG: Final users array before submit:', users);
+    console.log('DEBUG: filesToUpload array before submit:', filesToUpload);
 
     // --- Submit to backend via WP AJAX proxy ---
     const formData = new FormData();
@@ -303,8 +342,17 @@ export async function collectAndSendFormData(totalUsers) {
     formData.append('contact', JSON.stringify(contact));
     formData.append('users', JSON.stringify(users));
     for (const fileObj of filesToUpload) {
+      console.log(`[DEBUG] Adding file to FormData: ${fileObj.field}`, fileObj.file);
       formData.append(fileObj.field, fileObj.file);
     }
+    console.log('[DEBUG] FormData entries:');
+    for (let [key, value] of formData.entries()) {
+      console.log(`[DEBUG] FormData key: ${key}, value type: ${typeof value}`);
+    }
+    // Check specifically for proof of address files
+    const proofOfAddressFiles = filesToUpload.filter(f => f.field.startsWith('proofOfAddress'));
+    console.log('[DEBUG] Proof of address files in filesToUpload:', proofOfAddressFiles);
+    console.log('[DEBUG] FormData contains proof of address files:', Array.from(formData.entries()).filter(([key]) => key.startsWith('proofOfAddress')));
     const response = await fetch(window.ukpa_idv_form_data.ajaxurl, {
       method: 'POST',
       body: formData,

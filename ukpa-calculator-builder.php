@@ -86,8 +86,8 @@ add_action('admin_enqueue_scripts', function ($hook) {
     // ✅ Local config for JS
     $plugin_token = get_option('ukpa_plugin_token', '');
     $selected_website = get_option('ukpa_selected_website', 'UKPA');
-    $local_api_base_url = 'http://192.168.18.54:3002/ana/v1';
-    $live_api_base_url = 'http://192.168.18.54:3002/ana/v1';
+    $local_api_base_url = 'http://localhost:3002/ana/v1';
+    $live_api_base_url = 'http://localhost:3002/ana/v1';
 
     $calc_id = isset($_GET['calc_id']) ? sanitize_text_field($_GET['calc_id']) : '';
     $calc_data = get_option('ukpa_calc_' . $calc_id, []);
@@ -100,7 +100,7 @@ add_action('admin_enqueue_scripts', function ($hook) {
             'plugin_token'    => $plugin_token,
             'local_base_url'  => $local_api_base_url,
             'live_base_url'   => $live_api_base_url,
-            'base_url'        => $local_api_base_url, // for backward compatibility
+            'base_url'        => $local_api_base_url,
             'backend_route'   => $route,
             'nonce'           => wp_create_nonce('ukpa_api_nonce'),
             'website'         => $selected_website,
@@ -193,7 +193,7 @@ function ukpa_proxy_api_handler() {
 
     $route = sanitize_text_field($input['route'] ?? '');
     $payload = $input['payload'] ?? [];
-    $base_url = get_option('ukpa_api_base_url', 'http://192.168.18.54:3002/ana/v1');
+    $base_url = get_option('ukpa_api_base_url', 'http://localhost:3002/ana/v1');
     $url = trailingslashit($base_url) . 'routes/mainRouter/' . ltrim($route, '/');
 
     $args = [
@@ -220,10 +220,10 @@ function ukpa_proxy_api_handler() {
 
 // Global API URL constants
 if ( ! defined( 'UKPA_CALC_LOCAL_API_URL' ) ) {
-    define( 'UKPA_CALC_LOCAL_API_URL', 'http://192.168.18.54:3002/ana' );
+    define( 'UKPA_CALC_LOCAL_API_URL', 'http://localhost:3002/ana' );
 }
 if ( ! defined( 'UKPA_CALC_LIVE_API_URL' ) ) {
-    define( 'UKPA_CALC_LIVE_API_URL', 'http://192.168.18.54:3002/ana' );
+    define( 'UKPA_CALC_LIVE_API_URL', 'http://localhost:3002/ana' );
 }
 
 // Helper function to get the correct API URL

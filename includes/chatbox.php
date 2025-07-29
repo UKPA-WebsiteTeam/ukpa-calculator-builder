@@ -90,7 +90,7 @@ class UKPA_Chatbox_System {
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('ukpa_chatbox_nonce'),
             'enabled' => get_option('ukpa_chatbox_enabled', false),
-            'backend_url' => get_option('ukpa_chatbox_backend_url', 'http://192.168.18.54:3002/ana/api/v1/chatbot/ask'),
+            'backend_url' => get_option('ukpa_chatbox_backend_url', 'http://localhost:3002/ana/api/v1/chatbot/ask'),
             'welcome_message' => get_option('ukpa_chatbox_welcome_message', 'Hello! How can I help you today?'),
             'placeholder' => get_option('ukpa_chatbox_placeholder', 'Type your message...')
         ));
@@ -258,12 +258,12 @@ class UKPA_Chatbox_System {
      * Send message to Node.js backend
      */
     private function send_to_backend($message, $session_id) {
-        $backend_url = get_option('ukpa_chatbox_backend_url', 'http://192.168.18.54:3002/ana/api/v1/chatbot/ask');
+        $backend_url = get_option('ukpa_chatbox_backend_url', 'http://localhost:3002/ana/api/v1/chatbot/ask');
         $api_key = get_option('ukpa_chatbox_api_key');
         $timeout = get_option('ukpa_chatbox_timeout', 30);
         
         // Validate that the backend URL is the correct endpoint
-        $expected_url = 'http://192.168.18.54:3002/ana/api/v1/chatbot/ask';
+        $expected_url = 'http://localhost:3002/ana/api/v1/chatbot/ask';
         if ($backend_url !== $expected_url) {
             // Force the correct URL
             $backend_url = $expected_url;
@@ -440,7 +440,10 @@ class UKPA_Chatbox_System {
                     </div>
                 </div>
             </div>
-            
+
+            <!-- Suggested Actions Bar -->
+            <div class="ukpa-chatbox-suggested-actions-bar"></div>
+
             <!-- Chat Box Footer -->
             <div class="ukpa-chatbox-footer">
                 <form class="ukpa-chatbox-form">

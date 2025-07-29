@@ -214,6 +214,7 @@
     color: #999;
     margin-top: 4px;
     align-self: flex-end;
+    max-width: 50px;
 }
 
 .ukpa-chatbox-dark .ukpa-chatbox-message-time {
@@ -279,7 +280,7 @@
 .ukpa-chatbox-input-wrapper {
     flex: 1;
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     background: white;
     border: 1px solid #e1e5e9;
     border-radius: 24px;
@@ -607,6 +608,62 @@
 
 .ukpa-chatbox-dark .ukpa-radio-option label {
     color: #ecf0f1;
+}
+
+/* Suggested Actions Inline Container */
+.ukpa-chatbox-suggested-actions-inline {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  margin-top: 2px;
+}
+
+/* Suggested Action Button */
+.ukpa-suggested-action-btn {
+  background: #007cba;
+  color: #fff;
+  border: none;
+  border-radius: 18px;
+  padding: 4px 16px;
+  font-size: 12px;
+  font-weight: 400;
+  min-width: 64px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+  outline: none;
+  margin-bottom: 2px;
+  letter-spacing: 0.01em;
+  display: inline-block;
+}
+.ukpa-suggested-action-btn:hover, .ukpa-suggested-action-btn:focus {
+  background: #0692d8;
+  box-shadow: 0 4px 16px rgba(0,123,255,0.15);
+  transform: translateY(-1px) scale(1.03);
+}
+.ukpa-suggested-action-btn:active {
+  background: #003a75;
+  color: #e0e0e0;
+  transform: scale(0.98);
+}
+.ukpa-chatbox-message-time-and-actions{
+    display: inline-flex;
+    justify-content: space-between;
+}
+/* Responsive for mobile */
+@media (max-width: 480px) {
+  .ukpa-chatbox-message-time-and-actions {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .ukpa-suggested-action-btn {
+    width: auto;
+    min-width: 60px;
+    font-size: 0.97rem;
+    padding: 8px 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
