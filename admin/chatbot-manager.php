@@ -182,7 +182,7 @@ class UKPA_Chatbot_Manager {
                     'order' => 1,
                     'content' => array(
                         'greeting' => 'Hello! How can we help?',
-                        'subtitle' => 'How can we help?',
+                        'subtitle' => 'Our Advance AI is here to help you.',
                         'status_title' => 'Status: All Systems Operational',
                         'status_time' => 'Updated ' . date('M j, H:i') . ' UTC',
                         'search_placeholder' => 'Search for help',

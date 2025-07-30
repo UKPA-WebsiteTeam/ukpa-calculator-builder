@@ -8,6 +8,68 @@
     line-height: 1.5;
 }
 
+/* Sticky Ask Question Button */
+.ukpa-chatbot-home-content {
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.ukpa-chatbot-home-scrollable {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 80px; /* Space for sticky button */
+}
+
+.ukpa-chatbot-ask-question-sticky {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, #1a1a1a 80%, transparent);
+    padding: 16px 20px 20px;
+    border-top: 1px solid #333;
+    z-index: 10;
+}
+
+.ukpa-chatbot-ask-question-sticky .ukpa-chatbot-menu-item {
+    background: linear-gradient(135deg, #007cba 0%, #005a87 100%);
+    border: none;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(0, 124, 186, 0.3);
+}
+
+.ukpa-chatbot-ask-question-sticky .ukpa-chatbot-menu-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 124, 186, 0.4);
+    background: linear-gradient(135deg, #0088d1 0%, #0066a3 100%);
+}
+
+.ukpa-chatbot-ask-question-sticky .ukpa-chatbot-menu-item-title {
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.ukpa-chatbot-ask-question-sticky .ukpa-chatbot-menu-item-text {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+.ukpa-chatbot-ask-question-sticky .ukpa-chatbot-menu-item-arrow {
+    color: white;
+}
+
+.ukpa-chatbot-ask-question-sticky .ukpa-chatbot-menu-item-arrow svg {
+    width: 20px;
+    height: 20px;
+}
+
 /* Ensure container is hidden by default - multiple approaches */
 .ukpa-chatbot-container:not(.active) {
     display: none !important;
@@ -89,8 +151,8 @@
     position: absolute;
     bottom: 70px;
     right: 0;
-    width: 380px;
-    height: 600px;
+    width: 420px;
+    height: 75vh;
     background: #1a1a1a;
     border-radius: 20px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
@@ -2058,15 +2120,15 @@
 .ukpa-chatbot-suggested-actions {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    margin: 10px 0;
+    gap: 4px;
+    margin: 4px 0;
 }
 
 .ukpa-chatbot-action-btn {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 8px;
-    padding: 10px 16px;
+    padding: 8px 14px;
     color: rgba(255, 255, 255, 0.8);
     font-size: 13px;
     cursor: pointer;
@@ -2085,8 +2147,8 @@
 .ukpa-chatbot-suggestions-hanging {
     position: relative;
     margin-left: 40px;
-    margin-top: 8px;
-    margin-bottom: 16px;
+    margin-top: 4px;
+    margin-bottom: 8px;
 }
 
 .ukpa-chatbot-suggestions-connector {
@@ -2103,7 +2165,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    padding: 8px 0;
+    padding: 4px 0;
 }
 
 .ukpa-chatbot-suggestion-chip {

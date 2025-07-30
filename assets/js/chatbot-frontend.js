@@ -921,6 +921,41 @@ jQuery(document).ready(function($) {
             resumeConversation(sessionId);
         });
         
+        // Handle recent chat card in home section
+        widget.on('click', '.ukpa-chatbot-recent-chat', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const sessionId = $(this).data('session-id');
+            console.log('Recent chat clicked in home section, session ID:', sessionId);
+            console.log('Element clicked:', this);
+            console.log('TEST: Recent conversation click detected!'); // Test log
+            
+            // Always try to resume conversation - recent conversation should open existing chat
+            console.log('Resuming conversation for recent chat');
+            resumeConversation(sessionId || 'default_session');
+        });
+        
+        // Additional direct click handler for recent chat
+        $(document).on('click', '.ukpa-chatbot-recent-chat', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const sessionId = $(this).data('session-id');
+            console.log('Recent chat clicked via document handler, session ID:', sessionId);
+            console.log('Element clicked:', this);
+            
+            // Always try to resume conversation - recent conversation should open existing chat
+            console.log('Resuming conversation for recent chat');
+            resumeConversation(sessionId || 'default_session');
+        });
+        
+        // Handle "Ask a question" button in home section
+        widget.on('click', '.ukpa-chatbot-ask-question', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Ask a question clicked in home section!');
+            startNewConversation();
+        });
+        
         // Session management functions
         function startNewSession() {
             currentSessionId = 'session_' + Date.now();
@@ -1258,9 +1293,9 @@ jQuery(document).ready(function($) {
         }
         
         function bindConversationEvents() {
-            // Back button to return to history
+            // Back button to return to initial messages tab state
             widget.find('.ukpa-chatbot-back-btn').on('click', function() {
-                showHistoryInterface();
+                showInitialMessagesState();
             });
             
             // Minimize button to collapse chatbot
@@ -1300,6 +1335,31 @@ jQuery(document).ready(function($) {
             
             // Load and display history
             loadChatHistory();
+        }
+        
+        function showInitialMessagesState() {
+            console.log('showInitialMessagesState called');
+            
+            // Switch to messages tab if not already
+            const messagesTab = widget.find('.ukpa-chatbot-tab[data-tab="messages"]');
+            if (!messagesTab.hasClass('active')) {
+                messagesTab.click();
+            }
+            
+            // Remove expanded state and show back button
+            container.removeClass('expanded');
+            backBtn.hide();
+            
+            // Remove active from all tabs and panes
+            widget.find('.ukpa-chatbot-tab').removeClass('active');
+            widget.find('.ukpa-chatbot-tab-pane').removeClass('active');
+            
+            // Activate messages tab and pane
+            messagesTab.addClass('active');
+            widget.find('.ukpa-chatbot-tab-pane[data-tab="messages"]').addClass('active');
+            
+            // Show the initial messages interface (history or empty state)
+            showHistoryInterface();
         }
         
         function restartConversation(sessionId) {
