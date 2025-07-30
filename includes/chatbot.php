@@ -36,13 +36,13 @@ class UKPA_Chatbot_System {
         // Shortcode
         add_shortcode('ukpa_chatbot', array($this, 'render_chatbot_shortcode'));
         
-        // Admin assets
-        add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_assets'));
+        // Admin assets - REMOVED (handled by main plugin file)
+        // add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_assets'));
         
         // Frontend assets
         add_action('wp_enqueue_scripts', array($this, 'enqueue_frontend_assets'));
         
-        // Global chatbot display
+        // Global chatbot display - ENABLED
         add_action('wp_footer', array($this, 'render_global_chatbots'));
         
         // Add settings to admin
@@ -135,17 +135,31 @@ class UKPA_Chatbot_System {
     }
     
     /**
-     * Render chatbot HTML
+     * Render chatbot HTML with dynamic tabs
      */
     private function render_chatbot_html($chatbot, $theme = 'light', $position = 'bottom-right') {
         $config = json_decode($chatbot->config, true);
         $session_id = uniqid('chat_', true);
+        
+        // Get tabs configuration
+        $tabs = $config['tabs'] ?? array();
+        
+        // Only use enabled tabs
+        $enabled_tabs = array_filter($tabs, function($tab) { return !empty($tab['enabled']); });
+        // Debug tabs configuration
+        error_log("Tabs configuration - Count: " . count($tabs) . ", Enabled: " . count($enabled_tabs) . ", Empty: " . (empty($enabled_tabs) ? 'yes' : 'no'));
+        if (!empty($enabled_tabs)) {
+            foreach ($enabled_tabs as $tab) {
+                error_log("Tab: " . ($tab['id'] ?? 'no-id') . " - Enabled: " . ($tab['enabled'] ?? 'no-enable-setting'));
+            }
+        }
         
         ob_start();
         ?>
         <div id="ukpa-chatbot-<?php echo $chatbot->id; ?>" 
              class="ukpa-chatbot-widget" 
              data-chatbot-id="<?php echo $chatbot->id; ?>"
+             data-chatbot-name="<?php echo esc_attr($chatbot->name); ?>"
              data-session-id="<?php echo $session_id; ?>"
              data-theme="<?php echo esc_attr($theme); ?>"
              data-position="<?php echo esc_attr($position); ?>">
@@ -160,26 +174,336 @@ class UKPA_Chatbot_System {
             
             <div class="ukpa-chatbot-container">
                 <div class="ukpa-chatbot-header">
-                    <h3><?php echo esc_html($chatbot->name); ?></h3>
-                    <button class="ukpa-chatbot-close">&times;</button>
-                </div>
-                
-                <div class="ukpa-chatbot-messages">
-                    <div class="ukpa-chatbot-message bot">
-                        <div class="ukpa-chatbot-avatar">
+                    <div class="ukpa-chatbot-header-left">
+                        <button class="ukpa-chatbot-back-btn" id="ukpa-chatbot-back-btn" style="display: none;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                        <div class="ukpa-chatbot-logo">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" fill="currentColor"/>
+                                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="currentColor"/>
                             </svg>
                         </div>
-                        <div class="ukpa-chatbot-text">
-                            <?php echo esc_html($config['welcome_message'] ?? 'Hello! How can I help you today?'); ?>
+                        <h3><?php echo esc_html($chatbot->name); ?></h3>
+                    </div>
+                    <div class="ukpa-chatbot-header-right">
+                        <div class="ukpa-chatbot-status-indicators">
+                            <div class="ukpa-chatbot-status-dot blue"></div>
+                            <div class="ukpa-chatbot-status-dot green"></div>
+                            <div class="ukpa-chatbot-status-dot orange"></div>
                         </div>
+                        <button class="ukpa-chatbot-close">&times;</button>
                     </div>
                 </div>
                 
-                <div class="ukpa-chatbot-input">
-                    <input type="text" placeholder="Type your message..." class="ukpa-chatbot-text-input">
-                    <button class="ukpa-chatbot-send">
+                <?php 
+                error_log("Rendering chatbot - Tabs empty: " . (empty($tabs) ? 'yes' : 'no'));
+                if (!empty($tabs)): 
+                ?>
+                <!-- Content Area -->
+                <div class="ukpa-chatbot-content">
+                    <!-- Tab Panes - Directly inside content -->
+                    <?php 
+                    $first_tab = true;
+                    foreach ($tabs as $tab): 
+                        if (!$tab['enabled']) continue;
+                        $content = $tab['content'] ?? array();
+                    ?>
+                        <div class="ukpa-chatbot-tab-pane <?php echo $first_tab ? 'active' : ''; ?>" 
+                             data-tab="<?php echo esc_attr($tab['id']); ?>">
+                            <?php echo $this->render_tab_content($tab, $content); ?>
+                        </div>
+                    <?php 
+                        $first_tab = false;
+                    endforeach; 
+                    ?>
+                    
+                    <!-- Bottom Navigation Tabs -->
+                    <div class="ukpa-chatbot-tabs">
+                        <?php 
+                        $first_tab = true;
+                        foreach ($tabs as $tab): 
+                            if (!$tab['enabled']) continue;
+                            $notification_count = isset($tab['notification_count']) ? $tab['notification_count'] : 0;
+                        ?>
+                            <button class="ukpa-chatbot-tab <?php echo $first_tab ? 'active' : ''; ?>" 
+                                    data-tab="<?php echo esc_attr($tab['id']); ?>" 
+                                    aria-label="<?php echo esc_attr($tab['name']); ?>">
+                                <div class="ukpa-chatbot-tab-icon">
+                                    <img class="ukpa-chatbot-icon-outline" src="<?php echo plugin_dir_url(__FILE__) . '../public/icons/' . str_replace('.svg', '-outline.svg', esc_attr($tab['icon'])); ?>" 
+                                         alt="<?php echo esc_attr($tab['name']); ?>" width="20" height="20">
+                                    <img class="ukpa-chatbot-icon-filled" src="<?php echo plugin_dir_url(__FILE__) . '../public/icons/' . esc_attr($tab['icon']); ?>" 
+                                         alt="<?php echo esc_attr($tab['name']); ?>" width="20" height="20">
+                                </div>
+                                <span><?php echo esc_html($tab['icon_text']); ?></span>
+                                <?php if ($notification_count > 0): ?>
+                                    <div class="notification-badge"><?php echo $notification_count; ?></div>
+                                <?php endif; ?>
+                            </button>
+                        <?php 
+                            $first_tab = false;
+                        endforeach; 
+                        ?>
+                    </div>
+                </div>
+                <?php 
+                else: 
+                error_log("Rendering fallback content - no tabs configured");
+                ?>
+                    <!-- Fallback content if no tabs configured -->
+                    <div class="ukpa-chatbot-content">
+                        <div class="ukpa-chatbot-tab-pane active" data-tab="messages">
+                            <div class="ukpa-chatbot-messages">
+                                <div class="ukpa-chatbot-messages-list">
+                                    <div class="ukpa-chatbot-message bot">
+                                        <div class="ukpa-chatbot-avatar">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" fill="currentColor"/>
+                                            </svg>
+                                        </div>
+                                        <div class="ukpa-chatbot-text">
+                                            <?php echo esc_html($config['welcome_message'] ?? 'Hello! How can I help you today?'); ?>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="ukpa-chatbot-input">
+                                    <input type="text" placeholder="Type your message..." class="ukpa-chatbot-text-input">
+                                    <button class="ukpa-chatbot-send">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" fill="currentColor"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Bottom Navigation Tabs -->
+                        <div class="ukpa-chatbot-tabs">
+                            <button class="ukpa-chatbot-tab active" data-tab="messages" aria-label="Messages">
+                                <div class="ukpa-chatbot-tab-icon">
+                                    <img class="ukpa-chatbot-icon-outline" src="<?php echo plugin_dir_url(__FILE__) . '../public/icons/chat-outline.svg'; ?>" alt="Messages" width="20" height="20">
+                                    <img class="ukpa-chatbot-icon-filled" src="<?php echo plugin_dir_url(__FILE__) . '../public/icons/chat.svg'; ?>" alt="Messages" width="20" height="20">
+                                </div>
+                                <span>MESSAGES</span>
+                            </button>
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+    
+    /**
+     * Render tab content based on content type
+     */
+    private function render_tab_content($tab, $content) {
+        $content_type = $tab['content_type'] ?? 'messages';
+        
+        switch ($content_type) {
+            case 'home':
+                return $this->render_home_tab_content($content);
+                
+            case 'messages':
+                return $this->render_messages_tab_content($content);
+                
+            case 'help':
+                return $this->render_help_tab_content($content);
+                
+            case 'tasks':
+                return $this->render_tasks_tab_content($content);
+                
+            case 'calculators':
+                return $this->render_calculators_tab_content($content);
+                
+            case 'custom':
+                return $this->render_custom_tab_content($content);
+                
+            default:
+                return $this->render_messages_tab_content($content);
+        }
+    }
+    
+    /**
+     * Render home tab content
+     */
+    private function render_home_tab_content($content) {
+        $greeting = $content['greeting'] ?? 'Hello there.';
+        $subtitle = $content['subtitle'] ?? 'How can we help?';
+        $status_title = $content['status_title'] ?? 'Status: All Systems Operational';
+        $status_time = $content['status_time'] ?? 'Updated ' . date('M j, H:i') . ' UTC';
+        $search_placeholder = $content['search_placeholder'] ?? 'Search for help';
+        $search_enabled = $content['search_enabled'] ?? true;
+        $categories = $content['categories'] ?? array();
+        $menu_items = $content['menu_items'] ?? array();
+        
+        ob_start();
+        ?>
+        <div class="ukpa-chatbot-home-content">
+            <div class="ukpa-chatbot-greeting">
+                <h2><?php echo esc_html($greeting); ?></h2>
+                <p><?php echo esc_html($subtitle); ?></p>
+            </div>
+            
+            <!-- Recent Message Card -->
+            <div class="ukpa-chatbot-menu-item">
+                <div class="ukpa-chatbot-menu-item-content">
+                    <div class="ukpa-chatbot-menu-item-title">Recent message</div>
+                    <div class="ukpa-chatbot-menu-item-text">If you need any more details about...</div>
+                    <div class="ukpa-chatbot-menu-item-meta">Fin • 2h ago</div>
+                </div>
+                <div class="ukpa-chatbot-menu-item-indicator">
+                    <div class="ukpa-chatbot-status-dot" style="background: #e74c3c;"></div>
+                </div>
+            </div>
+            
+            <!-- Ask Question Card -->
+            <div class="ukpa-chatbot-menu-item">
+                <div class="ukpa-chatbot-menu-item-content">
+                    <div class="ukpa-chatbot-menu-item-title">Ask a question</div>
+                    <div class="ukpa-chatbot-menu-item-text">AI Agent and team can help</div>
+                </div>
+                <div class="ukpa-chatbot-menu-item-arrow">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8.59 16.59L13.17 12L8.59 7.41L10 6L16 12L10 18L8.59 16.59Z" fill="currentColor"/>
+                    </svg>
+                </div>
+            </div>
+            
+            <!-- Promotional Video Section -->
+            <div class="ukpa-chatbot-promo-section">
+                <div class="ukpa-chatbot-promo-image">
+                    <div class="ukpa-chatbot-promo-overlay">
+                        <div class="ukpa-chatbot-promo-text">
+                            <div class="ukpa-chatbot-promo-title">Built For You</div>
+                            <!-- <div class="ukpa-chatbot-promo-title">For</div>
+                            <div class="ukpa-chatbot-promo-title">You</div> -->
+                        </div>
+                        <div class="ukpa-chatbot-promo-subtitle">Calculate you taxes using our AI powered calculators.</div>
+                    </div>
+                </div>
+            </div>
+            
+            <?php if ($search_enabled): ?>
+                <div class="ukpa-chatbot-search">
+                    <input type="text" placeholder="<?php echo esc_attr($search_placeholder); ?>" class="ukpa-chatbot-search-input" id="ukpa-chatbot-search-input">
+                    <div class="ukpa-chatbot-search-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" fill="currentColor"/>
+                        </svg>
+                    </div>
+                </div>
+            <?php endif; ?>
+            
+            <?php if (!empty($categories)): ?>
+                <div class="ukpa-chatbot-categories">
+                    <h4><?php echo count($categories); ?> collections</h4>
+                    <?php foreach ($categories as $category): ?>
+                        <div class="ukpa-chatbot-category" data-category-id="<?php echo esc_attr($category['id'] ?? ''); ?>">
+                            <div class="ukpa-chatbot-category-header">
+                                <div class="ukpa-chatbot-category-info">
+                                    <div class="ukpa-chatbot-category-title"><?php echo esc_html($category['title'] ?? ''); ?></div>
+                                    <div class="ukpa-chatbot-category-description"><?php echo esc_html($category['description'] ?? ''); ?></div>
+                                    <div class="ukpa-chatbot-category-count"><?php echo esc_html($category['article_count'] ?? 0); ?> articles</div>
+                                </div>
+                                <div class="ukpa-chatbot-category-arrow">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M8.59 16.59L13.17 12L8.59 7.41L10 6L16 12L10 18L8.59 16.59Z" fill="currentColor"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <?php if (!empty($category['subcategories'])): ?>
+                                <div class="ukpa-chatbot-subcategories" style="display: none;">
+                                    <?php foreach ($category['subcategories'] as $subcategory): ?>
+                                        <div class="ukpa-chatbot-subcategory">
+                                            <a href="<?php echo esc_url($subcategory['link'] ?? '#'); ?>" class="ukpa-chatbot-subcategory-link">
+                                                <div class="ukpa-chatbot-subcategory-info">
+                                                    <div class="ukpa-chatbot-subcategory-title"><?php echo esc_html($subcategory['title'] ?? ''); ?></div>
+                                                    <div class="ukpa-chatbot-subcategory-count"><?php echo esc_html($subcategory['article_count'] ?? 0); ?> articles</div>
+                                                </div>
+                                                <div class="ukpa-chatbot-subcategory-arrow">
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M8.59 16.59L13.17 12L8.59 7.41L10 6L16 12L10 18L8.59 16.59Z" fill="currentColor"/>
+                                                    </svg>
+                                                </div>
+                                            </a>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+            
+            <?php if (!empty($menu_items)): ?>
+                <div class="ukpa-chatbot-menu">
+                    <?php foreach ($menu_items as $item): ?>
+                        <a href="<?php echo esc_url($item['link'] ?? '#'); ?>" class="ukpa-chatbot-menu-item">
+                            <span><?php echo esc_html($item['text'] ?? ''); ?></span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z" fill="currentColor"/>
+                            </svg>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+    
+    /**
+     * Render messages tab content
+     */
+    private function render_messages_tab_content($content) {
+        $welcome_message = $content['welcome_message'] ?? 'Hello! How can I help you today?';
+        
+        // Get chat history from session/cookies (will be handled by JS)
+        $chat_history = array(); // This will be populated by JavaScript
+        
+        ob_start();
+        ?>
+        <div class="ukpa-chatbot-messages">
+            <div class="ukpa-chatbot-messages-list">
+                <!-- Welcome message - always shown -->
+                <div class="ukpa-chatbot-message bot welcome">
+                    <div class="ukpa-chatbot-avatar">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" fill="currentColor"/>
+                        </svg>
+                    </div>
+                    <div class="ukpa-chatbot-text">
+                        <?php echo esc_html($welcome_message); ?>
+                    </div>
+                </div>
+                
+                <!-- Chat history will be dynamically populated by JavaScript -->
+                <div class="ukpa-chatbot-message-history"></div>
+                
+                <!-- Empty state - shown when no history -->
+                <div class="ukpa-chatbot-empty-state creative">
+                    <div class="ukpa-chatbot-empty-icon">
+                        <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="8" y="20" width="48" height="32" rx="16" fill="#667eea"/>
+                            <ellipse cx="32" cy="36" rx="20" ry="16" fill="#fff"/>
+                            <circle cx="24" cy="36" r="3" fill="#667eea"/>
+                            <circle cx="40" cy="36" r="3" fill="#667eea"/>
+                            <rect x="28" y="44" width="8" height="2" rx="1" fill="#667eea"/>
+                            <rect x="28" y="16" width="8" height="8" rx="4" fill="#667eea"/>
+                        </svg>
+                    </div>
+                    <div class="ukpa-chatbot-empty-title">No conversations yet</div>
+                    <div class="ukpa-chatbot-empty-description">Ask me anything about tax, calculators, or support!</div>
+                    <button class="ukpa-chatbot-start-conversation" onclick="if(window.startNewConversation) window.startNewConversation();">Start Conversation</button>
+                </div>
+                
+                <!-- Ask a question button container -->
+                <div class="ukpa-chatbot-ask-button-container">
+                    <button class="ukpa-chatbot-ask-button">
+                        <span>Ask a question</span>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" fill="currentColor"/>
                         </svg>
@@ -189,6 +513,180 @@ class UKPA_Chatbot_System {
         </div>
         <?php
         return ob_get_clean();
+    }
+    
+    /**
+     * Render help tab content
+     */
+    private function render_help_tab_content($content) {
+        $title = $content['title'] ?? 'Help & Support';
+        $description = $content['description'] ?? 'Get help and find answers to common questions.';
+        $links = $content['links'] ?? array();
+        
+        ob_start();
+        ?>
+        <div class="ukpa-chatbot-help-content">
+            <h4><?php echo esc_html($title); ?></h4>
+            <p><?php echo esc_html($description); ?></p>
+            <?php if (!empty($links)): ?>
+                <div class="ukpa-chatbot-help-links">
+                    <?php foreach ($links as $link): ?>
+                        <a href="<?php echo esc_url($link['link'] ?? '#'); ?>" class="ukpa-chatbot-help-link">
+                            <?php echo esc_html($link['text'] ?? ''); ?>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+    
+    /**
+     * Render tasks tab content
+     */
+    private function render_tasks_tab_content($content) {
+        $title = $content['title'] ?? 'Learning Tasks';
+        $description = $content['description'] ?? 'Complete tasks and track your progress.';
+        $tasks = $content['tasks'] ?? array();
+        
+        ob_start();
+        ?>
+        <div class="ukpa-chatbot-tasks-content">
+            <h4><?php echo esc_html($title); ?></h4>
+            <p><?php echo esc_html($description); ?></p>
+            <?php if (!empty($tasks)): ?>
+                <div class="ukpa-chatbot-tasks-list">
+                    <?php foreach ($tasks as $task): ?>
+                        <div class="ukpa-chatbot-task-item <?php echo $task['completed'] ? 'completed' : ''; ?>">
+                            <div class="ukpa-chatbot-task-checkbox">
+                                <input type="checkbox" <?php checked($task['completed'], true); ?> disabled>
+                            </div>
+                            <div class="ukpa-chatbot-task-content">
+                                <span class="ukpa-chatbot-task-text"><?php echo esc_html($task['text'] ?? ''); ?></span>
+                                <?php if (!empty($task['link'])): ?>
+                                    <a href="<?php echo esc_url($task['link']); ?>" class="ukpa-chatbot-task-link">View</a>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+    
+    /**
+     * Render calculators tab content
+     */
+    private function render_calculators_tab_content($content) {
+        $title = $content['title'] ?? 'Tax & Financial Calculators';
+        $description = $content['description'] ?? 'Access various tax and financial calculators here.';
+        $links = $content['links'] ?? array();
+        
+        ob_start();
+        ?>
+        <div class="ukpa-chatbot-calculators-content">
+            <h4><?php echo esc_html($title); ?></h4>
+            <p><?php echo esc_html($description); ?></p>
+            <?php if (!empty($links)): ?>
+                <div class="ukpa-chatbot-calculators-links">
+                    <?php foreach ($links as $link): ?>
+                        <a href="<?php echo esc_url($link['link'] ?? '#'); ?>" class="ukpa-chatbot-calculator-link">
+                            <?php echo esc_html($link['text'] ?? ''); ?>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+    
+    /**
+     * Render custom tab content
+     */
+    private function render_custom_tab_content($content) {
+        $custom_html = $content['custom_html'] ?? '';
+        
+        ob_start();
+        ?>
+        <div class="ukpa-chatbot-custom-content">
+            <?php echo wp_kses_post($custom_html); ?>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+    
+    /**
+     * Get user chat history
+     */
+    private function get_user_chat_history() {
+        global $wpdb;
+        
+        $session_id = $this->get_user_session_id();
+        $table = $wpdb->prefix . 'ukpa_chatbot_conversations';
+        
+        // Get recent conversations grouped by session
+        $query = $wpdb->prepare("
+            SELECT DISTINCT 
+                c1.id,
+                c1.user_message,
+                c1.created_at,
+                c1.session_id
+            FROM $table c1
+            INNER JOIN (
+                SELECT session_id, MAX(created_at) as max_date
+                FROM $table
+                WHERE session_id = %s
+                GROUP BY session_id
+            ) c2 ON c1.session_id = c2.session_id AND c1.created_at = c2.max_date
+            WHERE c1.session_id = %s
+            ORDER BY c1.created_at DESC
+            LIMIT 10
+        ", $session_id, $session_id);
+        
+        return $wpdb->get_results($query);
+    }
+    
+    /**
+     * Get user session ID
+     */
+    private function get_user_session_id() {
+        if (!session_id()) {
+            session_start();
+        }
+        
+        if (!isset($_SESSION['ukpa_chatbot_session_id'])) {
+            $_SESSION['ukpa_chatbot_session_id'] = uniqid('chat_', true);
+        }
+        
+        return $_SESSION['ukpa_chatbot_session_id'];
+    }
+    
+    /**
+     * Format chat time
+     */
+    private function format_chat_time($timestamp) {
+        $time = strtotime($timestamp);
+        $now = time();
+        $diff = $now - $time;
+        
+        if ($diff < 60) {
+            return 'Just now';
+        } elseif ($diff < 3600) {
+            $minutes = floor($diff / 60);
+            return $minutes . 'm ago';
+        } elseif ($diff < 86400) {
+            $hours = floor($diff / 3600);
+            return $hours . 'h ago';
+        } elseif ($diff < 604800) {
+            $days = floor($diff / 86400);
+            return $days . 'd ago';
+        } else {
+            return date('M j', $time);
+        }
     }
     
     /**
@@ -242,9 +740,26 @@ class UKPA_Chatbot_System {
         }
         
         $chatbot_id = isset($_POST['chatbot_id']) ? intval($_POST['chatbot_id']) : 0;
-        $name = sanitize_text_field($_POST['name']);
-        $description = sanitize_textarea_field($_POST['description']);
-        $config = json_decode(stripslashes($_POST['config']), true);
+        $name = sanitize_text_field($_POST['chatbot_name'] ?? $_POST['name'] ?? '');
+        $description = sanitize_textarea_field($_POST['chatbot_description'] ?? $_POST['description'] ?? '');
+        
+        // Handle both old config format and new tabs format
+        $config = array();
+        if (isset($_POST['config'])) {
+            $config = json_decode(stripslashes($_POST['config']), true);
+        }
+        if (isset($_POST['tabs'])) {
+            $tabs = json_decode(stripslashes($_POST['tabs']), true);
+            $config['tabs'] = $tabs;
+        }
+        
+        // Add other form fields to config
+        $config['chatbot_type'] = sanitize_text_field($_POST['chatbot_type'] ?? 'nlp');
+        $config['status'] = sanitize_text_field($_POST['chatbot_status'] ?? 'active');
+        
+        // Add backend configuration
+        $config['backend_url'] = sanitize_url($_POST['backend_url'] ?? '');
+        $config['use_backend'] = isset($_POST['use_backend']) ? true : false;
         
         global $wpdb;
         $table = $wpdb->prefix . 'ukpa_chatbots';
@@ -253,7 +768,7 @@ class UKPA_Chatbot_System {
             'name' => $name,
             'description' => $description,
             'config' => json_encode($config),
-            'status' => 'active'
+            'status' => $config['status'] ?? 'active'
         );
         
         if ($chatbot_id > 0) {
@@ -268,7 +783,8 @@ class UKPA_Chatbot_System {
         if ($result !== false) {
             wp_send_json_success(array(
                 'message' => 'Chatbot saved successfully',
-                'chatbot_id' => $chatbot_id
+                'chatbot_id' => $chatbot_id,
+                'redirect_url' => admin_url('admin.php?page=ukpa-chatbot-manager')
             ));
         } else {
             wp_send_json_error('Failed to save chatbot');
@@ -321,11 +837,19 @@ class UKPA_Chatbot_System {
      * Handle chatbot message
      */
     public function handle_chatbot_message() {
-        check_ajax_referer('ukpa_chatbot_nonce', 'nonce');
+        // Verify nonce for security (temporarily disabled for debugging)
+        // if (!check_ajax_referer('ukpa_chatbot_nonce', 'nonce', false)) {
+        //     error_log("Chatbot nonce verification failed");
+        //     wp_send_json_error('Security check failed');
+        //     return;
+        // }
         
         $chatbot_id = intval($_POST['chatbot_id']);
         $message = sanitize_textarea_field($_POST['message']);
         $session_id = sanitize_text_field($_POST['session_id']);
+        
+        // Debug logging
+        error_log("Chatbot message received - ID: $chatbot_id, Message: $message, Session: $session_id");
         
         // Get chatbot configuration
         global $wpdb;
@@ -336,11 +860,37 @@ class UKPA_Chatbot_System {
         ));
         
         if (!$chatbot) {
+            error_log("Chatbot not found - ID: $chatbot_id");
             wp_send_json_error('Chatbot not found');
         }
         
         $config = json_decode($chatbot->config, true);
-        $response = $this->process_chatbot_message($message, $config, $session_id);
+        
+        // Debug the full config to see what's stored
+        error_log("Full chatbot config: " . print_r($config, true));
+        
+        // Get backend configuration from chatbot config and global settings
+        $backend_url = $config['backend_url'] ?? '';
+        $api_token = get_option('ukpa_chatbot_api_token', '');
+        $use_backend = $config['use_backend'] ?? false;
+        
+        // Debug backend configuration
+        error_log("Backend Configuration - URL: '$backend_url', Token: " . ($api_token ? 'set' : 'empty') . ", Use Backend: " . ($use_backend ? 'yes' : 'no'));
+        error_log("Expected backend URL format: http://localhost:3002 (base URL only)");
+        error_log("Full API endpoint will be: " . rtrim($backend_url, '/') . '/ana/v1/routes/mainRouter/chatbot/ask');
+        
+        if ($use_backend && !empty($backend_url) && !empty($api_token)) {
+            // Use backend API
+            error_log("Using backend API - URL: $backend_url");
+            $response = $this->call_backend_api($message, $session_id, $backend_url, $api_token);
+        } else {
+            // Fallback to local processing if backend not configured or disabled
+            error_log("Using local processing - Backend enabled: " . ($use_backend ? 'yes' : 'no') . ", URL: '" . ($backend_url ?: 'empty') . "', Token: " . ($api_token ? 'set' : 'empty'));
+            $response = $this->process_chatbot_message($message, $config, $session_id);
+        }
+        
+        error_log("Final response: " . substr($response, 0, 100) . "...");
+        error_log("Response length: " . strlen($response));
         
         // Save conversation
         $conversations_table = $wpdb->prefix . 'ukpa_chatbot_conversations';
@@ -355,6 +905,67 @@ class UKPA_Chatbot_System {
             'response' => $response,
             'session_id' => $session_id
         ));
+    }
+    
+    /**
+     * Call backend API for chatbot processing
+     */
+    private function call_backend_api($message, $session_id, $backend_url, $api_token) {
+        // The backend_url should be the base URL (e.g., http://localhost:3002)
+        // We need to append the correct path to reach the chatbot endpoint
+        $api_url = rtrim($backend_url, '/') . '/ana/v1/routes/mainRouter/chatbot/ask';
+        
+        error_log("Calling backend API at: $api_url");
+        
+        $body = array(
+            'question' => $message,
+            'session_id' => $session_id
+        );
+        
+        $args = array(
+            'method' => 'POST',
+            'headers' => array(
+                'Content-Type' => 'application/json',
+                'X-Plugin-Auth' => $api_token,
+                'User-Agent' => 'UKPA-Chatbot-Plugin/1.0'
+            ),
+            'body' => json_encode($body),
+            'timeout' => 30,
+            'sslverify' => false // Set to true in production
+        );
+        
+        $response = wp_remote_post($api_url, $args);
+        
+        if (is_wp_error($response)) {
+            error_log('Chatbot backend API error: ' . $response->get_error_message());
+            return 'Sorry, I\'m having trouble connecting to my knowledge base right now. Please try again later.';
+        }
+        
+        $response_code = wp_remote_retrieve_response_code($response);
+        $response_body = wp_remote_retrieve_body($response);
+        
+        error_log("Backend API response - Code: $response_code, Body: $response_body");
+        
+        if ($response_code !== 200) {
+            error_log('Chatbot backend API error: HTTP ' . $response_code . ' - ' . $response_body);
+            return 'Sorry, I\'m experiencing technical difficulties. Please try again later.';
+        }
+        
+        $data = json_decode($response_body, true);
+        
+        if (!$data) {
+            error_log('Chatbot backend API error: Invalid response format - ' . $response_body);
+            return 'Sorry, I received an invalid response from my knowledge base. Please try again.';
+        }
+        
+        // Debug log the full response data
+        error_log('Backend response data: ' . print_r($data, true));
+        
+        // Return the full response data instead of just the answer
+        // This allows the frontend to handle different response types
+        $json_response = json_encode($data);
+        error_log('Returning JSON response: ' . $json_response);
+        return $json_response;
     }
     
     /**
@@ -423,8 +1034,10 @@ class UKPA_Chatbot_System {
     }
     
     /**
-     * Enqueue admin assets
+     * Enqueue admin assets - REMOVED (handled by main plugin file)
+     * This was causing duplicate script loading
      */
+    /*
     public function enqueue_admin_assets($hook) {
         if (strpos($hook, 'ukpa-chatbot') === false) {
             return;
@@ -450,6 +1063,7 @@ class UKPA_Chatbot_System {
             'nonce' => wp_create_nonce('ukpa_chatbot_nonce')
         ));
     }
+    */
     
     /**
      * Enqueue frontend assets
@@ -472,10 +1086,13 @@ class UKPA_Chatbot_System {
         
         wp_localize_script('ukpa-chatbot-frontend', 'ukpa_chatbot_frontend', array(
             'ajaxurl' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('ukpa_chatbot_nonce')
+            'nonce' => wp_create_nonce('ukpa_chatbot_nonce'),
+            'is_logged_in' => is_user_logged_in(),
+            'backend_url' => 'http://localhost:3002/ana/v1/routes/mainRouter/chatbot/ask',
+            'api_token' => 'ukpa_8e4f2cbb9d'
         ));
     }
 }
 
-// Initialize the chatbot system - DISABLED
-// UKPA_Chatbot_System::get_instance(); 
+// Initialize the chatbot system
+UKPA_Chatbot_System::get_instance(); 

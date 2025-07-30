@@ -38,19 +38,20 @@ require_once UKPA_CALC_PATH . 'includes/custom-assets-injector.php';
 require_once UKPA_CALC_PATH . 'includes/auto-updater.php';
 require_once UKPA_CALC_PATH . 'includes/idv-form-shortcode.php';
 
-// ✅ Chatbot system - DISABLED
-// require_once UKPA_CALC_PATH . 'includes/chatbot-nlp.php';
-// require_once UKPA_CALC_PATH . 'includes/chatbot-gpt.php';
-// require_once UKPA_CALC_PATH . 'includes/chatbot.php';
-// require_once UKPA_CALC_PATH . 'admin/chatbot-menu.php';
-// require_once UKPA_CALC_PATH . 'admin/chatbot-manager.php';
-// require_once UKPA_CALC_PATH . 'admin/chatbot-settings.php';
-// require_once UKPA_CALC_PATH . 'admin/chatbot-nlp-settings.php';
-// require_once UKPA_CALC_PATH . 'admin/chatbot-gpt-settings.php';
+// ✅ Chatbot system - ENABLED
+require_once UKPA_CALC_PATH . 'includes/chatbot-nlp.php';
+require_once UKPA_CALC_PATH . 'includes/chatbot-gpt.php';
+require_once UKPA_CALC_PATH . 'includes/chatbot.php';
+require_once UKPA_CALC_PATH . 'admin/chatbot-menu.php';
+require_once UKPA_CALC_PATH . 'admin/chatbot-manager.php';
+require_once UKPA_CALC_PATH . 'admin/chatbot-settings.php';
+require_once UKPA_CALC_PATH . 'admin/chatbot-nlp-settings.php';
+require_once UKPA_CALC_PATH . 'admin/chatbot-gpt-settings.php';
 
 // Chat Box System
-require_once UKPA_CALC_PATH . 'includes/chatbox.php';
-require_once UKPA_CALC_PATH . 'admin/chatbox-settings.php';
+    // Chatbox system - REMOVED (not being used)
+    // require_once UKPA_CALC_PATH . 'includes/chatbox.php';
+    // require_once UKPA_CALC_PATH . 'admin/chatbox-settings.php';
 
 // Initialize the auto updater with the correct plugin file path
 new UKPA_Auto_Updater(__FILE__);
@@ -58,9 +59,38 @@ new UKPA_Auto_Updater(__FILE__);
 // ✅ Inject custom CSS/JS from builder (if enabled)
 add_action('wp_head', 'ukpa_output_custom_calc_assets');
 
-// ✅ Admin assets (builder interface)
+// ✅ Admin assets (builder interface and chatbot management)
 add_action('admin_enqueue_scripts', function ($hook) {
     $page = $_GET['page'] ?? '';
+    $chatbot_pages = ['ukpa-chatbot-manager', 'ukpa-chatbot-add', 'ukpa-chatbot-settings'];
+    
+    // Load chatbot admin assets for chatbot pages
+    if (in_array($page, $chatbot_pages)) {
+        
+        wp_enqueue_style(
+            'ukpa-chatbot-admin-css',
+            UKPA_CALC_URL . 'assets/css/chatbot-admin.css',
+            [],
+            filemtime(UKPA_CALC_PATH . 'assets/css/chatbot-admin.css')
+        );
+        
+        wp_enqueue_script(
+            'ukpa-chatbot-admin-js',
+            UKPA_CALC_URL . 'assets/js/chatbot-admin.js',
+            ['jquery'],
+            filemtime(UKPA_CALC_PATH . 'assets/js/chatbot-admin.js'),
+            true
+        );
+        
+        wp_localize_script('ukpa-chatbot-admin-js', 'ukpa_ajax', array(
+            'ajaxurl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('ukpa_chatbot_nonce')
+        ));
+        
+        return;
+    }
+    
+    // Load calculator builder assets
     if (!in_array($page, ['ukpa-calculator-builder', 'ukpa-calculator-add-new'])) return;
 
     // ✅ Enqueue CodeMirror

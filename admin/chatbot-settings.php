@@ -18,11 +18,12 @@ class UKPA_Chatbot_Settings {
      * Initialize settings
      */
     public function init_settings() {
-        register_setting('ukpa_chatbot_settings', 'ukpa_global_chatbot_enabled');
-        register_setting('ukpa_chatbot_settings', 'ukpa_global_chatbot_id');
-        register_setting('ukpa_chatbot_settings', 'ukpa_global_chatbot_theme');
-        register_setting('ukpa_chatbot_settings', 'ukpa_global_chatbot_position');
-        register_setting('ukpa_chatbot_settings', 'ukpa_global_chatbot_exclude_pages');
+        register_setting('ukpa_chatbot_options', 'ukpa_global_chatbot_enabled');
+        register_setting('ukpa_chatbot_options', 'ukpa_global_chatbot_id');
+        register_setting('ukpa_chatbot_options', 'ukpa_global_chatbot_theme');
+        register_setting('ukpa_chatbot_options', 'ukpa_global_chatbot_position');
+        register_setting('ukpa_chatbot_options', 'ukpa_global_chatbot_exclude_pages');
+        register_setting('ukpa_chatbot_options', 'ukpa_chatbot_api_token');
         
         add_settings_section(
             'ukpa_chatbot_global_section',
@@ -70,6 +71,22 @@ class UKPA_Chatbot_Settings {
             'ukpa_chatbot_settings',
             'ukpa_chatbot_global_section'
         );
+        
+        // Backend Configuration Section
+        add_settings_section(
+            'ukpa_chatbot_backend_section',
+            'Backend Configuration',
+            array($this, 'render_backend_section_description'),
+            'ukpa_chatbot_settings'
+        );
+        
+        add_settings_field(
+            'ukpa_chatbot_api_token',
+            'API Token',
+            array($this, 'render_api_token_field'),
+            'ukpa_chatbot_settings',
+            'ukpa_chatbot_backend_section'
+        );
     }
     
     /**
@@ -83,7 +100,7 @@ class UKPA_Chatbot_Settings {
             
             <form method="post" action="options.php">
                 <?php
-                settings_fields('ukpa_chatbot_settings');
+                settings_fields('ukpa_chatbot_options');
                 do_settings_sections('ukpa_chatbot_settings');
                 submit_button('Save Settings');
                 ?>
@@ -201,7 +218,27 @@ class UKPA_Chatbot_Settings {
         <p class="description"><strong>Examples:</strong> 1, 2, 3 (page IDs) | about, contact (slugs) | /admin/, /checkout/ (URL paths)</p>
         <?php
     }
+    
+    /**
+     * Render backend section description
+     */
+    public function render_backend_section_description() {
+        ?>
+        <p>Configure the global API token for all chatbots. Individual chatbot backend URLs are configured in each chatbot's settings.</p>
+        <?php
+    }
+    
+    /**
+     * Render API token field
+     */
+    public function render_api_token_field() {
+        $api_token = get_option('ukpa_chatbot_api_token', '');
+        ?>
+        <input type="password" name="ukpa_chatbot_api_token" value="<?php echo esc_attr($api_token); ?>" class="regular-text" placeholder="Enter your API token">
+        <p class="description">The API token for authenticating with your backend. This token is used by all chatbots and should match the VALID_PLUGIN_TOKENS in your backend environment.</p>
+        <?php
+    }
 }
 
 // Initialize the chatbot settings
-// new UKPA_Chatbot_Settings(); // DISABLED 
+new UKPA_Chatbot_Settings(); 
