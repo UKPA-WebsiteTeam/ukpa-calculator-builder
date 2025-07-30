@@ -2463,3 +2463,474 @@
 .ukpa-chatbot-widget.expanded .ukpa-chatbot-tab-pane.active {
     display: flex !important;
 } 
+
+/* FAQ System Styles */
+/* FAQ-specific help content styling */
+.ukpa-chatbot-help-content {
+    padding: 20px;
+    height: 100%;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.ukpa-chatbot-help-header {
+    margin-bottom: 0;
+}
+
+.ukpa-chatbot-help-header h4 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 8px;
+}
+
+.ukpa-chatbot-help-header p {
+    color: #b0b0b0;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* FAQ Search */
+.ukpa-chatbot-faq-search {
+    position: relative;
+    margin-bottom: 24px;
+}
+
+.ukpa-chatbot-faq-search-input {
+    width: 100%;
+    padding: 12px 16px 12px 48px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    color: white;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.ukpa-chatbot-faq-search-input:focus {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.ukpa-chatbot-faq-search-input::placeholder {
+    color: #888;
+}
+
+.ukpa-chatbot-faq-search-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #888;
+}
+
+/* FAQ Categories */
+.ukpa-chatbot-faq-categories {
+    margin-bottom: 32px;
+}
+
+.ukpa-chatbot-faq-categories h5 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 16px;
+}
+
+.ukpa-chatbot-faq-categories-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+}
+
+.ukpa-chatbot-faq-category {
+    display: flex;
+    align-items: center;
+    padding: 18px 16px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.ukpa-chatbot-faq-category::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.ukpa-chatbot-faq-category:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: #667eea;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.ukpa-chatbot-faq-category:hover::before {
+    opacity: 1;
+}
+
+.ukpa-chatbot-faq-category-icon {
+    margin-right: 12px;
+    color: #667eea;
+}
+
+.ukpa-chatbot-faq-category-info {
+    flex: 1;
+}
+
+.ukpa-chatbot-faq-category-name {
+    font-weight: 600;
+    color: white;
+    margin-bottom: 4px;
+}
+
+.ukpa-chatbot-faq-category-count {
+    font-size: 12px;
+    color: #888;
+}
+
+.ukpa-chatbot-faq-category-arrow {
+    color: #667eea;
+    transition: transform 0.3s ease;
+}
+
+.ukpa-chatbot-faq-category:hover .ukpa-chatbot-faq-category-arrow {
+    transform: translateX(4px);
+}
+
+/* FAQ List */
+.ukpa-chatbot-faq-list {
+    margin-bottom: 32px;
+}
+
+.ukpa-chatbot-faq-item {
+    margin-bottom: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.ukpa-chatbot-faq-item:hover {
+    border-color: rgba(255, 255, 255, 0.25);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+}
+
+.ukpa-chatbot-faq-question {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.06);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.ukpa-chatbot-faq-question::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.ukpa-chatbot-faq-question:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.ukpa-chatbot-faq-question:hover::before {
+    opacity: 1;
+}
+
+.ukpa-chatbot-faq-question-text {
+    font-weight: 500;
+    color: white;
+    flex: 1;
+    margin-right: 12px;
+}
+
+.ukpa-chatbot-faq-question-icon {
+    color: #667eea;
+    transition: transform 0.3s ease;
+}
+
+.ukpa-chatbot-faq-item.expanded .ukpa-chatbot-faq-question-icon {
+    transform: rotate(180deg);
+}
+
+.ukpa-chatbot-faq-answer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ukpa-chatbot-faq-item.expanded .ukpa-chatbot-faq-answer {
+    max-height: 800px;
+}
+
+.ukpa-chatbot-faq-answer-content {
+    padding: 20px;
+    color: #e0e0e0;
+    line-height: 1.7;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.ukpa-chatbot-faq-tags {
+    padding: 0 20px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.ukpa-chatbot-faq-tag {
+    padding: 6px 12px;
+    background: rgba(102, 126, 234, 0.15);
+    color: #667eea;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    transition: all 0.3s ease;
+}
+
+.ukpa-chatbot-faq-tag:hover {
+    background: rgba(102, 126, 234, 0.25);
+    border-color: rgba(102, 126, 234, 0.5);
+    transform: translateY(-1px);
+}
+
+/* FAQ Empty State */
+.ukpa-chatbot-faq-empty {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.ukpa-chatbot-faq-empty-icon {
+    margin-bottom: 16px;
+    color: #667eea;
+}
+
+.ukpa-chatbot-faq-empty h5 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 8px;
+}
+
+.ukpa-chatbot-faq-empty p {
+    color: #888;
+    font-size: 0.95rem;
+}
+
+/* Contact Support */
+.ukpa-chatbot-help-contact {
+    text-align: center;
+    padding: 28px 24px;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    border-radius: 20px;
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.ukpa-chatbot-help-contact::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.ukpa-chatbot-help-contact:hover::before {
+    opacity: 1;
+}
+
+.ukpa-chatbot-help-contact h5 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 8px;
+}
+
+.ukpa-chatbot-help-contact p {
+    color: #b0b0b0;
+    margin-bottom: 20px;
+}
+
+.ukpa-chatbot-help-contact-actions {
+    display: flex;
+    justify-content: center;
+}
+
+.ukpa-chatbot-contact-support-btn {
+    display: flex;
+    align-items: center;
+    padding: 14px 28px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 28px;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.ukpa-chatbot-contact-support-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.ukpa-chatbot-contact-support-btn:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+.ukpa-chatbot-contact-support-btn:hover::before {
+    left: 100%;
+}
+
+.ukpa-chatbot-contact-support-btn svg {
+    margin-right: 8px;
+}
+
+.ukpa-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.ukpa-modal-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.ukpa-modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+}
+
+.ukpa-modal-body {
+    padding: 24px;
+}
+
+.ukpa-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 20px 24px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.ukpa-form-row {
+    margin-bottom: 20px;
+}
+
+.ukpa-form-row label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #333;
+}
+
+.ukpa-form-row input[type="text"],
+.ukpa-form-row input[type="number"],
+.ukpa-form-row select,
+.ukpa-form-row textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+}
+
+.ukpa-form-row input[type="text"]:focus,
+.ukpa-form-row input[type="number"]:focus,
+.ukpa-form-row select:focus,
+.ukpa-form-row textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.ukpa-form-row input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .ukpa-chatbot-faq-categories-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .ukpa-chatbot-faq-category {
+        padding: 16px 14px;
+    }
+    
+    .ukpa-chatbot-faq-question {
+        padding: 16px 18px;
+    }
+    
+    .ukpa-chatbot-faq-answer-content {
+        padding: 16px 18px;
+    }
+    
+    .ukpa-chatbot-faq-tags {
+        padding: 0 18px 18px;
+    }
+    
+    .ukpa-chatbot-help-contact {
+        padding: 24px 20px;
+    }
+    
+    .ukpa-chatbot-contact-support-btn {
+        padding: 12px 24px;
+        font-size: 14px;
+    }
+    
+
+}

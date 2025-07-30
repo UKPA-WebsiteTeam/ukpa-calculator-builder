@@ -620,22 +620,125 @@ private function render_messages_tab_content($content) {
 private function render_help_tab_content($content) {
     $title = $content['title'] ?? 'Help & Support';
     $description = $content['description'] ?? 'Get help and find answers to common questions.';
-    $links = $content['links'] ?? array();
+    $chatbot_id = $this->current_chatbot_id ?? 1;
+    
+    // Get FAQ categories and FAQs
+    $categories = $this->get_faq_categories($chatbot_id);
+    $faqs = $this->get_faqs($chatbot_id);
     
     ob_start();
     ?>
     <div class="ukpa-chatbot-help-content">
-        <h4><?php echo esc_html($title); ?></h4>
-        <p><?php echo esc_html($description); ?></p>
-        <?php if (!empty($links)): ?>
-            <div class="ukpa-chatbot-help-links">
-                <?php foreach ($links as $link): ?>
-                    <a href="<?php echo esc_url($link['link'] ?? '#'); ?>" class="ukpa-chatbot-help-link">
-                        <?php echo esc_html($link['text'] ?? ''); ?>
-                    </a>
-                <?php endforeach; ?>
+        <div class="ukpa-chatbot-help-header">
+            <h4><?php echo esc_html($title); ?></h4>
+            <p><?php echo esc_html($description); ?></p>
+        </div>
+        
+        <!-- FAQ Search -->
+        <div class="ukpa-chatbot-faq-search">
+            <input type="text" placeholder="Search FAQs..." class="ukpa-chatbot-faq-search-input" id="ukpa-chatbot-faq-search">
+            <div class="ukpa-chatbot-faq-search-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" fill="currentColor"/>
+                </svg>
+            </div>
+        </div>
+        
+        <!-- FAQ Categories -->
+        <?php if (!empty($categories)): ?>
+            <div class="ukpa-chatbot-faq-categories">
+                <h5>Browse by Category</h5>
+                <div class="ukpa-chatbot-faq-categories-grid">
+                    <?php foreach ($categories as $category): ?>
+                        <div class="ukpa-chatbot-faq-category" data-category="<?php echo esc_attr($category->name); ?>">
+                            <div class="ukpa-chatbot-faq-category-icon">
+                                <?php echo $this->get_category_icon($category->icon); ?>
+                            </div>
+                            <div class="ukpa-chatbot-faq-category-info">
+                                <div class="ukpa-chatbot-faq-category-name"><?php echo esc_html($category->name); ?></div>
+                                <div class="ukpa-chatbot-faq-category-count">
+                                    <?php 
+                                    $category_faqs = array_filter($faqs, function($faq) use ($category) {
+                                        return $faq->category === $category->name && $faq->is_active;
+                                    });
+                                    echo count($category_faqs) . ' questions';
+                                    ?>
+                                </div>
+                            </div>
+                            <div class="ukpa-chatbot-faq-category-arrow">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M8.59 16.59L13.17 12L8.59 7.41L10 6L16 12L10 18L8.59 16.59Z" fill="currentColor"/>
+                                </svg>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
             </div>
         <?php endif; ?>
+        
+        <!-- FAQ List -->
+        <div class="ukpa-chatbot-faq-list" id="ukpa-chatbot-faq-list">
+            <?php if (!empty($faqs)): ?>
+                <?php foreach ($faqs as $faq): ?>
+                    <?php if ($faq->is_active): ?>
+                        <div class="ukpa-chatbot-faq-item" data-category="<?php echo esc_attr($faq->category); ?>">
+                            <div class="ukpa-chatbot-faq-question">
+                                <div class="ukpa-chatbot-faq-question-text"><?php echo esc_html($faq->question); ?></div>
+                                <div class="ukpa-chatbot-faq-question-icon">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M7 10l5 5 5-5z" fill="currentColor"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="ukpa-chatbot-faq-answer">
+                                <div class="ukpa-chatbot-faq-answer-content">
+                                    <?php echo wp_kses_post($faq->answer); ?>
+                                </div>
+                                <?php if (!empty($faq->tags)): ?>
+                                    <div class="ukpa-chatbot-faq-tags">
+                                        <?php 
+                                        $tags = explode(',', $faq->tags);
+                                        foreach ($tags as $tag): 
+                                            $tag = trim($tag);
+                                            if (!empty($tag)):
+                                        ?>
+                                            <span class="ukpa-chatbot-faq-tag"><?php echo esc_html($tag); ?></span>
+                                        <?php 
+                                            endif;
+                                        endforeach; 
+                                        ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <div class="ukpa-chatbot-faq-empty">
+                    <div class="ukpa-chatbot-faq-empty-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z" fill="currentColor"/>
+                        </svg>
+                    </div>
+                    <h5>No FAQs Available</h5>
+                    <p>FAQs will appear here once they are added in the admin dashboard.</p>
+                </div>
+            <?php endif; ?>
+        </div>
+        
+        <!-- Contact Support -->
+        <div class="ukpa-chatbot-help-contact">
+            <h5>Still Need Help?</h5>
+            <p>Can't find what you're looking for? Contact our support team.</p>
+            <div class="ukpa-chatbot-help-contact-actions">
+                <button class="ukpa-chatbot-contact-support-btn" onclick="startNewConversation()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" fill="currentColor"/>
+                    </svg>
+                    Chat with Support
+                </button>
+            </div>
+        </div>
     </div>
     <?php
     return ob_get_clean();
@@ -802,30 +905,102 @@ public function create_chatbot_tables() {
         id mediumint(9) NOT NULL AUTO_INCREMENT,
         name varchar(255) NOT NULL,
         description text,
-        config longtext NOT NULL,
+        config longtext,
         status varchar(20) DEFAULT 'active',
         created_at datetime DEFAULT CURRENT_TIMESTAMP,
         updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (id)
     ) $charset_collate;";
     
-    // Chatbot conversations table
-    $table_conversations = $wpdb->prefix . 'ukpa_chatbot_conversations';
-    $sql_conversations = "CREATE TABLE $table_conversations (
+    // Chatbot sessions table
+    $table_sessions = $wpdb->prefix . 'ukpa_chatbot_sessions';
+    $sql_sessions = "CREATE TABLE $table_sessions (
         id mediumint(9) NOT NULL AUTO_INCREMENT,
         chatbot_id mediumint(9) NOT NULL,
         session_id varchar(255) NOT NULL,
-        user_message text NOT NULL,
-        bot_response text NOT NULL,
+        user_id bigint(20) DEFAULT NULL,
+        messages longtext,
+        last_activity datetime DEFAULT CURRENT_TIMESTAMP,
         created_at datetime DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (id),
         KEY chatbot_id (chatbot_id),
-        KEY session_id (session_id)
+        KEY session_id (session_id),
+        KEY user_id (user_id)
+    ) $charset_collate;";
+    
+    // FAQ table
+    $table_faqs = $wpdb->prefix . 'ukpa_chatbot_faqs';
+    $sql_faqs = "CREATE TABLE $table_faqs (
+        id mediumint(9) NOT NULL AUTO_INCREMENT,
+        chatbot_id mediumint(9) NOT NULL,
+        category varchar(100) DEFAULT 'General',
+        question text NOT NULL,
+        answer longtext NOT NULL,
+        tags text,
+        order_index int(11) DEFAULT 0,
+        is_active tinyint(1) DEFAULT 1,
+        created_at datetime DEFAULT CURRENT_TIMESTAMP,
+        updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        KEY chatbot_id (chatbot_id),
+        KEY category (category),
+        KEY is_active (is_active),
+        KEY order_index (order_index)
+    ) $charset_collate;";
+    
+    // FAQ categories table
+    $table_faq_categories = $wpdb->prefix . 'ukpa_chatbot_faq_categories';
+    $sql_faq_categories = "CREATE TABLE $table_faq_categories (
+        id mediumint(9) NOT NULL AUTO_INCREMENT,
+        chatbot_id mediumint(9) NOT NULL,
+        name varchar(100) NOT NULL,
+        description text,
+        icon varchar(50) DEFAULT 'help',
+        order_index int(11) DEFAULT 0,
+        is_active tinyint(1) DEFAULT 1,
+        created_at datetime DEFAULT CURRENT_TIMESTAMP,
+        updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        KEY chatbot_id (chatbot_id),
+        KEY is_active (is_active),
+        KEY order_index (order_index)
     ) $charset_collate;";
     
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     dbDelta($sql_chatbots);
-    dbDelta($sql_conversations);
+    dbDelta($sql_sessions);
+    dbDelta($sql_faqs);
+    dbDelta($sql_faq_categories);
+    
+    // Insert default FAQ categories
+    $this->insert_default_faq_categories();
+}
+
+/**
+ * Insert default FAQ categories
+ */
+private function insert_default_faq_categories() {
+    global $wpdb;
+    $table = $wpdb->prefix . 'ukpa_chatbot_faq_categories';
+    
+    $default_categories = array(
+        array('name' => 'General', 'description' => 'General questions and information', 'icon' => 'help', 'order_index' => 1),
+        array('name' => 'Tax Calculators', 'description' => 'Questions about tax calculators', 'icon' => 'calculator', 'order_index' => 2),
+        array('name' => 'Account & Billing', 'description' => 'Account and billing related questions', 'icon' => 'account', 'order_index' => 3),
+        array('name' => 'Technical Support', 'description' => 'Technical issues and troubleshooting', 'icon' => 'support', 'order_index' => 4),
+        array('name' => 'Features', 'description' => 'Information about features and capabilities', 'icon' => 'features', 'order_index' => 5)
+    );
+    
+    foreach ($default_categories as $category) {
+        $exists = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM $table WHERE name = %s AND chatbot_id = 1",
+            $category['name']
+        ));
+        
+        if (!$exists) {
+            $wpdb->insert($table, array_merge($category, array('chatbot_id' => 1)));
+        }
+    }
 }
 
 /**
@@ -1159,6 +1334,49 @@ public function enqueue_frontend_assets() {
         'api_token' => 'ukpa_8e4f2cbb9d'
     ));
 }
+
+    /**
+     * Get FAQ categories for a chatbot
+     */
+    private function get_faq_categories($chatbot_id) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'ukpa_chatbot_faq_categories';
+        
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM $table WHERE chatbot_id = %d AND is_active = 1 ORDER BY order_index ASC, name ASC",
+            $chatbot_id
+        ));
+    }
+    
+    /**
+     * Get FAQs for a chatbot
+     */
+    private function get_faqs($chatbot_id) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'ukpa_chatbot_faqs';
+        
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM $table WHERE chatbot_id = %d AND is_active = 1 ORDER BY order_index ASC, question ASC",
+            $chatbot_id
+        ));
+    }
+    
+    /**
+     * Get category icon SVG
+     */
+    private function get_category_icon($icon) {
+        $icons = array(
+            'help' => '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z" fill="currentColor"/></svg>',
+            'calculator' => '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3ZM13 7H11V9H13V7ZM13 11H11V13H13V11ZM13 15H11V17H13V15ZM9 7H7V9H9V7ZM9 11H7V13H9V11ZM9 15H7V17H9V15ZM17 7H15V9H17V7ZM17 11H15V13H17V11ZM17 15H15V17H17V15Z" fill="currentColor"/></svg>',
+            'account' => '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="currentColor"/></svg>',
+            'support' => '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="currentColor"/></svg>',
+            'features' => '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor"/></svg>',
+            'billing' => '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 4H4C2.89 4 2.01 4.89 2.01 6L2 18C2 19.11 2.89 20 4 20H20C21.11 20 22 19.11 22 18V6C22 4.89 21.11 4 20 4ZM20 18H4V12H20V18ZM20 8H4V6H20V8Z" fill="currentColor"/></svg>',
+            'technical' => '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" fill="currentColor"/></svg>'
+        );
+        
+        return $icons[$icon] ?? $icons['help'];
+    }
 }
 
 // Initialize the chatbot system

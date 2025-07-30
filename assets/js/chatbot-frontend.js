@@ -821,6 +821,165 @@ jQuery(document).ready(function($) {
             });
         }
         
+        // Initialize FAQ functionality
+        initFAQSystem(widget);
+        
+        function initFAQSystem(widget) {
+            // FAQ search functionality
+            const searchInput = widget.find('#ukpa-chatbot-faq-search');
+            if (searchInput.length) {
+                searchInput.on('input', function() {
+                    const query = $(this).val().toLowerCase();
+                    searchFAQs(widget, query);
+                });
+            }
+            
+            // FAQ category filtering
+            widget.on('click', '.ukpa-chatbot-faq-category', function() {
+                const category = $(this).data('category');
+                filterFAQsByCategory(widget, category);
+            });
+            
+            // FAQ item expansion
+            widget.on('click', '.ukpa-chatbot-faq-question', function() {
+                const faqItem = $(this).closest('.ukpa-chatbot-faq-item');
+                toggleFAQExpansion(faqItem);
+            });
+            
+            // Contact support button
+            widget.on('click', '.ukpa-chatbot-contact-support-btn', function() {
+                startNewConversation();
+            });
+        }
+        
+        function searchFAQs(widget, query) {
+            const faqItems = widget.find('.ukpa-chatbot-faq-item');
+            const categories = widget.find('.ukpa-chatbot-faq-category');
+            
+            if (query.length === 0) {
+                // Show all FAQs and categories
+                faqItems.show();
+                categories.show();
+                return;
+            }
+            
+            let hasResults = false;
+            
+            faqItems.each(function() {
+                const faqItem = $(this);
+                const question = faqItem.find('.ukpa-chatbot-faq-question-text').text().toLowerCase();
+                const answer = faqItem.find('.ukpa-chatbot-faq-answer-content').text().toLowerCase();
+                const tags = faqItem.find('.ukpa-chatbot-faq-tag').map(function() {
+                    return $(this).text().toLowerCase();
+                }).get().join(' ');
+                
+                const matches = question.includes(query) || 
+                               answer.includes(query) || 
+                               tags.includes(query);
+                
+                if (matches) {
+                    faqItem.show();
+                    hasResults = true;
+                } else {
+                    faqItem.hide();
+                }
+            });
+            
+            // Hide categories when searching
+            categories.hide();
+            
+            // Show/hide empty state
+            const emptyState = widget.find('.ukpa-chatbot-faq-empty');
+            if (!hasResults) {
+                if (emptyState.length === 0) {
+                    // Create empty state for search results
+                    const searchEmptyState = `
+                        <div class="ukpa-chatbot-faq-empty">
+                            <div class="ukpa-chatbot-faq-empty-icon">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" fill="currentColor"/>
+                                </svg>
+                            </div>
+                            <h5>No results found</h5>
+                            <p>Try searching with different keywords or browse by category.</p>
+                        </div>
+                    `;
+                    widget.find('#ukpa-chatbot-faq-list').append(searchEmptyState);
+                } else {
+                    emptyState.show();
+                }
+            } else {
+                emptyState.hide();
+            }
+        }
+        
+        function filterFAQsByCategory(widget, category) {
+            const faqItems = widget.find('.ukpa-chatbot-faq-item');
+            const categories = widget.find('.ukpa-chatbot-faq-category');
+            
+            // Reset category selection
+            categories.removeClass('active');
+            widget.find(`[data-category="${category}"]`).addClass('active');
+            
+            if (category === 'all') {
+                // Show all FAQs
+                faqItems.show();
+                return;
+            }
+            
+            let hasResults = false;
+            
+            faqItems.each(function() {
+                const faqItem = $(this);
+                const faqCategory = faqItem.data('category');
+                
+                if (faqCategory === category) {
+                    faqItem.show();
+                    hasResults = true;
+                } else {
+                    faqItem.hide();
+                }
+            });
+            
+            // Show/hide empty state
+            const emptyState = widget.find('.ukpa-chatbot-faq-empty');
+            if (!hasResults) {
+                if (emptyState.length === 0) {
+                    // Create empty state for category
+                    const categoryEmptyState = `
+                        <div class="ukpa-chatbot-faq-empty">
+                            <div class="ukpa-chatbot-faq-empty-icon">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor"/>
+                                </svg>
+                            </div>
+                            <h5>No FAQs in this category</h5>
+                            <p>FAQs will appear here once they are added to this category.</p>
+                        </div>
+                    `;
+                    widget.find('#ukpa-chatbot-faq-list').append(categoryEmptyState);
+                } else {
+                    emptyState.show();
+                }
+            } else {
+                emptyState.hide();
+            }
+        }
+        
+        function toggleFAQExpansion(faqItem) {
+            const isExpanded = faqItem.hasClass('expanded');
+            
+            // Close all other FAQs
+            faqItem.siblings('.ukpa-chatbot-faq-item').removeClass('expanded');
+            
+            // Toggle current FAQ
+            if (isExpanded) {
+                faqItem.removeClass('expanded');
+            } else {
+                faqItem.addClass('expanded');
+            }
+        }
+        
         // Initialize chat history system
         initializeChatHistory();
         

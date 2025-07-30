@@ -18,17 +18,15 @@ class UKPA_Chatbot_Menu {
      * Add chatbot submenus to the calculator builder menu
      */
     public function add_chatbot_submenus() {
-        // Chatbot Management submenu
         add_submenu_page(
             'ukpa-calculator-builder',
-            'Chatbot Management',
-            'Chatbot',
+            'Chatbot Manager',
+            'Chatbot Manager',
             'manage_options',
             'ukpa-chatbot-manager',
             array($this, 'render_chatbot_manager')
         );
         
-        // Add New Chatbot submenu
         add_submenu_page(
             'ukpa-calculator-builder',
             'Add New Chatbot',
@@ -38,7 +36,15 @@ class UKPA_Chatbot_Menu {
             array($this, 'render_add_chatbot')
         );
         
-        // Chatbot Settings submenu
+        add_submenu_page(
+            'ukpa-calculator-builder',
+            'FAQ Manager',
+            'FAQ Manager',
+            'manage_options',
+            'ukpa-faq-manager',
+            array($this, 'render_faq_manager')
+        );
+        
         add_submenu_page(
             'ukpa-calculator-builder',
             'Chatbot Settings',
@@ -122,8 +128,15 @@ class UKPA_Chatbot_Menu {
      * Render add chatbot page
      */
     public function render_add_chatbot() {
-        $chatbot_manager = new UKPA_Chatbot_Manager();
-        $chatbot_manager->render_chatbot_form();
+        require_once plugin_dir_path(__FILE__) . 'chatbot-manager.php';
+        $manager = new UKPA_Chatbot_Manager();
+        $manager->render_chatbot_form();
+    }
+    
+    public function render_faq_manager() {
+        require_once plugin_dir_path(__FILE__) . 'faq-manager.php';
+        $faq_manager = new UKPA_FAQ_Manager();
+        $faq_manager->render_faq_manager();
     }
     
     /**

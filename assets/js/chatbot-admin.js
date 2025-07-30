@@ -23,6 +23,337 @@ jQuery(document).ready(function($) {
         initDragAndDrop();
         initContentEditors();
         initAutoSave();
+        initFAQManager(); // Add FAQ Manager initialization
+    }
+    
+    /**
+     * Initialize FAQ Manager functionality
+     */
+    function initFAQManager() {
+        // Only initialize if we're on the FAQ Manager page
+        if ($('.ukpa-faq-manager').length === 0) {
+            return;
+        }
+        
+        initFAQTabSwitching();
+        initFAQModals();
+        initFAQFormHandlers();
+        initFAQDeleteHandlers();
+        initFAQEditHandlers();
+    }
+    
+    /**
+     * Initialize FAQ tab switching
+     */
+    function initFAQTabSwitching() {
+        $('.ukpa-faq-tab').on('click', function() {
+            const tab = $(this).data('tab');
+            $('.ukpa-faq-tab').removeClass('active');
+            $('.ukpa-faq-tab-content').removeClass('active');
+            $(this).addClass('active');
+            $('#' + tab + '-tab').addClass('active');
+        });
+    }
+    
+    /**
+     * Initialize FAQ modals
+     */
+    function initFAQModals() {
+        // FAQ Modal - Add new FAQ
+        $('#add-faq-btn, #add-first-faq-btn').on('click', function() {
+            $('#faq-modal-title').text('Add New FAQ');
+            $('#faq-form')[0].reset();
+            $('#faq-id').val('');
+            $('#faq-modal').addClass('active');
+        });
+        
+        // Category Modal - Add new category
+        $('#add-category-btn, #add-first-category-btn').on('click', function() {
+            $('#category-modal-title').text('Add New Category');
+            $('#category-form')[0].reset();
+            $('#category-id').val('');
+            $('#category-modal').addClass('active');
+        });
+        
+        // Close modals
+        $('.ukpa-modal-close, #faq-modal-cancel, #category-modal-cancel').on('click', function() {
+            closeFAQModals();
+        });
+        
+        // Close modal on backdrop click
+        $('.ukpa-modal').on('click', function(e) {
+            if (e.target === this) {
+                closeFAQModals();
+            }
+        });
+        
+        // Close modal on escape key
+        $(document).on('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeFAQModals();
+            }
+        });
+    }
+    
+    /**
+     * Close all FAQ modals
+     */
+    function closeFAQModals() {
+        $('.ukpa-modal').removeClass('active');
+    }
+    
+    /**
+     * Initialize FAQ form handlers
+     */
+    function initFAQFormHandlers() {
+        // Save FAQ
+        $('#faq-modal-save').on('click', function() {
+            saveFAQ();
+        });
+        
+        // Save Category
+        $('#category-modal-save').on('click', function() {
+            saveCategory();
+        });
+    }
+    
+    /**
+     * Initialize FAQ delete handlers
+     */
+    function initFAQDeleteHandlers() {
+        // Delete FAQ
+        $(document).on('click', '.ukpa-delete-faq-btn', function() {
+            if (confirm('Are you sure you want to delete this FAQ?')) {
+                const faqId = $(this).data('faq-id');
+                deleteFAQ(faqId);
+            }
+        });
+        
+        // Delete Category
+        $(document).on('click', '.ukpa-delete-category-btn', function() {
+            if (confirm('Are you sure you want to delete this category? This will also delete all FAQs in this category.')) {
+                const categoryId = $(this).data('category-id');
+                deleteCategory(categoryId);
+            }
+        });
+    }
+    
+    /**
+     * Initialize FAQ edit handlers
+     */
+    function initFAQEditHandlers() {
+        // Edit FAQ
+        $(document).on('click', '.ukpa-edit-faq-btn', function() {
+            const faqId = $(this).data('faq-id');
+            loadFAQData(faqId);
+        });
+        
+        // Edit Category
+        $(document).on('click', '.ukpa-edit-category-btn', function() {
+            const categoryId = $(this).data('category-id');
+            loadCategoryData(categoryId);
+        });
+    }
+    
+    /**
+     * Load FAQ data for editing
+     */
+    function loadFAQData(faqId) {
+        $.ajax({
+            url: ukpa_ajax.ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'ukpa_get_faq',
+                faq_id: faqId,
+                nonce: ukpa_ajax.nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    const faq = response.data;
+                    $('#faq-id').val(faq.id);
+                    $('#faq-category').val(faq.category);
+                    $('#faq-question').val(faq.question);
+                    $('#faq-answer').val(faq.answer);
+                    $('#faq-tags').val(faq.tags);
+                    $('#faq-order').val(faq.order_index);
+                    $('#faq-active').prop('checked', faq.is_active == 1);
+                    $('#faq-modal-title').text('Edit FAQ');
+                    $('#faq-modal').addClass('active');
+                } else {
+                    showNotification('Error loading FAQ data: ' + response.data, 'error');
+                }
+            },
+            error: function() {
+                showNotification('An error occurred while loading FAQ data.', 'error');
+            }
+        });
+    }
+    
+    /**
+     * Load category data for editing
+     */
+    function loadCategoryData(categoryId) {
+        $.ajax({
+            url: ukpa_ajax.ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'ukpa_get_faq_category',
+                category_id: categoryId,
+                nonce: ukpa_ajax.nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    const category = response.data;
+                    $('#category-id').val(category.id);
+                    $('#category-name').val(category.name);
+                    $('#category-description').val(category.description);
+                    $('#category-icon').val(category.icon);
+                    $('#category-order').val(category.order_index);
+                    $('#category-active').prop('checked', category.is_active == 1);
+                    $('#category-modal-title').text('Edit Category');
+                    $('#category-modal').addClass('active');
+                } else {
+                    showNotification('Error loading category data: ' + response.data, 'error');
+                }
+            },
+            error: function() {
+                showNotification('An error occurred while loading category data.', 'error');
+            }
+        });
+    }
+    
+    /**
+     * Save FAQ
+     */
+    function saveFAQ() {
+        const form = $('#faq-form');
+        const submitBtn = $('#faq-modal-save');
+        const originalText = submitBtn.text();
+        
+        submitBtn.prop('disabled', true).text('Saving...');
+        
+        const formData = new FormData(form[0]);
+        formData.append('action', 'ukpa_save_faq');
+        formData.append('nonce', ukpa_ajax.nonce);
+        
+        $.ajax({
+            url: ukpa_ajax.ajaxurl,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    showNotification('FAQ saved successfully!', 'success');
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    showNotification('Error saving FAQ: ' + response.data, 'error');
+                }
+            },
+            error: function() {
+                showNotification('An error occurred while saving the FAQ.', 'error');
+            },
+            complete: function() {
+                submitBtn.prop('disabled', false).text(originalText);
+            }
+        });
+    }
+    
+    /**
+     * Save category
+     */
+    function saveCategory() {
+        const form = $('#category-form');
+        const submitBtn = $('#category-modal-save');
+        const originalText = submitBtn.text();
+        
+        submitBtn.prop('disabled', true).text('Saving...');
+        
+        const formData = new FormData(form[0]);
+        formData.append('action', 'ukpa_save_faq_category');
+        formData.append('nonce', ukpa_ajax.nonce);
+        
+        $.ajax({
+            url: ukpa_ajax.ajaxurl,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    showNotification('Category saved successfully!', 'success');
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    showNotification('Error saving category: ' + response.data, 'error');
+                }
+            },
+            error: function() {
+                showNotification('An error occurred while saving the category.', 'error');
+            },
+            complete: function() {
+                submitBtn.prop('disabled', false).text(originalText);
+            }
+        });
+    }
+    
+    /**
+     * Delete FAQ
+     */
+    function deleteFAQ(faqId) {
+        $.ajax({
+            url: ukpa_ajax.ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'ukpa_delete_faq',
+                faq_id: faqId,
+                nonce: ukpa_ajax.nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    showNotification('FAQ deleted successfully!', 'success');
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    showNotification('Error deleting FAQ: ' + response.data, 'error');
+                }
+            },
+            error: function() {
+                showNotification('An error occurred while deleting the FAQ.', 'error');
+            }
+        });
+    }
+    
+    /**
+     * Delete category
+     */
+    function deleteCategory(categoryId) {
+        $.ajax({
+            url: ukpa_ajax.ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'ukpa_delete_faq_category',
+                category_id: categoryId,
+                nonce: ukpa_ajax.nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    showNotification('Category deleted successfully!', 'success');
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    showNotification('Error deleting category: ' + response.data, 'error');
+                }
+            },
+            error: function() {
+                showNotification('An error occurred while deleting the category.', 'error');
+            }
+        });
     }
     
     /**

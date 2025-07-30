@@ -62,7 +62,7 @@ add_action('wp_head', 'ukpa_output_custom_calc_assets');
 // ✅ Admin assets (builder interface and chatbot management)
 add_action('admin_enqueue_scripts', function ($hook) {
     $page = $_GET['page'] ?? '';
-    $chatbot_pages = ['ukpa-chatbot-manager', 'ukpa-chatbot-add', 'ukpa-chatbot-settings'];
+    $chatbot_pages = ['ukpa-chatbot-manager', 'ukpa-chatbot-add', 'ukpa-chatbot-settings', 'ukpa-faq-manager'];
     
     // Load chatbot admin assets for chatbot pages
     if (in_array($page, $chatbot_pages)) {
