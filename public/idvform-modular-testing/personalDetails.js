@@ -54,7 +54,7 @@ export function createPersonalDetailsSection(userId, displayName) {
     
     <!-- Are you a UK Resident? -->
     <div class="inputContainer">
-      <label for="ukResident-${userId}">Are you a UK Resident?</label>
+      <label for="ukResident-${userId}">Are you currently residing in the UK?</label>
       <input type="radio" id="ukResidentYes-${userId}" name="ukResident-${userId}" value="yes" checked> Yes
       <input type="radio" id="ukResidentNo-${userId}" name="ukResident-${userId}" value="no"> No
     </div>

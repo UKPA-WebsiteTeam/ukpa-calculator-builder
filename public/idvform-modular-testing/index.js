@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <h2>UK Identity Verification Form</h2>
         <div class="requirement-box" style="padding:1em;margin-bottom:1.5em;background:#e3e3e354;">
           <b>About UK ID Verification</b>
-          <p>The Identity Verification process brought up the Companies house requires the users to confirm their identity with them. This has been brought by the Companies house to maintain security and prevent fraud.</p>
+          <p>The <a href="/a-complete-guide-to-identity-verification-in-uk/" target="_blank">Identity Verification</a> process brought up the Companies house requires the users to confirm their identity with them. This has been brought by the Companies house to maintain security and prevent fraud.</p>
           <b>Document Submission Requirement</b>
           <p>To complete the verification process, <b>you must provide a total of two identity documents</b>.
         </div>

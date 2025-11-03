@@ -47,9 +47,9 @@ export function createAddressSection(userId, displayName) {
       </div>
     </div>
     <div class="proof-of-address-container">
-      <p>Please provide a proof of address document. This can be a utility bill, bank statement, or other document that shows your address.</p>
+      <p>Please provide a proof of address document. This can be a recent bank statement, utility bill or council tax bill dated within the last three months.</p>
       <div class="upload-and-preview-container">
-        <input type="file" id="proofOfAddress-${userId}" name="proofOfAddress-${userId}" accept=".jpg,.jpeg,.png,.pdf" />
+        <input type="file" id="proofOfAddress-${userId}" name="proofOfAddress-${userId}" accept=".jpg,.jpeg,.png,.pdf" required/>
         <div class="preview-container" id="proofOfAddress-preview-container-${userId}">
           <img id="proofOfAddress-preview-${userId}" src="" alt="Proof of Address" style="display:none; max-width:200px; margin-top:12px; border-radius:4px; border:1px solid #ccc;" />
         </div>
@@ -132,4 +132,3 @@ export function bindAddressDetailsValidation(userId) {
     }
   });
 }
-
