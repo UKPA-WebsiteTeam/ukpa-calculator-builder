@@ -169,8 +169,10 @@ function ukpa_idv_proxy_handler() {
         }
     }
     foreach ($_FILES as $key => $file) {
+        error_log('UKPA Proxy: Processing file: ' . $key . ' - ' . print_r($file, true));
         $postFields[$key] = new CURLFile($file['tmp_name'], $file['type'], $file['name']);
     }
+    error_log('UKPA Proxy: Final postFields: ' . print_r($postFields, true));
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $target_url);
     curl_setopt($ch, CURLOPT_POST, true);

@@ -33,11 +33,23 @@ export function createInfoTooltip(tooltipText) {
     tooltip.style.borderRadius = '0.5em';
     tooltip.style.fontSize = '0.85em';
     tooltip.style.fontWeight = 'normal';
-    tooltip.style.whiteSpace = 'nowrap';
+    tooltip.style.whiteSpace = 'normal';
+    tooltip.style.maxWidth = '300px';
+    tooltip.style.wordWrap = 'break-word';
+    tooltip.style.overflowWrap = 'break-word';
+    tooltip.style.wordBreak = 'break-word';
     tooltip.style.opacity = '0';
     tooltip.style.pointerEvents = 'none';
     tooltip.style.transition = 'all 0.2s';
     tooltip.style.zIndex = '10';
+    tooltip.style.boxSizing = 'border-box';
+    
+    // Mobile detection and responsive styles
+    const isMobile = window.innerWidth <= 600;
+    if (isMobile) {
+      tooltip.style.maxWidth = 'calc(100vw - 2em)';
+      tooltip.style.whiteSpace = 'normal';
+    }
   
     // Show on hover
     container.addEventListener('mouseenter', () => {
