@@ -1279,7 +1279,7 @@
 /* Fallback for browsers without :has() support */
 .custom_forms label input[type="checkbox"] + *,
 .custom_forms label:not(.checkboxContainer label):not(.consent-box label) {
-  display: inline-block;
+  display: inline-flex;
   vertical-align: top;
 }
 
