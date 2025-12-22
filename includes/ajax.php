@@ -74,8 +74,298 @@ add_action('wp_ajax_ukpa_save_result_keys', function () {
 });
 
 // --- AJAX proxy for frontend API calls ---
-add_action('wp_ajax_ukpa_proxy_api', 'ukpa_proxy_api_handler');
-add_action('wp_ajax_nopriv_ukpa_proxy_api', 'ukpa_proxy_api_handler');
+// NOTE: ukpa_proxy_api_handler is registered in ukpa-calculator-builder.php (single source of truth).
+
+// --- AJAX proxy for External API (/ana/api/external/*) ---
+add_action('wp_ajax_ukpa_external_proxy', 'ukpa_external_proxy_handler');
+add_action('wp_ajax_nopriv_ukpa_external_proxy', 'ukpa_external_proxy_handler');
+
+/**
+ * Proxies a strict allowlist of External API calls through WordPress so no API token is exposed in the browser.
+ *
+ * Expected JSON body:
+ * {
+ *   "nonce": "....",
+ *   "method": "GET" | "POST",
+ *   "path": "/calculators/it/calculate",
+ *   "query": "?a=1&b=2", // optional
+ *   "payload": {...}      // for POST
+ * }
+ */
+function ukpa_external_proxy_handler() {
+    // Wrap entire handler in try-catch to prevent 502 on fatal errors
+    try {
+        $raw_input = file_get_contents('php://input');
+        if ($raw_input === false) {
+            error_log('UKPA External Proxy: Failed to read php://input');
+            wp_send_json_error(['error' => 'Failed to read request body'], 400);
+            return;
+        }
+        
+        $input = json_decode($raw_input, true);
+        if (!is_array($input)) {
+            error_log('UKPA External Proxy: Invalid JSON body: ' . substr($raw_input, 0, 200));
+            wp_send_json_error(['error' => 'Invalid JSON body'], 400);
+            return;
+        }
+
+        $nonce = $input['nonce'] ?? '';
+        if (!empty($nonce) && !wp_verify_nonce($nonce, 'ukpa_api_nonce')) {
+            error_log('UKPA External Proxy: Invalid nonce');
+            wp_send_json_error(['error' => 'Invalid nonce'], 403);
+            return;
+        }
+
+        $method = strtoupper(sanitize_text_field($input['method'] ?? 'GET'));
+        if (!in_array($method, ['GET', 'POST'], true)) {
+            wp_send_json_error(['error' => 'Method not allowed'], 405);
+            return;
+        }
+
+        $path = sanitize_text_field($input['path'] ?? '');
+        if ($path === '' || strpos($path, '..') !== false) {
+            wp_send_json_error(['error' => 'Invalid path'], 400);
+            return;
+        }
+        if ($path[0] !== '/') {
+            $path = '/' . $path;
+        }
+
+        // Strict allowlist (extend as needed)
+        $allowed = [
+            'GET' => [
+                '/health',
+                '/loading-messages',
+                '/calculators/sdlt/years',
+                '/calculators/sdlt/rate-bands',
+                '/csrf-token',
+                '/csrf-token-authenticated',
+            ],
+            'POST' => [
+                '/calculators/it/calculate',
+                '/calculators/it/ai-insights',
+                '/calculators/rt/comparison-insights',
+                '/calculators/sdlt/calculate',
+                '/calculators/sdlt/chart',
+                '/calculators/sdlt/chart-types',
+                '/calculators/sdlt/ai-insights',
+                '/submissions/submit',
+            ],
+        ];
+
+        if (!isset($allowed[$method]) || !in_array($path, $allowed[$method], true)) {
+            error_log('UKPA External Proxy: Disallowed endpoint - ' . $method . ' ' . $path);
+            wp_send_json_error(['error' => 'Disallowed endpoint'], 403);
+            return;
+        }
+
+        // Basic rate limit (per IP, 60 req/min)
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        $rate_key = 'ukpa_ext_rl_' . md5($ip);
+        $count = (int) get_transient($rate_key);
+        if ($count > 60) {
+            wp_send_json_error(['error' => 'Rate limit exceeded'], 429);
+            return;
+        }
+        set_transient($rate_key, $count + 1, 60);
+
+        $base_url = get_option('ukpa_external_api_base_url', 'https://ukpacalculator.com/ana/api/external');
+        $client_token = get_option('ukpa_external_api_client_token', '');
+        if (empty($client_token)) {
+            error_log('UKPA External Proxy: External API token is not configured');
+            wp_send_json_error(['error' => 'External API token is not configured in plugin settings'], 500);
+            return;
+        }
+
+        // Use the site origin as the bound origin for external token validation/decryption
+        $origin = home_url();
+        $origin_parts = wp_parse_url($origin);
+        $origin_header = '';
+        if (is_array($origin_parts) && !empty($origin_parts['scheme']) && !empty($origin_parts['host'])) {
+            $origin_header = $origin_parts['scheme'] . '://' . $origin_parts['host'];
+            if (!empty($origin_parts['port'])) {
+                $origin_header .= ':' . $origin_parts['port'];
+            }
+        }
+
+        $query = $input['query'] ?? '';
+        $query = is_string($query) ? $query : '';
+        if ($query !== '' && $query[0] !== '?') {
+            $query = '?' . $query;
+        }
+
+        $target_url = rtrim($base_url, '/') . $path . $query;
+        error_log('UKPA External Proxy: Requesting ' . $method . ' ' . $target_url);
+
+        // Server-side CSRF token handling (required by external API for POST)
+        $csrf_token = null;
+        if ($method === 'POST') {
+            $csrf_cache_key = 'ukpa_ext_csrf_' . md5($origin_header . '|' . $client_token);
+            $cached = get_transient($csrf_cache_key);
+            if (is_array($cached) && !empty($cached['token'])) {
+                $csrf_token = $cached['token'];
+                error_log('UKPA External Proxy: Using cached CSRF token');
+            } else {
+                $csrf_url = rtrim($base_url, '/') . '/csrf-token-authenticated';
+                error_log('UKPA External Proxy: Fetching CSRF token from ' . $csrf_url);
+                $csrf_resp = wp_remote_get($csrf_url, [
+                    'timeout' => 20,
+                    'headers' => [
+                        'X-API-Key' => $client_token,
+                        'Origin' => $origin_header,
+                        'Referer' => home_url('/'),
+                        'Accept' => 'application/json',
+                    ],
+                ]);
+
+                if (is_wp_error($csrf_resp)) {
+                    error_log('UKPA External Proxy: CSRF fetch error - ' . $csrf_resp->get_error_message());
+                    wp_send_json_error(['error' => 'Failed to fetch CSRF token: ' . $csrf_resp->get_error_message()], 502);
+                    return;
+                }
+
+                $csrf_code = wp_remote_retrieve_response_code($csrf_resp);
+                $csrf_body = wp_remote_retrieve_body($csrf_resp);
+                $csrf_json = json_decode($csrf_body, true);
+
+                if ($csrf_code < 200 || $csrf_code >= 300 || !is_array($csrf_json) || empty($csrf_json['csrfToken'])) {
+                    error_log('UKPA External Proxy: CSRF fetch failed - HTTP ' . $csrf_code . ', body: ' . substr($csrf_body, 0, 200));
+                    wp_send_json_error([
+                        'error' => 'Failed to fetch CSRF token from external API',
+                        'status' => $csrf_code,
+                        'body' => $csrf_json ?: $csrf_body,
+                    ], 502);
+                    return;
+                }
+
+                $csrf_token = $csrf_json['csrfToken'];
+                $expires_in = !empty($csrf_json['expiresIn']) ? (int) $csrf_json['expiresIn'] : 900;
+                set_transient($csrf_cache_key, ['token' => $csrf_token], max(60, $expires_in - 60));
+                error_log('UKPA External Proxy: CSRF token fetched and cached');
+            }
+        }
+
+        $payload = $input['payload'] ?? null;
+        
+        // Add HubSpot API key to payload for submission endpoints (server-side only, never exposed to frontend)
+        if ($method === 'POST' && is_array($payload) && (
+            strpos($path, '/submissions/submit') !== false || 
+            strpos($path, '/submit') !== false
+        )) {
+            $hubspot_api_key = get_option('ukpa_hubspot_api_key', '');
+            if (!empty($hubspot_api_key)) {
+                $payload['hubspotApiKey'] = $hubspot_api_key;
+                error_log('UKPA External Proxy: Added HubSpot API key to submission payload (key length: ' . strlen($hubspot_api_key) . ')');
+            }
+        }
+        
+        $body = null;
+        if ($method === 'POST') {
+            $body = is_array($payload) ? wp_json_encode($payload) : (is_string($payload) ? $payload : wp_json_encode([]));
+        }
+
+        // IMPORTANT: We do NOT forward any browser-supplied auth headers; we always use the server-stored token.
+        $headers = [
+            'Accept' => 'application/json',
+            'Content-Type' => 'application/json',
+            'X-API-Key' => $client_token,
+            'Origin' => $origin_header,
+            'Referer' => home_url('/'),
+        ];
+        if ($csrf_token) {
+            $headers['X-CSRF-Token'] = $csrf_token;
+        }
+
+        $args = [
+            'method' => $method,
+            'timeout' => 30,
+            'headers' => $headers,
+        ];
+        if ($body !== null) {
+            $args['body'] = $body;
+        }
+
+        $resp = wp_remote_request($target_url, $args);
+        if (is_wp_error($resp)) {
+            error_log('UKPA External Proxy: Request error - ' . $resp->get_error_message());
+            wp_send_json_error(['error' => $resp->get_error_message()], 502);
+            return;
+        }
+
+        $resp_code = wp_remote_retrieve_response_code($resp);
+        $resp_body = wp_remote_retrieve_body($resp);
+        $decoded = json_decode($resp_body, true);
+        error_log('UKPA External Proxy: Response - HTTP ' . $resp_code);
+
+        // If we get a CSRF error (403), clear the cached token and retry once with a fresh token
+        if ($resp_code === 403 && $csrf_token && is_array($decoded) && 
+            (isset($decoded['error']) && ($decoded['error'] === 'csrf_token_invalid' || $decoded['error'] === 'csrf_token_missing'))) {
+            error_log('UKPA External Proxy: CSRF token invalid, clearing cache and retrying with fresh token');
+            
+            // Clear the cached CSRF token
+            delete_transient($csrf_cache_key);
+            
+            // Fetch a fresh CSRF token
+            $csrf_url = rtrim($base_url, '/') . '/csrf-token-authenticated';
+            $csrf_resp = wp_remote_get($csrf_url, [
+                'timeout' => 20,
+                'headers' => [
+                    'X-API-Key' => $client_token,
+                    'Origin' => $origin_header,
+                    'Referer' => home_url('/'),
+                    'Accept' => 'application/json',
+                ],
+            ]);
+
+            if (!is_wp_error($csrf_resp)) {
+                $csrf_code = wp_remote_retrieve_response_code($csrf_resp);
+                $csrf_body = wp_remote_retrieve_body($csrf_resp);
+                $csrf_json = json_decode($csrf_body, true);
+
+                if ($csrf_code >= 200 && $csrf_code < 300 && is_array($csrf_json) && !empty($csrf_json['csrfToken'])) {
+                    $fresh_csrf_token = $csrf_json['csrfToken'];
+                    $expires_in = !empty($csrf_json['expiresIn']) ? (int) $csrf_json['expiresIn'] : 900;
+                    set_transient($csrf_cache_key, ['token' => $fresh_csrf_token], max(60, $expires_in - 60));
+                    
+                    // Update headers with fresh token
+                    $headers['X-CSRF-Token'] = $fresh_csrf_token;
+                    $args['headers'] = $headers;
+                    
+                    // Retry the request
+                    error_log('UKPA External Proxy: Retrying request with fresh CSRF token');
+                    $resp = wp_remote_request($target_url, $args);
+                    
+                    if (!is_wp_error($resp)) {
+                        $resp_code = wp_remote_retrieve_response_code($resp);
+                        $resp_body = wp_remote_retrieve_body($resp);
+                        $decoded = json_decode($resp_body, true);
+                        error_log('UKPA External Proxy: Retry response - HTTP ' . $resp_code);
+                    }
+                }
+            }
+        }
+
+        wp_send_json_success([
+            'code' => $resp_code,
+            'isJson' => is_array($decoded),
+            'body' => is_array($decoded) ? $decoded : $resp_body,
+        ]);
+    } catch (Exception $e) {
+        error_log('UKPA External Proxy Fatal Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+        error_log('UKPA External Proxy Stack Trace: ' . $e->getTraceAsString());
+        wp_send_json_error([
+            'error' => 'Internal server error in proxy handler',
+            'message' => defined('WP_DEBUG') && WP_DEBUG ? $e->getMessage() : 'An error occurred processing the request'
+        ], 500);
+    } catch (Error $e) {
+        error_log('UKPA External Proxy Fatal Error (PHP Error): ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+        error_log('UKPA External Proxy Stack Trace: ' . $e->getTraceAsString());
+        wp_send_json_error([
+            'error' => 'Internal server error in proxy handler',
+            'message' => defined('WP_DEBUG') && WP_DEBUG ? $e->getMessage() : 'An error occurred processing the request'
+        ], 500);
+    }
+}
 
 // --- AJAX handlers for admin functions ---
 add_action('wp_ajax_ukpa_clear_update_cache', 'ukpa_clear_update_cache_handler');

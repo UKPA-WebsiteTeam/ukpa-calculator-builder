@@ -11,11 +11,24 @@ if (!defined('ABSPATH')) {
     if (isset($_POST['submit']) && wp_verify_nonce($_POST['ukpa_settings_nonce'], 'ukpa_settings')) {
         $license_key = sanitize_text_field($_POST['ukpa_license_key']);
         $plugin_token = sanitize_text_field($_POST['ukpa_plugin_token']);
+        $external_api_base_url = esc_url_raw($_POST['ukpa_external_api_base_url'] ?? '');
+        $external_api_client_token = sanitize_text_field($_POST['ukpa_external_api_client_token'] ?? '');
+        $income_tax_html_url = esc_url_raw($_POST['ukpa_income_tax_html_url'] ?? '');
         $selected_website = sanitize_text_field($_POST['ukpa_selected_website']);
+        $recaptcha_site_key = sanitize_text_field($_POST['ukpa_recaptcha_site_key'] ?? '');
+        $hubspot_api_key = sanitize_text_field($_POST['ukpa_hubspot_api_key'] ?? '');
         
         update_option('ukpa_license_key', $license_key);
         update_option('ukpa_plugin_token', $plugin_token);
+        update_option('ukpa_external_api_base_url', $external_api_base_url);
+        update_option('ukpa_external_api_client_token', $external_api_client_token);
+        update_option('ukpa_income_tax_html_url', $income_tax_html_url);
         update_option('ukpa_selected_website', $selected_website);
+        update_option('ukpa_recaptcha_site_key', $recaptcha_site_key);
+        // Only update HubSpot API key if a new value is provided (don't overwrite with empty)
+        if (!empty($hubspot_api_key)) {
+            update_option('ukpa_hubspot_api_key', $hubspot_api_key);
+        }
         
         // Log the save action
         error_log('UKPA Settings Saved - License Key: ' . substr($license_key, 0, 8) . '...');
@@ -25,7 +38,14 @@ if (!defined('ABSPATH')) {
     
     $license_key = get_option('ukpa_license_key', '');
     $plugin_token = get_option('ukpa_plugin_token', '');
+    $external_api_base_url = get_option('ukpa_external_api_base_url', 'https://ukpacalculator.com/ana/api/external');
+    $external_api_client_token = get_option('ukpa_external_api_client_token', '');
+    $income_tax_html_url = get_option('ukpa_income_tax_html_url', '');
     $selected_website = get_option('ukpa_selected_website', 'UKPA');
+    $recaptcha_site_key = get_option('ukpa_recaptcha_site_key', '6Lfy0gcsAAAAAOJAbtam6WBI8nj09N2ebYIIKdKW');
+    $hubspot_api_key = get_option('ukpa_hubspot_api_key', '');
+    // For display: show placeholder if key exists, otherwise empty
+    $hubspot_api_key_display = !empty($hubspot_api_key) ? '••••••••••••••••' : '';
     
     // Check for updates
     $update_info = get_transient('ukpa_plugin_update_info');
@@ -80,6 +100,54 @@ if (!defined('ABSPATH')) {
                                 </p>
                             </td>
                         </tr>
+
+                        <tr>
+                            <th scope="row">
+                                <label for="ukpa_external_api_base_url">External API Base URL</label>
+                            </th>
+                            <td>
+                                <input type="url"
+                                       id="ukpa_external_api_base_url"
+                                       name="ukpa_external_api_base_url"
+                                       value="<?php echo esc_attr($external_api_base_url); ?>"
+                                       class="regular-text" />
+                                <p class="description">
+                                    Base URL for the External API proxy (default is <code>https://ukpacalculator.com/ana/api/external</code>).
+                                </p>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th scope="row">
+                                <label for="ukpa_external_api_client_token">External API Client Token</label>
+                            </th>
+                            <td>
+                                <input type="text"
+                                       id="ukpa_external_api_client_token"
+                                       name="ukpa_external_api_client_token"
+                                       value="<?php echo esc_attr($external_api_client_token); ?>"
+                                       class="regular-text" />
+                                <p class="description">
+                                    Encrypted external API token (origin-bound) used server-side. This is never exposed to visitors.
+                                </p>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th scope="row">
+                                <label for="ukpa_income_tax_html_url">Income Tax HTML URL</label>
+                            </th>
+                            <td>
+                                <input type="url"
+                                       id="ukpa_income_tax_html_url"
+                                       name="ukpa_income_tax_html_url"
+                                       value="<?php echo esc_attr($income_tax_html_url); ?>"
+                                       class="regular-text" />
+                                <p class="description">
+                                    URL to the raw <code>income.html</code> file used by shortcode <code>[ukpa_income_tax]</code>. Recommended: host it on the SAME domain as this WordPress site.
+                                </p>
+                            </td>
+                        </tr>
                         
                         <tr>
                             <th scope="row">
@@ -92,6 +160,48 @@ if (!defined('ABSPATH')) {
                                 </select>
                                 <p class="description">
                                     Select your website type for API routing.
+                                </p>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th scope="row">
+                                <label for="ukpa_recaptcha_site_key">reCAPTCHA Site Key</label>
+                            </th>
+                            <td>
+                                <input type="text"
+                                       id="ukpa_recaptcha_site_key"
+                                       name="ukpa_recaptcha_site_key"
+                                       value="<?php echo esc_attr($recaptcha_site_key); ?>"
+                                       class="regular-text" />
+                                <p class="description">
+                                    Google reCAPTCHA v3 Site Key (public key). This is safe to expose in frontend code. 
+                                    Get your keys from <a href="https://www.google.com/recaptcha/admin" target="_blank">Google reCAPTCHA Admin</a>.
+                                    <br><strong>Note:</strong> The Site Key is public by design and safe to include in frontend code. 
+                                    The Secret Key should only be configured on your backend server.
+                                </p>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th scope="row">
+                                <label for="ukpa_hubspot_api_key">HubSpot API Key</label>
+                            </th>
+                            <td>
+                                <input type="password"
+                                       id="ukpa_hubspot_api_key"
+                                       name="ukpa_hubspot_api_key"
+                                       value=""
+                                       placeholder="<?php echo esc_attr($hubspot_api_key_display ? $hubspot_api_key_display . ' (click to update)' : 'Enter HubSpot API key'); ?>"
+                                       class="regular-text" 
+                                       autocomplete="new-password" />
+                                <p class="description">
+                                    Your HubSpot Private App Access Token (API key). This is used to create/update contacts in HubSpot.
+                                    <br><strong>Security:</strong> This key is stored securely and never exposed to frontend code. 
+                                    <br>Get your API key from <a href="https://app.hubspot.com/private-apps" target="_blank">HubSpot Private Apps</a>.
+                                    <?php if (!empty($hubspot_api_key)): ?>
+                                        <br><span style="color: green;">✓ API key is configured</span>
+                                    <?php endif; ?>
                                 </p>
                             </td>
                         </tr>

@@ -37,6 +37,7 @@ require_once UKPA_CALC_PATH . 'includes/unified-save.php';
 require_once UKPA_CALC_PATH . 'includes/custom-assets-injector.php';
 require_once UKPA_CALC_PATH . 'includes/auto-updater.php';
 require_once UKPA_CALC_PATH . 'includes/idv-form-shortcode.php';
+require_once UKPA_CALC_PATH . 'includes/income-tax-shortcode.php';
 
 // ✅ Chatbot system - DISABLED
 // require_once UKPA_CALC_PATH . 'includes/chatbot-nlp.php';
@@ -86,6 +87,7 @@ add_action('admin_enqueue_scripts', function ($hook) {
     // ✅ Local config for JS
     $plugin_token = get_option('ukpa_plugin_token', '');
     $selected_website = get_option('ukpa_selected_website', 'UKPA');
+    $external_api_base_url = get_option('ukpa_external_api_base_url', 'https://ukpacalculator.com/ana/api/external');
     $local_api_base_url = 'http://192.168.18.54:3002/ana/v1';
     $live_api_base_url = 'https://ukpacalculators.com/api/v1';
 
@@ -93,6 +95,8 @@ add_action('admin_enqueue_scripts', function ($hook) {
     $calc_data = get_option('ukpa_calc_' . $calc_id, []);
     $route = $calc_data['route'] ?? '';
 
+    $recaptcha_site_key = get_option('ukpa_recaptcha_site_key', '6Lfy0gcsAAAAAOJAbtam6WBI8nj09N2ebYIIKdKW');
+    
     wp_add_inline_script('chart-js', sprintf(
         'window.ukpa_api_data = %s;',
         json_encode([
@@ -104,6 +108,8 @@ add_action('admin_enqueue_scripts', function ($hook) {
             'backend_route'   => $route,
             'nonce'           => wp_create_nonce('ukpa_api_nonce'),
             'website'         => $selected_website,
+            'external_api_base_url' => $external_api_base_url,
+            'recaptcha_site_key' => $recaptcha_site_key,
         ])
     ), 'after');
 
@@ -122,59 +128,86 @@ add_action('admin_enqueue_scripts', function ($hook) {
 // ✅ Frontend assets (calculator preview/public)
 add_action('wp_enqueue_scripts', function () {
     if (!is_admin()) {
-        wp_enqueue_style(
-            'ukpa-calc-frontend-css',
-            UKPA_CALC_URL . 'public/css/frontend.css',
-            [],
-            '1.0'
-        );
+        // Decide whether the builder frontend runtime should load on this page.
+        // Loading it globally causes console errors on non-calculator pages (and can break embedded HTML calculators).
+        global $post;
+        $should_load_builder_runtime =
+            is_singular() &&
+            $post instanceof WP_Post &&
+            has_shortcode($post->post_content ?? '', 'ukpa_calculator_ana');
 
-        // ✅ Chart.js
-        wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js', [], '4.4.0', true);
-
-        // ✅ Flatpickr for frontend date fields
-        wp_enqueue_script('flatpickr', 'https://cdn.jsdelivr.net/npm/flatpickr', [], null, true);
-        wp_enqueue_style('flatpickr-style', 'https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css', [], null);
-
-        // Load frontend JS in the header so that the localisation script defining
-        // window.ukpa_api_data executes BEFORE any inline scripts printed by the
-        // shortcode (which later fills in calculator-specific values such as
-        // backend_route). This avoids the localisation data from overwriting
-        // calculator-specific properties.
-        wp_enqueue_script(
-            'ukpa-calc-frontend-js',
-            UKPA_CALC_URL . 'public/js/frontend.js',
-            ['chart-js', 'flatpickr'],
-            filemtime(UKPA_CALC_PATH . 'public/js/frontend.js'),
-            false // load in <head> instead of footer
-        );
-
-        add_filter('script_loader_tag', function ($tag, $handle) {
-            if ($handle === 'ukpa-calc-frontend-js') {
-                return str_replace('<script ', '<script type="module" ', $tag);
-            }
-            return $tag;
-        }, 10, 2);
-
-        // ✅ Local config for frontend
+        // ✅ Minimal config always available for pages that need WP AJAX proxying (e.g., embedded calculators)
         $plugin_token = get_option('ukpa_plugin_token', '');
         $selected_website = get_option('ukpa_selected_website', 'UKPA');
-        global $ukpa_calc_ids_to_inject;
+        $external_api_base_url = get_option('ukpa_external_api_base_url', 'https://ukpacalculator.com/ana/api/external');
+        $recaptcha_site_key = get_option('ukpa_recaptcha_site_key', '6Lfy0gcsAAAAAOJAbtam6WBI8nj09N2ebYIIKdKW');
 
-        $calc_id = is_array($ukpa_calc_ids_to_inject) && count($ukpa_calc_ids_to_inject) > 0
-            ? sanitize_text_field($ukpa_calc_ids_to_inject[0])
-            : '';
+        // Bootstrap script (no external file) to define window.ukpa_api_data everywhere.
+        wp_register_script('ukpa-calc-bootstrap', '', [], UKPA_CALC_VERSION, false);
+        wp_enqueue_script('ukpa-calc-bootstrap');
+        wp_add_inline_script(
+            'ukpa-calc-bootstrap',
+            'window.ukpa_api_data = Object.assign({}, window.ukpa_api_data || {}, ' .
+                wp_json_encode([
+                    'ajaxurl' => admin_url('admin-ajax.php'),
+                    'nonce' => wp_create_nonce('ukpa_api_nonce'),
+                    'website' => $selected_website,
+                    'external_api_base_url' => $external_api_base_url,
+                    'recaptcha_site_key' => $recaptcha_site_key,
+                    // plugin_token is legacy; keeping for backward compatibility with existing builder flows
+                    'plugin_token' => $plugin_token,
+                ]) .
+            ');',
+            'before'
+        );
 
-        $calc_data = get_option('ukpa_calc_' . $calc_id, []);
-        $backend_route = $calc_data['route'] ?? '';
+        if ($should_load_builder_runtime) {
+            wp_enqueue_style(
+                'ukpa-calc-frontend-css',
+                UKPA_CALC_URL . 'public/css/frontend.css',
+                [],
+                '1.0'
+            );
 
-        wp_localize_script('ukpa-calc-frontend-js', 'ukpa_api_data', [
-            'plugin_token'  => $plugin_token,
-            'backend_route' => $backend_route,
-            'ajaxurl'       => admin_url('admin-ajax.php'),
-            'nonce'         => wp_create_nonce('ukpa_api_nonce'),
-            'website'       => $selected_website,
-        ]);
+            // ✅ Chart.js
+            wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js', [], '4.4.0', true);
+
+            // ✅ Flatpickr for frontend date fields
+            wp_enqueue_script('flatpickr', 'https://cdn.jsdelivr.net/npm/flatpickr', [], null, true);
+            wp_enqueue_style('flatpickr-style', 'https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css', [], null);
+
+            // Load builder runtime only on builder shortcode pages
+            wp_enqueue_script(
+                'ukpa-calc-frontend-js',
+                UKPA_CALC_URL . 'public/js/frontend.js',
+                ['chart-js', 'flatpickr'],
+                filemtime(UKPA_CALC_PATH . 'public/js/frontend.js'),
+                false // load in <head> instead of footer
+            );
+
+            add_filter('script_loader_tag', function ($tag, $handle) {
+                if ($handle === 'ukpa-calc-frontend-js') {
+                    return str_replace('<script ', '<script type="module" ', $tag);
+                }
+                return $tag;
+            }, 10, 2);
+
+            // Attach backend_route only when builder is active on this page
+            global $ukpa_calc_ids_to_inject;
+            $calc_id = is_array($ukpa_calc_ids_to_inject) && count($ukpa_calc_ids_to_inject) > 0
+                ? sanitize_text_field($ukpa_calc_ids_to_inject[0])
+                : '';
+            $calc_data = get_option('ukpa_calc_' . $calc_id, []);
+            $backend_route = $calc_data['route'] ?? '';
+
+            wp_add_inline_script(
+                'ukpa-calc-frontend-js',
+                'window.ukpa_api_data = Object.assign({}, window.ukpa_api_data || {}, ' .
+                    wp_json_encode([ 'backend_route' => $backend_route ]) .
+                ');',
+                'before'
+            );
+        }
 
         // 🚀 Calculator backend route: nic/calculate   // ← or whatever route is saved
     }
