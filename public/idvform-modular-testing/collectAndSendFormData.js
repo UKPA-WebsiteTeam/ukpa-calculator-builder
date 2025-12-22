@@ -335,6 +335,11 @@ export async function collectAndSendFormData(totalUsers) {
           field: `proofOfAddress-${i}`,
           file: proofInput.files[0]
         });
+        // Also add with a more specific field name that backend might expect
+        filesToUpload.push({
+          field: `proof_of_address_${i}`,
+          file: proofInput.files[0]
+        });
         proofOfAddressDriveFile = { name: proofInput.files[0].name };
         console.log(`[DEBUG] Added proof of address to filesToUpload for user ${i}:`, proofOfAddressDriveFile);
       } else {
@@ -349,6 +354,11 @@ export async function collectAndSendFormData(totalUsers) {
               console.log(`[DEBUG] Proof of address file found via fallback for user ${i}:`, fallbackInput.files[0]);
               filesToUpload.push({
                 field: `proofOfAddress-${i}`,
+                file: fallbackInput.files[0]
+              });
+              // Also add with a more specific field name that backend might expect
+              filesToUpload.push({
+                field: `proof_of_address_${i}`,
                 file: fallbackInput.files[0]
               });
               proofOfAddressDriveFile = { name: fallbackInput.files[0].name };

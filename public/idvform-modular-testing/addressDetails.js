@@ -70,7 +70,7 @@ export function createAddressSection(userId, displayName) {
     const tooltipContent = {
       'uk-resident': 'If you have a UK ID (Passport or Driving License) and UK address (currently reside in the UK & have proof of address dated within the last 3 months)',
       'non-uk-resident': 'If you are not a UK resident and your proof of ID and proof of address are from the same country',
-      'enhanced-verification': 'Applies when your proof of identity and proof of residence are from two different countries. This additional due diligence requires a short video call and/or confirmation of document authenticity from a solicitor to address potential inconsistencies.'
+      'enhanced-verification': 'Applies when your proof of identity and proof of residence are from two different countries. This additional due diligence requires additional fees, depending upon the residency status of the user. If the user is a resident but not a UK national, they will have to pay 150 + VAT, but if they are non-resident but are a UK national, they will have to pay 150 GBP only.'
     };
 
     tooltipTriggers.forEach(trigger => {
