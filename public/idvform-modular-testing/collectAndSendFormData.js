@@ -4,29 +4,44 @@ import { groupADocuments } from './documentDetails.js'; // <-- Import groupADocu
 // Remove dotenv import and config
 // --- Helper to send requests via WP proxy ---
 export async function proxyToBackend(endpoint, payload, method = 'POST') {
-  const response = await fetch(window.ukpa_idv_form_data.ajaxurl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      action: 'ukpa_idv_proxy',
-      nonce: window.ukpa_idv_form_data.nonce,
-      endpoint, // e.g., 'ocrExtract', 'dataSubmit', etc.
-      method,
-      payload: typeof payload === 'string' ? payload : JSON.stringify(payload)
-    })
-  });
-  const data = await response.json();
-  // Only throw if success is explicitly false (WordPress AJAX error)
-  if (data.hasOwnProperty('success') && !data.success) throw new Error(data.message || 'Proxy error');
-  // If the response is a direct backend response, return it
-  if (data.body === undefined && data.status === undefined && typeof data === 'object') {
-    return data;
-  }
-  // Otherwise, try to parse the body
   try {
-    return JSON.parse(data.body);
-  } catch {
-    return data.body;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    
+    const response = await fetch(window.ukpa_idv_form_data.ajaxurl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        action: 'ukpa_idv_proxy',
+        nonce: window.ukpa_idv_form_data.nonce,
+        endpoint, // e.g., 'ocrExtract', 'dataSubmit', etc.
+        method,
+        payload: typeof payload === 'string' ? payload : JSON.stringify(payload)
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    
+    const data = await response.json();
+    // Only throw if success is explicitly false (WordPress AJAX error)
+    if (data.hasOwnProperty('success') && !data.success) throw new Error(data.message || 'Proxy error');
+    // If the response is a direct backend response, return it
+    if (data.body === undefined && data.status === undefined && typeof data === 'object') {
+      return data;
+    }
+    // Otherwise, try to parse the body
+    try {
+      return JSON.parse(data.body);
+    } catch {
+      return data.body;
+    }
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error('Request timed out. Please check your internet connection and try again.');
+    } else if (err.message.includes('Failed to fetch') || err.message.includes('Couldn\'t connect')) {
+      throw new Error('Unable to connect to the server. Please check your internet connection and ensure the backend server is running.');
+    }
+    throw err;
   }
 }
 
@@ -44,6 +59,7 @@ async function uploadDocument(file, docType, userIndex) {
   formData.append('userIndex', userIndex);
   formData.append('filerEmail', getValue('filerEmail'));
   formData.append('filerFullName', getValue('filerFullName'));
+  formData.append('filerContactNumber', getValue('filerContactNumber'));
   formData.append('userFirstName', getValue(`firstName-${userIndex}`));
   formData.append('userLastName', getValue(`lastName-${userIndex}`));
 
@@ -155,11 +171,116 @@ function loadCacheFromLocalStorage() {
 // Restore cache on page load
 loadCacheFromLocalStorage();
 
+// --- Helper function to get payment status ---
+export function getPaymentStatus() {
+  // Check URL parameters for payment status
+  const urlParams = new URLSearchParams(window.location.search);
+  const sessionId = urlParams.get('session_id');
+  const paymentStatus = urlParams.get('payment_status');
+  
+  // Check localStorage for payment status (might be set after Stripe redirect)
+  const storedPaymentStatus = localStorage.getItem('ukpa_payment_status');
+  
+  // Priority: URL param > localStorage > default to pending
+  if (paymentStatus) {
+    // Payment status from URL (e.g., ?payment_status=success or ?payment_status=pending)
+    const status = paymentStatus.toLowerCase() === 'success' ? 'success' : 'pending';
+    // Store it for future reference
+    if (status === 'success') {
+      localStorage.setItem('ukpa_payment_status', 'success');
+    }
+    return status;
+  } else if (storedPaymentStatus) {
+    // Payment status from localStorage
+    return storedPaymentStatus;
+  } else if (sessionId) {
+    // If session_id exists in URL, check if we can determine status
+    // This might indicate a successful redirect from Stripe
+    // You may need to verify with backend, but for now assume pending if session exists
+    return 'pending';
+  }
+  
+  // Default: pending (before payment or no payment info available)
+  return 'pending';
+}
+
+// --- Helper function to set payment status (can be called after Stripe redirect) ---
+export function setPaymentStatus(status) {
+  // Valid statuses: 'success', 'pending', 'failed', 'cancelled'
+  const validStatuses = ['success', 'pending', 'failed', 'cancelled'];
+  if (validStatuses.includes(status.toLowerCase())) {
+    localStorage.setItem('ukpa_payment_status', status.toLowerCase());
+    console.log(`[Payment Status] Set to: ${status.toLowerCase()}`);
+  } else {
+    console.warn(`[Payment Status] Invalid status provided: ${status}`);
+  }
+}
+
+// --- Function to trigger Zapier after payment success ---
+async function triggerZapierAfterPayment(token) {
+  try {
+    // Get the saved form data from localStorage or reconstruct it
+    // This should be called when user returns from payment with payment_status=success
+    const paymentStatus = getPaymentStatus();
+    if (paymentStatus === 'success' && token) {
+      // Call backend to trigger Zapier with payment_status=success
+      // The backend should have the saved contact and users data, and can update paymentStatus and trigger Zapier
+      const response = await proxyToBackend('trigger-zapier', { 
+        token: token,
+        paymentStatus: 'success'
+      }, 'POST');
+      console.log('[triggerZapierAfterPayment] Response:', response);
+      return response;
+    }
+  } catch (err) {
+    console.error('[triggerZapierAfterPayment] Error:', err);
+  }
+}
+
+// --- Auto-detect payment status from URL on page load ---
+(function autoDetectPaymentStatus() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const paymentStatus = urlParams.get('payment_status');
+  const sessionId = urlParams.get('session_id');
+  
+  // If payment_status is in URL, store it
+  if (paymentStatus) {
+    setPaymentStatus(paymentStatus);
+    
+    // If payment was successful, check if we need to trigger Zapier
+    if (paymentStatus === 'success') {
+      // Try to get token from localStorage or URL
+      const token = localStorage.getItem('ukpa_submission_token') || urlParams.get('token');
+      if (token) {
+        // Trigger Zapier with success status
+        triggerZapierAfterPayment(token).catch(err => {
+          console.error('Failed to trigger Zapier after payment:', err);
+        });
+      }
+    }
+  }
+  // If session_id exists but no payment_status, we might want to check with backend
+  // For now, we'll leave it as pending until backend confirms
+})();
+
 export async function collectAndSendFormData(totalUsers) {
   try {
+    // Get payment status - only include it if payment has been completed
+    // On initial submit (before payment), paymentStatus will be 'pending', so we skip Zapier trigger
+    // Zapier should only be triggered AFTER payment is successful
+    const paymentStatus = getPaymentStatus();
+    
+    // IMPORTANT: On initial submit (before payment), paymentStatus will be 'pending'
+    // We set it to null/undefined so the backend doesn't trigger Zapier prematurely
+    // Zapier should only be triggered AFTER payment is completed (success/failed/cancelled)
     const contact = {
       filerFullName: getValue('filerFullName'),
-      filerEmail: getValue('filerEmail')
+      filerEmail: getValue('filerEmail'),
+      filerContactNumber: getValue('filerContactNumber'),
+      // Only include paymentStatus if payment has been completed (not pending)
+      // Backend should check: if paymentStatus is null/undefined, don't trigger Zapier
+      // If paymentStatus is 'success', 'failed', or 'cancelled', then trigger Zapier
+      ...(paymentStatus !== 'pending' && { paymentStatus: paymentStatus })
     };
 
     const users = [];
@@ -167,10 +288,11 @@ export async function collectAndSendFormData(totalUsers) {
 
     // Debug logging
     console.log('DEBUG: Contact before submit:', contact);
+    console.log('DEBUG: Payment status:', paymentStatus);
     console.log('DEBUG: totalUsers at submit:', totalUsers);
-    if (!contact.filerFullName || !contact.filerEmail) {
-      alert('❌ Please fill in your full name and email before submitting.');
-      throw new Error('Missing filerFullName or filerEmail');
+    if (!contact.filerFullName || !contact.filerEmail || !contact.filerContactNumber) {
+      alert('❌ Please fill in your full name, email, and contact number before submitting.');
+      throw new Error('Missing filerFullName, filerEmail, or filerContactNumber');
     }
     if (!totalUsers || isNaN(totalUsers) || totalUsers < 1) {
       alert('❌ Number of users is not set or invalid.');
@@ -266,13 +388,18 @@ export async function collectAndSendFormData(totalUsers) {
         if (!fileInput || !fileInput.files[0]) {
           throw new Error(`Missing file for ${cb.value}`);
         }
-        filesToUpload.push({
-          field: `${inputName}-${i}`,
-          file: fileInput.files[0]
-        });
+        // If we already uploaded via OCR and have a cached driveFile (e.g., passport),
+        // do not re-attach the file to reduce payload size.
+        const cachedDriveFile = uploadedFilesCache.get(`${cb.value}-${i}`);
+        if (!cachedDriveFile) {
+          filesToUpload.push({
+            field: `${inputName}-${i}`,
+            file: fileInput.files[0]
+          });
+        }
         // Find the doc definition in groupADocuments
         const docDef = groupADocuments.find(d => d.id === cb.value);
-        const detailsObj = { type: cb.value, driveFile: { name: fileInput.files[0].name } };
+        const detailsObj = { type: cb.value, driveFile: cachedDriveFile || { name: fileInput.files[0].name } };
         if (docDef && Array.isArray(docDef.details)) {
           docDef.details.forEach(field => {
             // Compose the input name as in the DOM
@@ -353,11 +480,29 @@ export async function collectAndSendFormData(totalUsers) {
     const proofOfAddressFiles = filesToUpload.filter(f => f.field.startsWith('proofOfAddress'));
     console.log('[DEBUG] Proof of address files in filesToUpload:', proofOfAddressFiles);
     console.log('[DEBUG] FormData contains proof of address files:', Array.from(formData.entries()).filter(([key]) => key.startsWith('proofOfAddress')));
-    const response = await fetch(window.ukpa_idv_form_data.ajaxurl, {
-      method: 'POST',
-      body: formData,
-      credentials: 'same-origin'
-    });
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout for file uploads
+    
+    let response;
+    try {
+      response = await fetch(window.ukpa_idv_form_data.ajaxurl, {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin',
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+    } catch (fetchErr) {
+      clearTimeout(timeoutId);
+      if (fetchErr.name === 'AbortError') {
+        throw new Error('Request timed out. The form submission is taking too long. Please check your internet connection and try again.');
+      } else if (fetchErr.message.includes('Failed to fetch') || fetchErr.message.includes('Couldn\'t connect')) {
+        throw new Error('Unable to connect to the server. Please check your internet connection and ensure the backend server is running.');
+      }
+      throw fetchErr;
+    }
+    
     const saveRes = await response.json();
     console.log('[collectAndSendFormData] dataSubmit response:', saveRes);
     // Robustly parse the response to extract token
@@ -384,6 +529,10 @@ export async function collectAndSendFormData(totalUsers) {
       alert('Form submission failed: ' + (saveResParsed.message || 'No token returned from backend.'));
       throw new Error(saveResParsed.message || 'Saving form data failed');
     }
+    // Save token to localStorage so we can use it to trigger Zapier after payment success
+    localStorage.setItem('ukpa_submission_token', saveResParsed.token);
+    console.log('[collectAndSendFormData] Token saved for later Zapier trigger:', saveResParsed.token);
+    
     // --- Create Stripe session via proxy ---
     const stripeRes = await proxyToBackend(
       'create-checkout-session',
@@ -415,8 +564,34 @@ export async function collectAndSendFormData(totalUsers) {
     window.location.href = stripeResParsed.url;
 
   } catch (err) {
-    console.error(err);
-    alert(`❌ Error: ${err.message}`);
+    console.error('[collectAndSendFormData] Error:', err);
+    
+    // Hide overlay if it's showing
+    const overlay = document.getElementById('submitOverlay');
+    if (overlay) overlay.style.display = 'none';
+    
+    // Re-enable submit button
+    const submitBtn = document.getElementById('submitBtn');
+    if (submitBtn) submitBtn.disabled = false;
+    
+    // Remove beforeunload handler
+    if (window.__submissionBeforeUnloadHandler) {
+      window.removeEventListener('beforeunload', window.__submissionBeforeUnloadHandler);
+    }
+    
+    // Show user-friendly error message
+    let errorMessage = 'An error occurred while submitting the form.';
+    if (err.message) {
+      if (err.message.includes('timeout') || err.message.includes('timed out')) {
+        errorMessage = 'The request timed out. Please check your internet connection and try again.';
+      } else if (err.message.includes('connect') || err.message.includes('Failed to fetch')) {
+        errorMessage = 'Unable to connect to the server. Please check your internet connection and ensure the backend server is running.';
+      } else {
+        errorMessage = err.message;
+      }
+    }
+    
+    alert(`❌ Error: ${errorMessage}`);
   }
 }
 

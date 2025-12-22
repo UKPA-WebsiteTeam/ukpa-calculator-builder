@@ -23,13 +23,17 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <div class="inputContainer">
           <label for="filerFullName">Your Full Name:</label>
-          <input type="text" id="filerFullName" name="filerFullName" required />
+          <input type="text" id="filerFullName" name="filerFullName" required placeholder="Enter your full name" />
         </div>
         <div class="inputContainer">
           <label for="filerEmail">Official Email:
             <info-tooltip>This email will be the official point of contact between the user and UKPA team.</info-tooltip>
           </label>
           <input type="email" id="filerEmail" name="filerEmail" required placeholder="Enter your email address" />
+        </div>
+        <div class="inputContainer">
+          <label for="filerContactNumber">Contact Number:</label>
+          <input type="tel" id="filerContactNumber" name="filerContactNumber" required placeholder="Enter your contact number" />
         </div>
         <div class="inputContainer">
           <label for="setupNumUsers">Number of users you are filing for:</label>
@@ -92,6 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const startFilingBtn = document.getElementById('startFilingBtn');
   const filerFullName = document.getElementById('filerFullName');
   const filerEmail = document.getElementById('filerEmail');
+  const filerContactNumber = document.getElementById('filerContactNumber');
   const pagination = document.getElementById('pagination');
   const formContainer = document.getElementById('formContainer');
 
@@ -480,6 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Add real-time validation for setup step fields
   const setupFilerFullName = document.getElementById('filerFullName');
   const setupFilerEmail = document.getElementById('filerEmail');
+  const setupFilerContactNumber = document.getElementById('filerContactNumber');
   const setupConsentCheckbox = document.getElementById('consentCheckbox');
 
   if (setupFilerFullName) {
@@ -510,6 +516,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  if (setupFilerContactNumber) {
+    setupFilerContactNumber.addEventListener('input', () => {
+      const phonePattern = /^[\d\s\-\+\(\)]{10,}$/;
+      const value = setupFilerContactNumber.value.trim();
+      if (phonePattern.test(value)) {
+        setupFilerContactNumber.classList.remove('invalid');
+        setupFilerContactNumber.classList.add('valid');
+        setupFilerContactNumber.setCustomValidity('');
+      } else {
+        setupFilerContactNumber.classList.remove('valid');
+        setupFilerContactNumber.classList.add('invalid');
+        setupFilerContactNumber.setCustomValidity('Please enter a valid contact number (at least 10 digits).');
+      }
+    });
+    setupFilerContactNumber.addEventListener('blur', () => {
+      // setupFilerContactNumber.reportValidity();
+    });
+  }
+
   if (setupConsentCheckbox) {
     setupConsentCheckbox.addEventListener('change', () => {
       setupConsentCheckbox.checkValidity();
@@ -521,11 +546,13 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       const filerFullName = document.getElementById('filerFullName');
       const filerEmail = document.getElementById('filerEmail');
+      const filerContactNumber = document.getElementById('filerContactNumber');
       const consentCheckbox = document.getElementById('consentCheckbox');
       const userCount = parseInt(setupNumUsers.value);
       const fieldsToValidate = [
         filerFullName,
         filerEmail,
+        filerContactNumber,
         consentCheckbox,
         ...Array.from({ length: userCount }, (_, i) =>
           document.getElementById(`userNameInput-${i + 1}`)
@@ -567,28 +594,44 @@ class InfoTooltip extends HTMLElement {
           position: relative;
           display: inline-block;
           vertical-align: middle;
+          max-width: 100%;
         }
         .icon {
           cursor: pointer;
         }
+        /* Desktop tooltip styles - natural width, no forced breaking */
         .tooltip {
           position: absolute;
           top: -0.5em;
-          left: 2em;
-          background: #e3e3e354;
-          padding: 0.3em 0.6em;
+          left: 2.5em;
+          background: #e3e3e3a8;
+          padding: 0.5em 0.875em;
           border: 1px solid #e3e3e3;
           border-radius: 0.5em;
-          font-size: 0.95em;
-          white-space: nowrap;
+          font-size: 0.85em;
+          white-space: normal;
+          width: max-content;
+          min-width: 200px;
+          word-wrap: normal;
+          overflow-wrap: normal;
+          word-break: normal;
           opacity: 0;
           pointer-events: none;
           transition: all 0.2s;
-          z-index: 10;
+          z-index: 1000;
+          box-sizing: border-box;
+          line-height: 1.5;
         }
         .tooltip-container:hover .tooltip {
           opacity: 1;
           pointer-events: auto;
+        }
+        /* Mobile responsive - prevent overflow only on small screens */
+        @media (max-width: 600px) {
+          .tooltip {
+            width: 210px;
+            white-space: normal;
+          }
         }
       </style>
       <span class="tooltip-container">

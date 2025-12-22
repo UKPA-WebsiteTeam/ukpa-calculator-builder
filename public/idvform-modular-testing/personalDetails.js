@@ -55,8 +55,16 @@ export function createPersonalDetailsSection(userId, displayName) {
     <!-- Are you a UK Resident? -->
     <div class="inputContainer">
       <label for="ukResident-${userId}">Are you currently residing in the UK?</label>
-      <input type="radio" id="ukResidentYes-${userId}" name="ukResident-${userId}" value="yes" checked> Yes
-      <input type="radio" id="ukResidentNo-${userId}" name="ukResident-${userId}" value="no"> No
+      <div class="radio-group">
+        <span class="radio-option">
+          <input type="radio" id="ukResidentYes-${userId}" name="ukResident-${userId}" value="yes" checked>
+          <label for="ukResidentYes-${userId}">Yes</label>
+        </span>
+        <span class="radio-option">
+          <input type="radio" id="ukResidentNo-${userId}" name="ukResident-${userId}" value="no">
+          <label for="ukResidentNo-${userId}">No</label>
+        </span>
+      </div>
     </div>
   `;
   const tooltipSpan = section.querySelector(`#tooltip-email-${userId}`);

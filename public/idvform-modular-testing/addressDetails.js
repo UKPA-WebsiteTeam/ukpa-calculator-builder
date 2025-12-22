@@ -47,7 +47,12 @@ export function createAddressSection(userId, displayName) {
       </div>
     </div>
     <div class="proof-of-address-container">
-      <p>Please provide a proof of address document. This can be a recent bank statement, utility bill or council tax bill dated within the last three months.</p>
+      <p class="proof-of-address-info">
+        Proof of address requirements vary based on residency status. 
+        <span class="tooltip-trigger" data-tooltip="uk-resident">UK Residents</span> need UK ID and UK address proof (dated within 3 months). 
+        <span class="tooltip-trigger" data-tooltip="non-uk-resident">Non-UK Residents</span> need matching country documents. 
+        <span class="tooltip-trigger" data-tooltip="enhanced-verification">Enhanced verification</span> applies for mixed-country documents.
+      </p>
       <div class="upload-and-preview-container">
         <input type="file" id="proofOfAddress-${userId}" name="proofOfAddress-${userId}" accept=".jpg,.jpeg,.png,.pdf" required/>
         <div class="preview-container" id="proofOfAddress-preview-container-${userId}">
@@ -56,6 +61,51 @@ export function createAddressSection(userId, displayName) {
       </div>
     </div>
   `;
+
+  // --- Tooltip initialization ---
+  setTimeout(() => {
+    const tooltipTriggers = section.querySelectorAll('.tooltip-trigger');
+    
+    // Tooltip content definitions
+    const tooltipContent = {
+      'uk-resident': 'If you have a UK ID (Passport or Driving License) and UK address (currently reside in the UK & have proof of address dated within the last 3 months)',
+      'non-uk-resident': 'If you are not a UK resident and your proof of ID and proof of address are from the same country',
+      'enhanced-verification': 'Applies when your proof of identity and proof of residence are from two different countries. This additional due diligence requires additional fees, depending upon the residency status of the user. If the user is a resident but not a UK national, they will have to pay 150 + VAT, but if they are non-resident but are a UK national, they will have to pay 150 GBP only.'
+    };
+
+    tooltipTriggers.forEach(trigger => {
+      const tooltipKey = trigger.getAttribute('data-tooltip');
+      const tooltipText = tooltipContent[tooltipKey];
+      
+      if (tooltipText) {
+        // Create tooltip element
+        const tooltip = document.createElement('span');
+        tooltip.className = 'address-tooltip';
+        tooltip.textContent = tooltipText;
+        
+        // Create wrapper and move trigger into it
+        const tooltipWrapper = document.createElement('span');
+        tooltipWrapper.className = 'tooltip-wrapper';
+        
+        // Move the trigger element into the wrapper
+        const parent = trigger.parentNode;
+        parent.insertBefore(tooltipWrapper, trigger);
+        tooltipWrapper.appendChild(trigger);
+        tooltipWrapper.appendChild(tooltip);
+        
+        // Add hover events
+        tooltipWrapper.addEventListener('mouseenter', () => {
+          tooltip.style.opacity = '1';
+          tooltip.style.visibility = 'visible';
+        });
+        
+        tooltipWrapper.addEventListener('mouseleave', () => {
+          tooltip.style.opacity = '0';
+          tooltip.style.visibility = 'hidden';
+        });
+      }
+    });
+  }, 0);
 
   // --- Image/PDF preview logic ---
   // Delay until section is attached to DOM (in case this function is used before DOM append)
