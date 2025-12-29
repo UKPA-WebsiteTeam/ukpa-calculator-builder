@@ -17,6 +17,7 @@ if (!defined('ABSPATH')) {
         $selected_website = sanitize_text_field($_POST['ukpa_selected_website']);
         $recaptcha_site_key = sanitize_text_field($_POST['ukpa_recaptcha_site_key'] ?? '');
         $hubspot_api_key = sanitize_text_field($_POST['ukpa_hubspot_api_key'] ?? '');
+        $preferred_domain = sanitize_text_field($_POST['ukpa_api_preferred_domain'] ?? 'ukpacalculator.com');
         
         update_option('ukpa_license_key', $license_key);
         update_option('ukpa_plugin_token', $plugin_token);
@@ -25,6 +26,7 @@ if (!defined('ABSPATH')) {
         update_option('ukpa_income_tax_html_url', $income_tax_html_url);
         update_option('ukpa_selected_website', $selected_website);
         update_option('ukpa_recaptcha_site_key', $recaptcha_site_key);
+        update_option('ukpa_api_preferred_domain', $preferred_domain);
         // Only update HubSpot API key if a new value is provided (don't overwrite with empty)
         if (!empty($hubspot_api_key)) {
             update_option('ukpa_hubspot_api_key', $hubspot_api_key);
@@ -112,7 +114,27 @@ if (!defined('ABSPATH')) {
                                        value="<?php echo esc_attr($external_api_base_url); ?>"
                                        class="regular-text" />
                                 <p class="description">
-                                    Base URL for the External API proxy (default is <code>https://ukpacalculator.com/ana/api/external</code>).
+                                    Base URL for the External API proxy. Supports both domains:
+                                    <br><code>https://ukpacalculator.com/ana/api/external</code> (primary)
+                                    <br><code>https://apps.ukpa.co.uk/ana/api/external</code> (fallback)
+                                </p>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th scope="row">
+                                <label for="ukpa_api_preferred_domain">Preferred API Domain</label>
+                            </th>
+                            <td>
+                                <?php 
+                                $preferred_domain = get_option('ukpa_api_preferred_domain', 'ukpacalculator.com');
+                                ?>
+                                <select id="ukpa_api_preferred_domain" name="ukpa_api_preferred_domain">
+                                    <option value="ukpacalculator.com" <?php selected($preferred_domain, 'ukpacalculator.com'); ?>>ukpacalculator.com (Primary)</option>
+                                    <option value="apps.ukpa.co.uk" <?php selected($preferred_domain, 'apps.ukpa.co.uk'); ?>>apps.ukpa.co.uk (Fallback)</option>
+                                </select>
+                                <p class="description">
+                                    Choose which domain to use as primary API endpoint. The plugin will use this domain for API calls. Both domains are supported.
                                 </p>
                             </td>
                         </tr>

@@ -169,7 +169,12 @@ function ukpa_external_proxy_handler() {
         }
         set_transient($rate_key, $count + 1, 60);
 
-        $base_url = get_option('ukpa_external_api_base_url', 'https://ukpacalculator.com/ana/api/external');
+        // Get preferred domain and set default external API URL accordingly
+        $preferred_domain = get_option('ukpa_api_preferred_domain', 'ukpacalculator.com');
+        $default_external_url = ( $preferred_domain === 'apps.ukpa.co.uk' )
+            ? 'https://apps.ukpa.co.uk/ana/api/external'
+            : 'https://ukpacalculator.com/ana/api/external';
+        $base_url = get_option('ukpa_external_api_base_url', $default_external_url);
         $client_token = get_option('ukpa_external_api_client_token', '');
         if (empty($client_token)) {
             error_log('UKPA External Proxy: External API token is not configured');

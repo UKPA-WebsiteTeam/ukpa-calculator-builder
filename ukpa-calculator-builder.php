@@ -89,7 +89,11 @@ add_action('admin_enqueue_scripts', function ($hook) {
     $selected_website = get_option('ukpa_selected_website', 'UKPA');
     $external_api_base_url = get_option('ukpa_external_api_base_url', 'https://ukpacalculator.com/ana/api/external');
     $local_api_base_url = 'http://192.168.18.54:3002/ana/v1';
-    $live_api_base_url = 'https://ukpacalculator.com/api/v1';
+    // Use preferred domain for live API URL
+    $preferred_domain = get_option('ukpa_api_preferred_domain', 'ukpacalculator.com');
+    $live_api_base_url = ( $preferred_domain === 'apps.ukpa.co.uk' ) 
+        ? 'https://apps.ukpa.co.uk/api/v1' 
+        : 'https://ukpacalculator.com/api/v1';
 
     $calc_id = isset($_GET['calc_id']) ? sanitize_text_field($_GET['calc_id']) : '';
     $calc_data = get_option('ukpa_calc_' . $calc_id, []);
@@ -139,7 +143,12 @@ add_action('wp_enqueue_scripts', function () {
         // ✅ Minimal config always available for pages that need WP AJAX proxying (e.g., embedded calculators)
         $plugin_token = get_option('ukpa_plugin_token', '');
         $selected_website = get_option('ukpa_selected_website', 'UKPA');
-        $external_api_base_url = get_option('ukpa_external_api_base_url', 'https://ukpacalculator.com/ana/api/external');
+        // Get external API URL - use preferred domain or fallback to default
+        $preferred_domain = get_option('ukpa_api_preferred_domain', 'ukpacalculator.com');
+        $default_external_url = ( $preferred_domain === 'apps.ukpa.co.uk' )
+            ? 'https://apps.ukpa.co.uk/ana/api/external'
+            : 'https://ukpacalculator.com/ana/api/external';
+        $external_api_base_url = get_option('ukpa_external_api_base_url', $default_external_url);
         $recaptcha_site_key = get_option('ukpa_recaptcha_site_key', '6Lfy0gcsAAAAAOJAbtam6WBI8nj09N2ebYIIKdKW');
 
         // Bootstrap script (no external file) to define window.ukpa_api_data everywhere.
@@ -261,16 +270,46 @@ if ( ! defined( 'UKPA_CALC_LOCAL_API_URL' ) ) {
 }
 if ( ! defined( 'UKPA_CALC_LIVE_API_URL' ) ) {
     // Production backend URL (Node/ANA service, not Next.js /api)
+    // Primary domain
     define( 'UKPA_CALC_LIVE_API_URL', 'https://ukpacalculator.com/ana' );
 }
+if ( ! defined( 'UKPA_CALC_LIVE_API_URL_FALLBACK' ) ) {
+    // Fallback domain (apps.ukpa.co.uk)
+    define( 'UKPA_CALC_LIVE_API_URL_FALLBACK', 'https://apps.ukpa.co.uk/ana' );
+}
 
-// Helper function to get the correct API URL
+// Helper function to get the correct API URL with fallback support
 if ( ! function_exists( 'ukpa_get_api_url' ) ) {
     function ukpa_get_api_url() {
-        // Use local if WP_DEBUG is true, otherwise use live
+        // Use local if WP_DEBUG is true
         if ( defined('WP_DEBUG') && WP_DEBUG ) {
             return UKPA_CALC_LOCAL_API_URL;
         }
+        
+        // Check if primary domain is configured/preferred via option
+        $preferred_domain = get_option('ukpa_api_preferred_domain', 'ukpacalculator.com');
+        
+        if ( $preferred_domain === 'apps.ukpa.co.uk' ) {
+            // Use fallback as primary if configured
+            return UKPA_CALC_LIVE_API_URL_FALLBACK;
+        }
+        
+        // Default: use primary domain
         return UKPA_CALC_LIVE_API_URL;
+    }
+}
+
+// Helper function to get fallback API URL
+if ( ! function_exists( 'ukpa_get_api_url_fallback' ) ) {
+    function ukpa_get_api_url_fallback() {
+        if ( defined('WP_DEBUG') && WP_DEBUG ) {
+            return UKPA_CALC_LOCAL_API_URL;
+        }
+        
+        $primary = ukpa_get_api_url();
+        // Return the opposite domain as fallback
+        return ( $primary === UKPA_CALC_LIVE_API_URL ) 
+            ? UKPA_CALC_LIVE_API_URL_FALLBACK 
+            : UKPA_CALC_LIVE_API_URL;
     }
 }
