@@ -83,6 +83,14 @@ export function createAddressSection(userId, displayName) {
         tooltip.className = 'address-tooltip';
         tooltip.textContent = tooltipText;
         
+        // Set initial styles to ensure tooltip is ready
+        tooltip.style.display = 'block';
+        tooltip.style.position = 'absolute';
+        tooltip.style.zIndex = '10000';
+        tooltip.style.opacity = '0';
+        tooltip.style.visibility = 'hidden';
+        tooltip.style.pointerEvents = 'none';
+        
         // Create wrapper and move trigger into it
         const tooltipWrapper = document.createElement('span');
         tooltipWrapper.className = 'tooltip-wrapper';
@@ -93,10 +101,128 @@ export function createAddressSection(userId, displayName) {
         tooltipWrapper.appendChild(trigger);
         tooltipWrapper.appendChild(tooltip);
         
+        // Function to calculate and set tooltip positioning and width
+        const positionTooltip = (isVisible = false) => {
+          // Find the closest form container or address section
+          const formContainer = section.closest('form#setupStep') || section.closest('.custom_forms');
+          const addressSection = section.closest('.address-section');
+          const parentContainer = formContainer || addressSection || document.body;
+          
+          if (parentContainer) {
+            const containerWidth = parentContainer.getBoundingClientRect().width;
+            const viewportWidth = window.innerWidth;
+            // Use the smaller of container width or viewport width, minus padding, but cap at 500px
+            const maxWidth = Math.min(containerWidth - 40, viewportWidth - 40, 500);
+            tooltip.style.maxWidth = `${maxWidth}px`;
+          }
+          
+          // Get wrapper measurements
+          const wrapperRect = tooltipWrapper.getBoundingClientRect();
+          const viewportHeight = window.innerHeight;
+          const viewportWidth = window.innerWidth;
+          
+          // Temporarily make tooltip visible to measure it if not already visible
+          const wasHidden = !isVisible && tooltip.style.opacity !== '1';
+          if (wasHidden) {
+            tooltip.style.opacity = '0';
+            tooltip.style.visibility = 'hidden';
+            tooltip.style.display = 'block';
+            tooltip.style.pointerEvents = 'none';
+          }
+          
+          // Force a reflow to get accurate measurements
+          void tooltip.offsetHeight;
+          
+          // Get tooltip measurements
+          const tooltipRect = tooltip.getBoundingClientRect();
+          const tooltipHeight = tooltipRect.height || 150;
+          const tooltipWidth = tooltipRect.width || 300;
+          
+          // Check if tooltip would be clipped at the top
+          const spaceAbove = wrapperRect.top;
+          const spaceBelow = viewportHeight - wrapperRect.bottom;
+          
+          // Reset positioning
+          tooltip.style.left = '';
+          tooltip.style.right = '';
+          tooltip.style.top = '';
+          tooltip.style.bottom = '';
+          tooltip.style.transform = '';
+          tooltip.style.marginTop = '';
+          tooltip.style.marginBottom = '';
+          tooltip.style.marginLeft = '';
+          tooltip.style.marginRight = '';
+          
+          // Determine vertical position
+          if (spaceAbove < tooltipHeight + 20 && spaceBelow > spaceAbove) {
+            // Position below
+            tooltip.style.bottom = 'auto';
+            tooltip.style.top = '100%';
+            tooltip.style.marginTop = '8px';
+            tooltip.style.marginBottom = '0';
+            tooltip.classList.add('tooltip-below');
+            tooltip.classList.remove('tooltip-above');
+          } else {
+            // Position above (default)
+            tooltip.style.bottom = '100%';
+            tooltip.style.top = 'auto';
+            tooltip.style.marginTop = '0';
+            tooltip.style.marginBottom = '8px';
+            tooltip.classList.add('tooltip-above');
+            tooltip.classList.remove('tooltip-below');
+          }
+          
+          // Calculate horizontal position
+          const wrapperCenterX = wrapperRect.left + (wrapperRect.width / 2);
+          const tooltipLeft = wrapperCenterX - (tooltipWidth / 2);
+          const tooltipRight = wrapperCenterX + (tooltipWidth / 2);
+          
+          if (tooltipLeft < 10) {
+            // Too far left
+            tooltip.style.left = '0';
+            tooltip.style.transform = 'none';
+            tooltip.style.marginLeft = '10px';
+          } else if (tooltipRight > viewportWidth - 10) {
+            // Too far right
+            tooltip.style.left = 'auto';
+            tooltip.style.right = '0';
+            tooltip.style.transform = 'none';
+            tooltip.style.marginRight = '10px';
+          } else {
+            // Center it
+            tooltip.style.left = '50%';
+            tooltip.style.transform = 'translateX(-50%)';
+          }
+        };
+        
+        // Set initial positioning after DOM is ready
+        setTimeout(() => {
+          positionTooltip(false);
+        }, 100);
+        
+        // Update on window resize
+        let resizeTimeout;
+        const handleResize = () => {
+          clearTimeout(resizeTimeout);
+          resizeTimeout = setTimeout(() => {
+            const isVisible = tooltip.style.opacity === '1';
+            positionTooltip(isVisible);
+          }, 100);
+        };
+        window.addEventListener('resize', handleResize);
+        
         // Add hover events
         tooltipWrapper.addEventListener('mouseenter', () => {
+          // Make visible first
+          tooltip.style.display = 'block';
           tooltip.style.opacity = '1';
           tooltip.style.visibility = 'visible';
+          tooltip.style.pointerEvents = 'none';
+          
+          // Position after a brief delay to ensure measurements are accurate
+          requestAnimationFrame(() => {
+            positionTooltip(true);
+          });
         });
         
         tooltipWrapper.addEventListener('mouseleave', () => {

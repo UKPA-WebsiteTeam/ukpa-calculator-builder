@@ -2,7 +2,6 @@ export function createInfoTooltip(tooltipText) {
     // Create container
     const container = document.createElement('span');
     container.className = 'tooltip-container';
-    container.style.position = 'relative';
     container.style.display = 'inline-block';
     container.style.verticalAlign = 'middle';
   
@@ -22,42 +21,33 @@ export function createInfoTooltip(tooltipText) {
     const tooltip = document.createElement('span');
     tooltip.className = 'tooltip';
     tooltip.textContent = tooltipText;
-  
-    // Tooltip styling
-    tooltip.style.position = 'absolute';
-    tooltip.style.top = '-0.5em';
-    tooltip.style.left = '2em';
-    tooltip.style.background = '#e3e3e354';
-    tooltip.style.padding = '0.3em 0.6em';
-    tooltip.style.border = '1px solid #e3e3e3';
-    tooltip.style.borderRadius = '0.5em';
-    tooltip.style.fontSize = '0.85em';
-    tooltip.style.fontWeight = 'normal';
-    tooltip.style.whiteSpace = 'normal';
-    tooltip.style.maxWidth = '300px';
-    tooltip.style.wordWrap = 'break-word';
-    tooltip.style.overflowWrap = 'break-word';
-    tooltip.style.wordBreak = 'break-word';
-    tooltip.style.opacity = '0';
-    tooltip.style.pointerEvents = 'none';
-    tooltip.style.transition = 'all 0.2s';
-    tooltip.style.zIndex = '10';
-    tooltip.style.boxSizing = 'border-box';
+
+    // Function to set tooltip max-width (CSS handles positioning)
+    const setTooltipWidth = () => {
+      const viewportWidth = window.innerWidth;
+      const isMobile = viewportWidth <= 600;
+      // Set max-width, CSS will handle the rest
+      tooltip.style.maxWidth = isMobile ? 'calc(100vw - 2em)' : '500px';
+      tooltip.style.width = 'auto';
+      tooltip.style.minWidth = '250px';
+    };
+
+    // Set initial width
+    setTimeout(setTooltipWidth, 0);
     
-    // Mobile detection and responsive styles
-    const isMobile = window.innerWidth <= 600;
-    if (isMobile) {
-      tooltip.style.maxWidth = 'calc(100vw - 2em)';
-      tooltip.style.whiteSpace = 'normal';
-    }
+    // Update on window resize
+    window.addEventListener('resize', setTooltipWidth);
   
     // Show on hover
     container.addEventListener('mouseenter', () => {
+      setTooltipWidth();
       tooltip.style.opacity = '1';
-      tooltip.style.pointerEvents = 'auto';
+      tooltip.style.visibility = 'visible';
+      tooltip.style.pointerEvents = 'none';
     });
     container.addEventListener('mouseleave', () => {
       tooltip.style.opacity = '0';
+      tooltip.style.visibility = 'hidden';
       tooltip.style.pointerEvents = 'none';
     });
   

@@ -38,6 +38,7 @@ require_once UKPA_CALC_PATH . 'includes/custom-assets-injector.php';
 require_once UKPA_CALC_PATH . 'includes/auto-updater.php';
 require_once UKPA_CALC_PATH . 'includes/idv-form-shortcode.php';
 require_once UKPA_CALC_PATH . 'includes/income-tax-shortcode.php';
+require_once UKPA_CALC_PATH . 'includes/iframe-calculator-shortcode.php';
 
 // ✅ Chatbot system - DISABLED
 // require_once UKPA_CALC_PATH . 'includes/chatbot-nlp.php';
